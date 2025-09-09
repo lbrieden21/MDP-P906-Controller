@@ -2310,8 +2310,8 @@ class MDPSettings(QtWidgets.QDialog, FramelessWindow):
         self.ui.comboBoxPort.addItem(self.tr("自动"))
         ports = []
         for port in comports():
-            self.ui.comboBoxPort.addItem(port.name)
-            ports.append(port.name)
+            self.ui.comboBoxPort.addItem(port.device)
+            ports.append(port.device)
         if setting.comport not in ports:
             self.ui.comboBoxPort.setCurrentText(self.tr("自动"))
         else:

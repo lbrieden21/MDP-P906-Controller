@@ -3,6 +3,8 @@
 .idea
 .venv
 
+venv/
+
 # project out
 build
 build-opengl
