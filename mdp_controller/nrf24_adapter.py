@@ -13,8 +13,9 @@ from mdp_controller.serial_reader import SerialReaderBuffered
 
 
 def _find_port_name(hwid):
+    hwid = hwid.upper()
     for ser in serial.tools.list_ports.comports():
-        if hwid in ser.hwid:
+        if hwid in ser.hwid.upper():
             return ser.device
     return None
 
@@ -157,7 +158,7 @@ class NRF24Adapter:
     ):
         self._port_name = port
         if not self._port_name:
-            self._port_name = _find_port_name("1A86:7523")
+            self._port_name = _find_port_name("10C4:EA60")
         if not self._port_name:
             raise Exception("NRF24-Adapter not found")
         self._counter = SpeedCounter()
