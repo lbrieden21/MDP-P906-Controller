@@ -32,6 +32,7 @@ A lot of time was spent optimizing the communication quality based on this proje
 - Function generator (sine/square/triangle/sawtooth/random)
 - Operation sequence (single or loop execution of action sequences)
 - Battery simulator (supports custom battery voltage curves/capacity/internal resistance/series-connection settings)
+- Multi-device support: connect and monitor several power supplies at once, each with its own panel and independent link/unlink control
 - Data floating window
 - Customizable waveform buffer length
 - Material Design style with two color themes
@@ -95,6 +96,10 @@ Refer to the code and the comments.
 ### Control by GUI
 
 I have released a PyInstaller packaged version, you can just download and run it. Everything is out of the box.
+
+#### Multiple Devices
+
+The GUI can drive more than one device at a time. Open **Connection Settings**, use the **+**/**-** buttons next to the device selector to add or remove a device, and configure each one's IDCODE/color/channel there. Every device gets its own panel (stacked in the left column) with its own **LINK/UNLINK** button, so devices can be connected and disconnected independently of each other — the radio adapter itself stays shared and opens/closes automatically as needed.
 
 #### GUI Environment Variables
 

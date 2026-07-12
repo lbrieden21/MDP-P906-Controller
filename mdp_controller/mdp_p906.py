@@ -1,17 +1,14 @@
 import time
-from copy import deepcopy
 from threading import Event
-from typing import Callable, List, Literal, Optional, Tuple
+from typing import TYPE_CHECKING, Callable, List, Optional, Tuple
 
 from loguru import logger
 
 import mdp_controller.mdp_protocal as mdp_protocal
-from mdp_controller.nrf24_adapter import (
-    NRF24Adapter,
-    NRF24AdapterError,
-    NRF24AdapterSetting,
-    SpeedCounter,
-)
+from mdp_controller.nrf24_adapter import NRF24AdapterError
+
+if TYPE_CHECKING:
+    from mdp_controller.bus import MDPBus
 
 
 def _convert_to_rgb565(r: int, g: int, b: int) -> int:
@@ -26,46 +23,35 @@ def _hex_to_bytes(s: str) -> bytes:
 class MDP_P906:
     def __init__(
         self,
-        port: Optional[str] = None,
-        baudrate: int = 921600,
-        address: str = "AA:BB:CC:DD:EE",
-        freq: int = 2442,
+        bus: "MDPBus",
         idcode: Optional[str] = None,
         m01_channel: int = 0,
         led_color: Tuple[int, int, int] = (0x66, 0xCC, 0xFF),
         com_timeout: Optional[float] = 0.04,
         com_retry: int = 5,
-        tx_output_power: Literal[
-            "7dBm", "4dBm", "3dBm", "1dBm", "0dBm", "-4dBm", "-6dBm", "-12dBm"
-        ] = "4dBm",
         blink: bool = True,
         debug: bool = False,
     ):
         """
-        Initialize MDP-P906 Digital Power Supply Controller.
+        MDP-P906 Digital Power Supply Controller driver.
 
         Args:
-            port (Optional[str]): Port of the nrf24l01 adapter, None to autodetect.
-            baudrate (int): Baudrate of the nrf24l01 adapter.
-            address (str): 5-byte wireless address of the nrf24l01 adapter.
-            freq (int): Wireless frequency of the nrf24l01 adapter, 2400~2525 MHz.
-            idcode (Optional[str]): ID code of the MDP-P906, set to None then call auto_match() to get idcode.
+            bus (MDPBus): The shared transport this device attaches to (see bus.attach()).
+            idcode (Optional[str]): ID code of the MDP-P906, set to None then call bus.auto_match() to get idcode.
             m01_channel (int): Simulate the MDP-M01, this number shows on top-right of P906's LCD.
             led_color (Tuple[int, int, int]): Color of the digital wheel of the P906, in RGB format.
             com_timeout (Optional[float]): Communication timeout in seconds between P906 and the adapter.
             com_retry (int): Communication retry times when timeout occurs.
-            tx_output_power (Literal): Signal output power of the nrf24l01 adapter.
             blink (bool): Whether to blink the "under-control" indicator of the P906.
             debug (bool): Show debug info.
         """
-        self._adp = NRF24Adapter(port=port, baudrate=baudrate, debug=debug)
-        self._address = _hex_to_bytes(address)
+        self._bus = bus
+        self.address: Optional[bytes] = None
         self._idcode = _hex_to_bytes(idcode) if idcode is not None else None
         self._m01_channel = m01_channel
         self._led_color = _convert_to_rgb565(*led_color)
         self._com_timeout = com_timeout
         self._com_retry = com_retry
-        self._freq = freq
         self._blink = blink
         self._debug = debug
         self._status = {
@@ -86,35 +72,29 @@ class MDP_P906:
             "RealtimeOutput9": [0.0 for _ in range(9)],
         }
 
-        self._adp.nrf_register_recv_callback(self._callback)
         self._transfer_data = b""
         self._transfer_wait_header = -1
         self._transfer_event = Event()
 
         self._rtvalue_callback: Optional[Callable[[list], None]] = None
 
-        if not self._adp.wait_connected():
-            self.close()
-            raise Exception("NRF24-Adapter wait connection timeout")
-        setting = NRF24AdapterSetting(
-            freq=self._freq,
-            air_data_rate="2Mbps",
-            address_width=5,
-            address=self._address,
-            tx_output_power=tx_output_power,
-            crc_length="crc16",
-            payload_length=32,
-            auto_retransmit_count=12,
-            auto_retransmit_delay=250,
-        )
-        self._adp.nrf_set_settings(setting)
-        time.sleep(0.1)
+    @property
+    def idcode(self) -> Optional[bytes]:
+        return self._idcode
 
     @property
-    def speed_counter(self) -> SpeedCounter:
-        return self._adp.speed_counter
+    def com_timeout(self) -> Optional[float]:
+        return self._com_timeout
 
-    def _callback(self, data: bytes):
+    @property
+    def com_retry(self) -> int:
+        return self._com_retry
+
+    @property
+    def speed_counter(self):
+        return self._bus.speed_counter
+
+    def _on_packet(self, data: bytes):
         try:
             if data[0] == 7:
                 (
@@ -192,34 +172,11 @@ class MDP_P906:
             self._transfer_wait_header = -1
             self._transfer_event.set()
 
-    def _transfer(
-        self,
-        packet: bytes,
-        wait_response: bool = True,
-        _retry=None,
-    ):
-        if not wait_response:
-            self._adp.nrf_send(packet, timeout=self._com_timeout)
-            return b""
-        if _retry is None:
-            _retry = self._com_retry
-        self._transfer_data = b""
-        self._transfer_wait_header = packet[0]
-        self._transfer_event.clear()
-        try:
-            self._adp.nrf_send(packet, timeout=self._com_timeout)
-        except NRF24AdapterError:
-            if _retry > 0:
-                return self._transfer(packet, wait_response, _retry - 1)
-            raise
-        if not self._transfer_event.wait(self._com_timeout):
-            if _retry > 0:
-                return self._transfer(packet, wait_response, _retry - 1)
-            raise TimeoutError("NRF24 timeout")
-        return self._transfer_data
+    def _transfer(self, packet: bytes, wait_response: bool = True):
+        return self._bus.transfer(self, packet, wait_response)
 
     def close(self):
-        self._adp.close()
+        self._bus.detach(self)
         logger.info("MDP-P906 closed")
 
     def get_status(
@@ -434,50 +391,6 @@ class MDP_P906:
             break
         logger.debug(f"MDP init status: {self._status}")
         logger.success("MDP-P906 Connected")
-
-    def auto_match(self, try_times: int = 3) -> str:
-        """
-        Auto match with the MDP-P906.
-
-        Args:
-            try_times (int): The number of times to try to match with the MDP-P906.
-
-        Returns:
-            str: The ID code of the MDP-P906.
-
-        Raises:
-            Exception: If failed to match with the MDP-P906.
-        """
-        setting = self._adp.nrf_get_settings()
-        setting_old = deepcopy(setting)
-        setting.address = b"\xff\xff\xff\xff\xff"  # broadcast address
-        setting.freq = 2478
-        self._adp.nrf_set_settings(setting)
-        for i in range(try_times):
-            logger.info(f"Auto matching - {i+1}/{try_times}")
-            try:
-                data = self._transfer(mdp_protocal.gen_call_for_id())
-            except (NRF24AdapterError, TimeoutError):
-                time.sleep(1)
-                continue
-            if data[0] == 0x05:
-                self._idcode = mdp_protocal.parse_type5_response(data)
-                logger.info(f"Found device - {self._idcode.hex().upper()}")
-                break
-            logger.warning(f"Unhandled response - {data.hex(' ').upper()}")
-        if self._idcode is None:
-            raise Exception("Failed to auto match with MDP-P906")
-        data = self._transfer(
-            mdp_protocal.gen_dispatch_ch_addr(self._address, self._freq - 2400)
-        )
-        logger.info(
-            f"Dispatched device to address {self._address.hex(':').upper()} with freq {self._freq} Mhz"
-        )
-        self._adp.nrf_set_settings(setting_old)
-        logger.success(
-            f"Successfully auto matched (idcode: {self._idcode.hex().upper()})"
-        )
-        return self._idcode.hex().upper()
 
     def update_gain_offset(self) -> Tuple[int, int, int, int]:
         """

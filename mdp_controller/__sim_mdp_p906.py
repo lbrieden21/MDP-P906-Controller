@@ -42,7 +42,7 @@ class SpeedCounter:
         return self._error_rate
 
 
-class MDP_P906:
+class MDPBus:
     """
     SIMULATED VERSION, FOR TESTING ONLY
     """
@@ -53,14 +53,51 @@ class MDP_P906:
         baudrate: int = 921600,
         address: str = "AA:BB:CC:DD:EE",
         freq: int = 2442,
+        tx_output_power: Literal[
+            "7dBm", "4dBm", "3dBm", "1dBm", "0dBm", "-4dBm", "-6dBm", "-12dBm"
+        ] = "4dBm",
+        debug: bool = False,
+    ):
+        logger.info(
+            f"MDPBus init params: port={port}, baudrate={baudrate}, address={address}, "
+            f"freq={freq}, tx_output_power={tx_output_power}, debug={debug}"
+        )
+
+    @property
+    def speed_counter(self) -> SpeedCounter:
+        return SpeedCounter()
+
+    def attach(self, device, pipe: int = 0):
+        logger.info(f"Attach device to pipe {pipe}")
+        device.address = b"\x00" * 5
+
+    def detach(self, device):
+        logger.info("Detach device")
+
+    def transfer(self, owner, packet: bytes, wait_response: bool = True) -> bytes:
+        return b""
+
+    def auto_match(self, try_times: int = 3) -> Tuple[str, int]:
+        logger.info("Auto match")
+        return "11223344", 0
+
+    def close(self):
+        logger.info("MDPBus closed")
+
+
+class MDP_P906:
+    """
+    SIMULATED VERSION, FOR TESTING ONLY
+    """
+
+    def __init__(
+        self,
+        bus: "MDPBus",
         idcode: Optional[str] = None,
         m01_channel: int = 0,
         led_color: Tuple[int, int, int] = (0x66, 0xCC, 0xFF),
         com_timeout: Optional[float] = 0.04,
         com_retry: int = 5,
-        tx_output_power: Literal[
-            "7dBm", "4dBm", "3dBm", "1dBm", "0dBm", "-4dBm", "-6dBm", "-12dBm"
-        ] = "4dBm",
         blink: bool = True,
         debug: bool = False,
     ):
@@ -68,25 +105,22 @@ class MDP_P906:
         Initialize MDP-P906 Digital Power Supply Controller.
 
         Args:
-            port (Optional[str]): Port of the nrf24l01 adapter, None to autodetect.
-            baudrate (int): Baudrate of the nrf24l01 adapter.
-            address (str): 5-byte wireless address of the nrf24l01 adapter.
-            freq (int): Wireless frequency of the nrf24l01 adapter, 2400~2525 MHz.
-            idcode (Optional[str]): ID code of the MDP-P906, set to None then call auto_match() to get idcode.
+            bus (MDPBus): The shared transport this device attaches to (see bus.attach()).
+            idcode (Optional[str]): ID code of the MDP-P906, set to None then call bus.auto_match() to get idcode.
             m01_channel (int): Simulate the MDP-M01, this number shows on top-right of P906's LCD.
             led_color (Tuple[int, int, int]): Color of the digital wheel of the P906, in RGB format.
             com_timeout (Optional[float]): Communication timeout in seconds between P906 and the adapter.
             com_retry (int): Communication retry times when timeout occurs.
-            tx_output_power (Literal): Signal output power of the nrf24l01 adapter.
             blink (bool): Whether to blink the "under-control" indicator of the P906.
             debug (bool): Show debug info.
         """
         logger.info(
-            f"MDP-P906 init params: port={port}, baudrate={baudrate}, address={address}, "
-            f"freq={freq}, idcode={idcode}, m01_channel={m01_channel}, led_color={led_color}, "
-            f"com_timeout={com_timeout}, com_retry={com_retry}, tx_output_power={tx_output_power}, "
+            f"MDP-P906 init params: bus={bus}, idcode={idcode}, m01_channel={m01_channel}, "
+            f"led_color={led_color}, com_timeout={com_timeout}, com_retry={com_retry}, "
             f"blink={blink}, debug={debug}"
         )
+        self._bus = bus
+        self._idcode = idcode
         self._rtvalue_callback = None
         self._output_state = False
         self._voltage_set = 5
@@ -109,7 +143,12 @@ class MDP_P906:
         v = min(self._voltage_set, self._current_set * self._simulated_r)
         return v, i
 
+    @property
+    def idcode(self) -> Optional[str]:
+        return self._idcode
+
     def close(self):
+        self._bus.detach(self)
         logger.info("MDP-P906 closed")
 
     def get_status(
@@ -166,7 +205,7 @@ class MDP_P906:
 
     @property
     def speed_counter(self) -> SpeedCounter:
-        return SpeedCounter()
+        return self._bus.speed_counter
 
     def get_realtime_value(self) -> List[Tuple[float, float]]:
         """
@@ -266,22 +305,6 @@ class MDP_P906:
             Exception: If failed to connect to the MDP-P906.
         """
         logger.success("MDP-P906 Connected")
-
-    def auto_match(self, try_times: int = 3) -> str:
-        """
-        Auto match with the MDP-P906.
-
-        Args:
-            try_times (int): The number of times to try to match with the MDP-P906.
-
-        Returns:
-            str: The ID code of the MDP-P906.
-
-        Raises:
-            Exception: If failed to match with the MDP-P906.
-        """
-        logger.info("Auto match")
-        return "11223344"
 
     def update_gain_offset(self) -> Tuple[int, int, int, int]:
         """

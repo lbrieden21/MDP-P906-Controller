@@ -1,21 +1,19 @@
 import time
 
-from mdp_controller import MDP_P906
+from mdp_controller import MDP_P906, MDPBus
 
 if __name__ == "__main__":
-    mdp = MDP_P906(
-        freq=2521,
-        idcode="08375434",
-        led_color=(0x66, 0xCC, 0xFF),
-        debug=False,
-        tx_output_power="4dBm",
-    )
+    bus = MDPBus(freq=2521, tx_output_power="4dBm", debug=False)
+    mdp = MDP_P906(bus, idcode="08375434", led_color=(0x66, 0xCC, 0xFF), debug=False)
 
     try:
+        bus.attach(mdp, 0)
         mdp.connect()
     except Exception:
         print("Connection failed, try to auto match")
-        mdp.auto_match()
+        idcode, pipe = bus.auto_match()
+        mdp = MDP_P906(bus, idcode=idcode, led_color=(0x66, 0xCC, 0xFF), debug=False)
+        bus.attach(mdp, pipe)
         mdp.connect()
 
     mdp.set_voltage(5)

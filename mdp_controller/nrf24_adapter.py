@@ -28,12 +28,14 @@ class RESPONSE:
     BAUDRATE_SET = 0x04  # baudrate set
     NRF_SEND_OK = 0x10  # NRF24L01P send done
     NRF_SEND_FAIL = 0x11  # NRF24L01P send failed
-    NRF_RECV_OK = 0x12  # NRF24L01P receive done
+    NRF_RECV_OK = 0x12  # NRF24L01P receive done (payload: pipe byte + raw frame)
     NRF_RECV_FAIL = 0x13  # NRF24L01P receive failed
     NRF_FIFO_OVERFLOW = 0x15  # NRF24L01P FIFO overflow
     NRF_INIT = 0x20  # NRF24L01P init done
     NRF_SET_SAVED = 0x21  # NRF24L01P setting saved
     NRF_SET_QUERY = 0x22  # NRF24L01P setting query result
+    NRF_PIPE_OPENED = 0x23  # NRF24L01P RX pipe opened
+    NRF_TX_TARGET_SET = 0x24  # NRF24L01P TX/RX_P0 address retargeted
     ECHO = 0xFF  # echo
 
 
@@ -45,6 +47,8 @@ class CMD:
     NRF_SET = 0x20  # nrf24l01p set setting (9 bytes see nrf24l01_init)
     NRF_SAVE = 0x21  # nrf24l01p save setting (no arg)
     NRF_QUERY = 0x22  # nrf24l01p query setting (same as nrf24l01_init)
+    NRF_OPEN_PIPE = 0x23  # nrf24l01p open RX pipe (pipe_num 1-5, address[5])
+    NRF_SET_TX_TARGET = 0x24  # nrf24l01p retarget TX_ADDR/RX_ADDR_P0 (address[5])
     ECHO = 0xFF  # echo
 
 
@@ -171,7 +175,7 @@ class NRF24Adapter:
         self._debug = debug
         self._connect_event = threading.Event()
         self._send_event = threading.Event()
-        self._recv_callback: Optional[Callable[[bytes], None]] = None
+        self._recv_callback: Optional[Callable[[int, bytes], None]] = None
         self._query_event = threading.Event()
         self._query_data = b""
         self._action_event = threading.Event()
@@ -283,11 +287,12 @@ class NRF24Adapter:
             self._counter.resp_err()
             logger.warning("NRF Response: NRF send no ack")
         elif cmd == RESPONSE.NRF_RECV_OK:
-            self._counter.update(len(data), check_resp=False)
+            pipe, payload = data[0], data[1:]
+            self._counter.update(len(payload), check_resp=False)
             if self._recv_callback is not None:
-                self._recv_callback(data)
+                self._recv_callback(pipe, payload)
             if self._debug:
-                logger.trace(f"NRF Response: NRF received {data.hex(' ')}")
+                logger.trace(f"NRF Response: NRF received (pipe {pipe}) {payload.hex(' ')}")
         elif cmd == RESPONSE.NRF_RECV_FAIL:
             logger.warning("NRF Response: NRF receive failed")
         elif cmd == RESPONSE.NRF_FIFO_OVERFLOW:
@@ -303,6 +308,13 @@ class NRF24Adapter:
             self._query_event.set()
             if self._debug:
                 logger.trace(f"NRF Response: NRF setting {data.hex(' ')}")
+        elif cmd == RESPONSE.NRF_PIPE_OPENED:
+            logger.info(f"NRF Response: Pipe opened - {data[0] if data else '?'}")
+            self._action_event.set()
+        elif cmd == RESPONSE.NRF_TX_TARGET_SET:
+            if self._debug:
+                logger.trace("NRF Response: TX target set")
+            self._action_event.set()
         else:
             logger.error(f"NRF Response: Unknown cmd {cmd:02X}")
 
@@ -340,8 +352,24 @@ class NRF24Adapter:
             else:
                 self._send_event.clear()
 
-    def nrf_register_recv_callback(self, callback: Callable[[bytes], None]):
+    def nrf_register_recv_callback(self, callback: Callable[[int, bytes], None]):
         self._recv_callback = callback
+
+    def nrf_open_pipe(self, pipe: int, address: bytes, timeout: Optional[float] = 2):
+        assert 1 <= pipe <= 5, "Pipe must be between 1 and 5"
+        assert (
+            isinstance(address, bytes) and len(address) == 5
+        ), "Address must be bytes and length must be 5"
+        if not self._action(CMD.NRF_OPEN_PIPE, bytes([pipe]) + address, timeout):
+            raise NRF24AdapterError(f"NRF open pipe {pipe} failed")
+        logger.info(f"NRF24-Adapter opened pipe {pipe} -> {address.hex(':').upper()}")
+
+    def nrf_set_tx_target(self, address: bytes, timeout: Optional[float] = 2):
+        assert (
+            isinstance(address, bytes) and len(address) == 5
+        ), "Address must be bytes and length must be 5"
+        if not self._action(CMD.NRF_SET_TX_TARGET, address, timeout):
+            raise NRF24AdapterError("NRF set TX target failed")
 
     def nrf_get_settings(self, timeout: Optional[float] = 2) -> NRF24AdapterSetting:
         self._query_event.clear()

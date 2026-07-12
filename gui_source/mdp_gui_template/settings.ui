@@ -686,6 +686,85 @@
     </widget>
    </item>
    <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_deviceSelect" stretch="2,3,0,0">
+     <item>
+      <widget class="QLabel" name="label_deviceSelect">
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>28</height>
+        </size>
+       </property>
+       <property name="font">
+        <font>
+         <family>Sarasa Fixed SC SemiBold</family>
+        </font>
+       </property>
+       <property name="text">
+        <string>设备</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+       <property name="margin">
+        <number>6</number>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="comboBoxDevice">
+       <property name="font">
+        <font>
+         <family>Sarasa Fixed SC SemiBold</family>
+        </font>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btnDeviceAdd">
+       <property name="maximumSize">
+        <size>
+         <width>28</width>
+         <height>16777215</height>
+        </size>
+       </property>
+       <property name="font">
+        <font>
+         <family>Sarasa Fixed SC SemiBold</family>
+        </font>
+       </property>
+       <property name="toolTip">
+        <string>添加设备</string>
+       </property>
+       <property name="text">
+        <string>+</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btnDeviceRemove">
+       <property name="maximumSize">
+        <size>
+         <width>28</width>
+         <height>16777215</height>
+        </size>
+       </property>
+       <property name="font">
+        <font>
+         <family>Sarasa Fixed SC SemiBold</family>
+        </font>
+       </property>
+       <property name="toolTip">
+        <string>删除当前设备</string>
+       </property>
+       <property name="text">
+        <string>-</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
     <layout class="QHBoxLayout" name="horizontalLayout_38" stretch="2,3">
      <item>
       <widget class="QPushButton" name="btnMatch">
