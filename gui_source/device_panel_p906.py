@@ -31,9 +31,20 @@ CHANNELS = [
         "Ω",
         hide_above=OPEN_R,
     ),
+    ChannelSpec("energy", QtCore.QCoreApplication.translate("MDPMainwindow", "能量"), "J"),
+    ChannelSpec(
+        "temperature", QtCore.QCoreApplication.translate("MDPMainwindow", "温度"), "°F"
+    ),
 ]
 CHANNEL_BY_KEY = {c.key: c for c in CHANNELS}
-CHANNEL_SHORT = {"voltage": "V", "current": "I", "power": "P", "resistance": "R"}
+CHANNEL_SHORT = {
+    "voltage": "V",
+    "current": "I",
+    "power": "P",
+    "resistance": "R",
+    "energy": "E",
+    "temperature": "T",
+}
 RECORD_CHANNELS = [CHANNEL_BY_KEY["voltage"], CHANNEL_BY_KEY["current"]]
 
 
@@ -61,6 +72,7 @@ class P906DevicePanel(DevicePanelBase):
         self._output_state = False
         self.output_state_str = ""
         self.open_r = OPEN_R
+        self._temp_f = 0.0
         self.continuous_energy_counter = 0
         self.model = "Unknown"
         self.fps_counter = FPSCounter()
@@ -76,10 +88,24 @@ class P906DevicePanel(DevicePanelBase):
         self.ui.listSeq.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.ui.spinBoxVoltage.setSingleStep(0.001)
         self.ui.spinBoxCurrent.setSingleStep(0.001)
+        # Only step actions (arrows/wheel) should apply live via valueChanged;
+        # typed edits must wait for editingFinished (Enter/focus-loss), not
+        # fire on every keystroke.
+        self.ui.spinBoxVoltage.setKeyboardTracking(False)
+        self.ui.spinBoxCurrent.setKeyboardTracking(False)
         self.ui.tabWidget.tabBar().setVisible(False)
         self.ui.labelTab.setText(
             self.ui.tabWidget.tabText(self.ui.tabWidget.currentIndex())
         )
+        # QTabWidget sizes itself to its largest tab (Battery Sim/Sequence are
+        # much taller than Preset), which otherwise reserves that much room
+        # even while a short tab is showing and starves the L1060 panel's own
+        # aux area, which is stacked in the same column. Capping this leaves
+        # enough of the shared vertical budget for L1060's Presets tab to fit
+        # without scrolling; P906's own shorter tabs (like Preset) now rely on
+        # their existing internal scroll areas the same way its taller tabs
+        # already did.
+        self.ui.tabWidget.setMaximumHeight(210)
 
         self.set_interp(setting.ui.interp)
         self.refresh_preset()
@@ -183,6 +209,12 @@ class P906DevicePanel(DevicePanelBase):
             )
             return
         spin.setStepType(QtWidgets.QAbstractSpinBox.StepType.DefaultStepType)
+        if QtWidgets.QApplication.mouseButtons() == QtCore.Qt.NoButton:
+            # Cursor moved because of typing, not a click picking a digit to
+            # step. Re-selecting here would hijack normal keyboard entry
+            # (each keystroke would overwrite a single re-selected digit
+            # instead of composing the typed number).
+            return
         STEPS = {
             0: 0.001,
             -1: 0.001,
@@ -320,7 +352,8 @@ class P906DevicePanel(DevicePanelBase):
             setting.get_color("general_red") if Locked else None,
         )
         self.ui.labelInputVals.setText(f"{InputVoltage:.2f}V {InputCurrent:.2f}A")
-        self.ui.labelTemperature.setText(f"TEMP {Temperature:.1f}℃")
+        self._temp_f = Temperature * 9 / 5 + 32
+        self.ui.labelTemperature.setText(f"{Temperature:.0f}°C/{self._temp_f:.0f}°F")
         self.ui.labelError.setText(
             f"ERROR-{ErrFlag:02X}" if ErrFlag != 0 else "NO ERROR"
         )
@@ -369,17 +402,17 @@ class P906DevicePanel(DevicePanelBase):
         for widget in [
             self.ui.labelLockState,
             self.ui.labelInputVals,
-            self.ui.labelTemperature,
             self.ui.labelError,
         ]:
             set_color(widget, None)
             widget.setText("[N/A]")
+        set_color(self.ui.labelTemperature, None)
+        self.ui.labelTemperature.setText("")
         for widget in [
             self.ui.lcdVoltage,
             self.ui.lcdCurrent,
             self.ui.lcdResistence,
             self.ui.lcdPower,
-            self.ui.lcdAvgPower,
             self.ui.lcdEnerge,
         ]:
             widget.display("")
@@ -400,7 +433,6 @@ class P906DevicePanel(DevicePanelBase):
             self.ui.lcdCurrent,
             self.ui.lcdPower,
             self.ui.lcdEnerge,
-            self.ui.lcdAvgPower,
             self.ui.lcdResistence,
         ):
             lcd.setMinimumWidth(130)
@@ -410,11 +442,17 @@ class P906DevicePanel(DevicePanelBase):
         set_color(self.ui.lcdCurrent, setting.get_color("lcd_current"))
         set_color(self.ui.lcdPower, setting.get_color("lcd_power"))
         set_color(self.ui.lcdEnerge, setting.get_color("lcd_energy"))
-        set_color(self.ui.lcdAvgPower, setting.get_color("lcd_avg_power"))
+        set_color(self.ui.labelTemperature, setting.get_color("lcd_temperature"))
         set_color(self.ui.lcdResistence, setting.get_color("lcd_resistance"))
         self._enforce_lcd_min_width()
 
-    def link(self, bus, pipe=0, fps=50):
+    def refresh_led_color(self):
+        if self.api is None:
+            return
+        color_rgb = bytes.fromhex(self.settings.color.lstrip("#"))
+        self.api.set_led_color((color_rgb[0], color_rgb[1], color_rgb[2]))
+
+    def link(self, bus, pipe=0, fps=50, session_start_time=None):
         if not self.settings.idcode:
             raise ValueError(self.tr("IDCODE为空, 请先完成连接设置"))
         color_rgb = bytes.fromhex(self.settings.color.lstrip("#"))
@@ -436,7 +474,7 @@ class P906DevicePanel(DevicePanelBase):
         self.api.register_realtime_value_callback(self.state_callback)
         t = time.perf_counter()
         self._last_state_change_t = t
-        self.store.start_time = t
+        self.store.start_time = t if session_start_time is None else session_start_time
         self.store.eng_start_time = t
         self.store.last_time = t
         self.store.energy = 0
@@ -536,6 +574,7 @@ class P906DevicePanel(DevicePanelBase):
             "current": currents,
             "power": voltages * currents,
             "resistance": np.where(currents != 0, voltages / currents, self.open_r),
+            "temperature": np.full(len_, self._temp_f),
         }
         eng = self.store.append(raw_rtvalues, values, len_, t1)
         self.continuous_energy_counter += eng
@@ -550,9 +589,6 @@ class P906DevicePanel(DevicePanelBase):
             iavg = sum(store.current_tmp) / len(store.current_tmp)
             store.voltage_tmp.clear()
             store.current_tmp.clear()
-            self.ui.lcdAvgPower.display(
-                f"{store.energy / (store.last_time - store.eng_start_time):.{3+setting.ui.interp}f}"
-            )
             self.ui.lcdEnerge.display(f"{store.energy:.{3+setting.ui.interp}f}")
         power = vavg * iavg
         if iavg >= 0.002:  # 致敬P906的愚蠢adc
@@ -577,7 +613,6 @@ class P906DevicePanel(DevicePanelBase):
         self.ui.lcdCurrent.setDigitCount(6)
         self.ui.lcdResistence.setDigitCount(8)
         self.ui.lcdPower.setDigitCount(6)
-        self.ui.lcdAvgPower.setDigitCount(6 + interp)
         self.ui.lcdEnerge.setDigitCount(6 + interp)
 
     def set_data_fps(self, fps):

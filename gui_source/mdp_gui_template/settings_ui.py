@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'mdp_gui_template/settings.ui'
+# Form implementation generated from reading ui file 'settings.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.11
 #
@@ -290,6 +290,7 @@ class Ui_DialogSettings(object):
         font = QtGui.QFont()
         font.setFamily("Sarasa Fixed SC SemiBold")
         self.btnDeviceAdd.setFont(font)
+        self.btnDeviceAdd.setAutoDefault(False)
         self.btnDeviceAdd.setObjectName("btnDeviceAdd")
         self.horizontalLayout_deviceSelect.addWidget(self.btnDeviceAdd)
         self.btnDeviceRemove = QtWidgets.QPushButton(DialogSettings)
@@ -297,6 +298,7 @@ class Ui_DialogSettings(object):
         font = QtGui.QFont()
         font.setFamily("Sarasa Fixed SC SemiBold")
         self.btnDeviceRemove.setFont(font)
+        self.btnDeviceRemove.setAutoDefault(False)
         self.btnDeviceRemove.setObjectName("btnDeviceRemove")
         self.horizontalLayout_deviceSelect.addWidget(self.btnDeviceRemove)
         self.horizontalLayout_deviceSelect.setStretch(0, 2)
@@ -308,6 +310,7 @@ class Ui_DialogSettings(object):
         font = QtGui.QFont()
         font.setFamily("Sarasa Fixed SC SemiBold")
         self.btnMatch.setFont(font)
+        self.btnMatch.setAutoDefault(False)
         self.btnMatch.setObjectName("btnMatch")
         self.horizontalLayout_38.addWidget(self.btnMatch)
         self.lineEditIdcode = QtWidgets.QLineEdit(DialogSettings)
@@ -333,12 +336,12 @@ class Ui_DialogSettings(object):
         self.lineEditColor = QtWidgets.QLineEdit(DialogSettings)
         self.lineEditColor.setObjectName("lineEditColor")
         self.horizontalLayout_39.addWidget(self.lineEditColor)
-        self.lineEditColorIndicator = QtWidgets.QLineEdit(DialogSettings)
-        self.lineEditColorIndicator.setMinimumSize(QtCore.QSize(1, 0))
-        self.lineEditColorIndicator.setFrame(False)
-        self.lineEditColorIndicator.setReadOnly(True)
-        self.lineEditColorIndicator.setObjectName("lineEditColorIndicator")
-        self.horizontalLayout_39.addWidget(self.lineEditColorIndicator)
+        self.btnColorIndicator = QtWidgets.QPushButton(DialogSettings)
+        self.btnColorIndicator.setMinimumSize(QtCore.QSize(1, 0))
+        self.btnColorIndicator.setText("")
+        self.btnColorIndicator.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
+        self.btnColorIndicator.setObjectName("btnColorIndicator")
+        self.horizontalLayout_39.addWidget(self.btnColorIndicator)
         self.horizontalLayout_39.setStretch(0, 5)
         self.horizontalLayout_39.setStretch(1, 1)
         self.horizontalLayout_40.addLayout(self.horizontalLayout_39)
@@ -498,6 +501,7 @@ class Ui_DialogSettings(object):
         self.label_46.setText(_translate("DialogSettings", "滚轮颜色"))
         self.lineEditColor.setText(_translate("DialogSettings", "#66CCFF"))
         self.lineEditColor.setPlaceholderText(_translate("DialogSettings", "#RRGGBB"))
+        self.btnColorIndicator.setToolTip(_translate("DialogSettings", "点击选择颜色"))
         self.label_47.setText(_translate("DialogSettings", "M01 通道"))
         self.spinBoxM01.setPrefix(_translate("DialogSettings", "CH-"))
         self.label_48.setText(_translate("DialogSettings", "连接指示灯"))

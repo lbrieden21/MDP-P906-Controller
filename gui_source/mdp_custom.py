@@ -10,14 +10,21 @@ global_font = QtGui.QFont()
 
 class FmtAxisItem(pg.AxisItem):
     def __init__(self, *args, **kwargs):
-        self.sync_with = kwargs.pop("sync_with", None)
+        self.sync_group = kwargs.pop("sync_group", None)
         self.sync_left_spacing = kwargs.pop("sync_left_spacing", False)
         self.max_string_len = None
         super().__init__(*args, **kwargs)
 
-    def syncWith(self, axis: "FmtAxisItem", left_spacing=False):
-        self.sync_with = axis
+    def syncWith(self, group: List["FmtAxisItem"], left_spacing=False):
+        """Join a shared list of axes so their left-margin tick label widths
+        stay padded to whichever axis in the group has the longest text -
+        keeps stacked plots' left edges aligned regardless of how many are
+        visible. `group` must be the same list object shared by every axis
+        being synced together (this axis appends itself to it)."""
+        self.sync_group = group
         self.sync_left_spacing = left_spacing
+        if self not in group:
+            group.append(self)
 
     def tickStrings(self, values, scale, spacing):
         if len(values) == 0 or max(values) < 1e6:
@@ -25,8 +32,10 @@ class FmtAxisItem(pg.AxisItem):
         else:
             strings = [f"{v:.2e}" for v in values]
         self.max_string_len = max(len(s) for s in strings)
-        if self.sync_with is not None:
-            maxl = self.sync_with.max_string_len
+        if self.sync_group is not None:
+            others = [a.max_string_len for a in self.sync_group if a is not self]
+            others = [m for m in others if m is not None]
+            maxl = max(others) if others else None
             if maxl is not None and maxl > self.max_string_len:
                 if self.sync_left_spacing:
                     strings = [s.rjust(maxl) for s in strings]

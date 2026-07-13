@@ -239,7 +239,7 @@
           <number>3</number>
          </property>
          <item>
-          <layout class="QVBoxLayout" name="verticalLayout_7" stretch="0,0,1,1,0,0">
+          <layout class="QVBoxLayout" name="verticalLayout_7" stretch="0,0,1,0,0">
            <property name="spacing">
             <number>6</number>
            </property>
@@ -287,31 +287,34 @@
               <number>2</number>
              </property>
              <item>
-              <widget class="QLabel" name="label_13">
+              <widget class="QPushButton" name="btnGraphVoltage">
+               <property name="maximumSize">
+                <size>
+                 <width>90</width>
+                 <height>16777215</height>
+                </size>
+               </property>
                <property name="font">
                 <font>
                  <family>Sarasa Fixed SC SemiBold</family>
                 </font>
+               </property>
+               <property name="toolTip">
+                <string>显示/隐藏电压波形图</string>
+               </property>
+               <property name="checkable">
+                <bool>true</bool>
                </property>
                <property name="text">
-                <string>显示数据:</string>
-               </property>
-               <property name="alignment">
-                <set>Qt::AlignCenter</set>
+                <string>电压</string>
                </property>
               </widget>
              </item>
              <item>
-              <widget class="QComboBox" name="comboGraph1Data">
-               <property name="minimumSize">
-                <size>
-                 <width>60</width>
-                 <height>0</height>
-                </size>
-               </property>
+              <widget class="QPushButton" name="btnGraphCurrent">
                <property name="maximumSize">
                 <size>
-                 <width>80</width>
+                 <width>90</width>
                  <height>16777215</height>
                 </size>
                </property>
@@ -321,46 +324,21 @@
                 </font>
                </property>
                <property name="toolTip">
-                <string>上窗口数据</string>
+                <string>显示/隐藏电流波形图</string>
                </property>
-               <item>
-                <property name="text">
-                 <string>电压</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>电流</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>功率</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>阻值</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>无</string>
-                </property>
-               </item>
+               <property name="checkable">
+                <bool>true</bool>
+               </property>
+               <property name="text">
+                <string>电流</string>
+               </property>
               </widget>
              </item>
              <item>
-              <widget class="QComboBox" name="comboGraph2Data">
-               <property name="minimumSize">
-                <size>
-                 <width>60</width>
-                 <height>0</height>
-                </size>
-               </property>
+              <widget class="QPushButton" name="btnGraphResistance">
                <property name="maximumSize">
                 <size>
-                 <width>80</width>
+                 <width>90</width>
                  <height>16777215</height>
                 </size>
                </property>
@@ -370,36 +348,86 @@
                 </font>
                </property>
                <property name="toolTip">
-                <string>下窗口数据</string>
+                <string>显示/隐藏阻值波形图</string>
                </property>
-               <property name="currentIndex">
-                <number>1</number>
+               <property name="checkable">
+                <bool>true</bool>
                </property>
-               <item>
-                <property name="text">
-                 <string>电压</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>电流</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>功率</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>阻值</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>无</string>
-                </property>
-               </item>
+               <property name="text">
+                <string>阻值</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="btnGraphPower">
+               <property name="maximumSize">
+                <size>
+                 <width>90</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="font">
+                <font>
+                 <family>Sarasa Fixed SC SemiBold</family>
+                </font>
+               </property>
+               <property name="toolTip">
+                <string>显示/隐藏功率波形图</string>
+               </property>
+               <property name="checkable">
+                <bool>true</bool>
+               </property>
+               <property name="text">
+                <string>功率</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="btnGraphEnergy">
+               <property name="maximumSize">
+                <size>
+                 <width>90</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="font">
+                <font>
+                 <family>Sarasa Fixed SC SemiBold</family>
+                </font>
+               </property>
+               <property name="toolTip">
+                <string>显示/隐藏能量波形图</string>
+               </property>
+               <property name="checkable">
+                <bool>true</bool>
+               </property>
+               <property name="text">
+                <string>能量</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="btnGraphTemp">
+               <property name="maximumSize">
+                <size>
+                 <width>90</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="font">
+                <font>
+                 <family>Sarasa Fixed SC SemiBold</family>
+                </font>
+               </property>
+               <property name="toolTip">
+                <string>显示/隐藏温度波形图</string>
+               </property>
+               <property name="checkable">
+                <bool>true</bool>
+               </property>
+               <property name="text">
+                <string>温度</string>
+               </property>
               </widget>
              </item>
              <item>
@@ -692,27 +720,24 @@
             </layout>
            </item>
            <item>
-            <widget class="PlotWidget" name="widgetGraph1" native="true">
-             <property name="sizeIncrement">
-              <size>
-               <width>0</width>
-               <height>0</height>
-              </size>
-             </property>
-             <property name="font">
-              <font>
-               <family>Sarasa Fixed SC SemiBold</family>
-              </font>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="PlotWidget" name="widgetGraph2" native="true">
-             <property name="font">
-              <font>
-               <family>Sarasa Fixed SC SemiBold</family>
-              </font>
-             </property>
+            <widget class="QWidget" name="widgetGraphsContainer" native="true">
+             <layout class="QVBoxLayout" name="layoutGraphs">
+              <property name="spacing">
+               <number>6</number>
+              </property>
+              <property name="leftMargin">
+               <number>0</number>
+              </property>
+              <property name="topMargin">
+               <number>0</number>
+              </property>
+              <property name="rightMargin">
+               <number>0</number>
+              </property>
+              <property name="bottomMargin">
+               <number>0</number>
+              </property>
+             </layout>
             </widget>
            </item>
            <item>
@@ -841,46 +866,6 @@
                   </property>
                   <property name="text">
                    <string>0</string>
-                  </property>
-                  <property name="alignment">
-                   <set>Qt::AlignCenter</set>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
-              </item>
-              <item>
-               <layout class="QHBoxLayout" name="horizontalLayout_39" stretch="1">
-                <property name="spacing">
-                 <number>0</number>
-                </property>
-                <property name="bottomMargin">
-                 <number>0</number>
-                </property>
-                <item>
-                 <widget class="QLabel" name="labelGraphInfo">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
-                  </property>
-                  <property name="minimumSize">
-                   <size>
-                    <width>0</width>
-                    <height>0</height>
-                   </size>
-                  </property>
-                  <property name="font">
-                   <font>
-                    <family>Sarasa Fixed SC SemiBold</family>
-                    <pointsize>10</pointsize>
-                    <italic>false</italic>
-                    <bold>true</bold>
-                   </font>
-                  </property>
-                  <property name="text">
-                   <string>No Info</string>
                   </property>
                   <property name="alignment">
                    <set>Qt::AlignCenter</set>

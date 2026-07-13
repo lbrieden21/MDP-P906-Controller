@@ -2,6 +2,7 @@ import time
 from typing import List, Tuple
 
 import numpy as np
+from loguru import logger
 from PyQt5 import QtCore, QtWidgets
 
 from app_context import DEBUG, FPSCounter, set_color
@@ -9,7 +10,7 @@ from device_core import ChannelSpec, RecordData
 from device_panel import DEVICE_PANEL_TYPES, DevicePanelBase
 from mdp_controller import MDP_L1060
 from mdp_gui_template import Ui_DevicePanelL1060
-from settings_model import setting
+from settings_model import SETTING_FILE, setting
 
 OPEN_R = 1e7
 
@@ -23,9 +24,20 @@ CHANNELS = [
         "Ω",
         hide_above=OPEN_R,
     ),
+    ChannelSpec("energy", QtCore.QCoreApplication.translate("MDPMainwindow", "能量"), "J"),
+    ChannelSpec(
+        "temperature", QtCore.QCoreApplication.translate("MDPMainwindow", "温度"), "°F"
+    ),
 ]
 CHANNEL_BY_KEY = {c.key: c for c in CHANNELS}
-CHANNEL_SHORT = {"voltage": "V", "current": "I", "power": "P", "resistance": "R"}
+CHANNEL_SHORT = {
+    "voltage": "V",
+    "current": "I",
+    "power": "P",
+    "resistance": "R",
+    "energy": "E",
+    "temperature": "T",
+}
 RECORD_CHANNELS = [CHANNEL_BY_KEY["voltage"], CHANNEL_BY_KEY["current"]]
 
 _TARGET_SPINBOX = {
@@ -33,6 +45,25 @@ _TARGET_SPINBOX = {
     "CV": "spinBoxTargetCV",
     "CR": "spinBoxTargetCR",
     "CP": "spinBoxTargetCP",
+}
+_MODE_BUTTON = {
+    "CC": "btnModeCC",
+    "CV": "btnModeCV",
+    "CR": "btnModeCR",
+    "CP": "btnModeCP",
+}
+_MODE_UNIT = {
+    "CC": "A",
+    "CV": "V",
+    "CR": "Ω",
+    "CP": "W",
+}
+# Mirrors the ranges/steps set on spinBoxTargetCC/CV/CR/CP in the .ui.
+_MODE_RANGE = {
+    "CC": (0.0, 10.0, 0.001),
+    "CV": (0.0, 30.0, 0.001),
+    "CR": (0.01, 999.999, 0.1),
+    "CP": (0.0, 999.999, 0.1),
 }
 _PROTECTION_LABELS = {
     "OVP": "LATCHED: OVP",
@@ -62,17 +93,31 @@ class L1060DevicePanel(DevicePanelBase):
         self.model = "L1060"
         self.open_r = OPEN_R
         self.fps_counter = FPSCounter()
-        self._updating_ui = False
+        self._temp_f = 0.0
 
         self._init_timers()
+        self._init_mode_buttons()
         self._init_signals()
 
-        self.ui.comboBoxMode.setCurrentText(self.settings.l1060_mode)
         for mode, target in self.settings.l1060_targets.items():
             getattr(self.ui, _TARGET_SPINBOX[mode]).setValue(target)
-        self._highlight_active_target(self.settings.l1060_mode)
+        self._sync_mode_ui(self.settings.l1060_mode)
 
+        self.ui.tabWidget.tabBar().setVisible(False)
+        self.ui.labelTab.setText(
+            self.ui.tabWidget.tabText(self.ui.tabWidget.currentIndex())
+        )
+        self.refresh_preset()
+        self.get_preset(self.ui.comboPresetEdit.currentText())
+
+        self.set_interp(setting.ui.interp)
         self.close_state_ui()
+        # qdarktheme's global stylesheet (applied once, at startup, after this
+        # constructor runs) clobbers the .ui-set minimumSize on QLCDNumber
+        # widgets. Re-assert it once the event loop is actually running (show()
+        # + first layout pass done) so the digits aren't squeezed unreadably
+        # thin in the narrower per-device panel column.
+        QtCore.QTimer.singleShot(0, self._enforce_lcd_min_width)
 
     def set_english_fonts(self):
         pass
@@ -88,27 +133,61 @@ class L1060DevicePanel(DevicePanelBase):
         self.state_lcd_timer = QtCore.QTimer(self)
         self.state_lcd_timer.timeout.connect(self.update_state_lcd)
 
+    def _init_mode_buttons(self):
+        self._mode_button_group = QtWidgets.QButtonGroup(self)
+        self._mode_button_group.setExclusive(True)
+        for mode, name in _MODE_BUTTON.items():
+            btn = getattr(self.ui, name)
+            self._mode_button_group.addButton(btn)
+            btn.clicked.connect(lambda _checked, m=mode: self.on_mode_changed(m))
+
     def _init_signals(self):
-        self.ui.comboBoxMode.currentTextChanged.connect(self.on_mode_changed)
         self.ui.spinBoxTargetCC.editingFinished.connect(lambda: self.on_target_changed("CC"))
         self.ui.spinBoxTargetCV.editingFinished.connect(lambda: self.on_target_changed("CV"))
         self.ui.spinBoxTargetCR.editingFinished.connect(lambda: self.on_target_changed("CR"))
         self.ui.spinBoxTargetCP.editingFinished.connect(lambda: self.on_target_changed("CP"))
         self.ui.btnLoadOn.toggled.connect(self.on_load_on_toggled)
+        self.ui.comboPreset.currentTextChanged.connect(self.set_preset)
+        self.ui.comboPresetEdit.currentTextChanged.connect(self.get_preset)
+        self.ui.comboPresetEditMode.currentTextChanged.connect(self.on_preset_mode_changed)
 
     @QtCore.pyqtSlot()
     def on_btnLink_clicked(self):
         self.link_toggle_requested.emit()
 
-    def _highlight_active_target(self, mode: str):
-        for m, name in _TARGET_SPINBOX.items():
-            getattr(self.ui, name).setEnabled(m == mode)
+    @QtCore.pyqtSlot(int)
+    def on_tabWidget_currentChanged(self, index):
+        self.ui.labelTab.setText(self.ui.tabWidget.tabText(index))
+        if index == 0:
+            self.ui.pushButtonLastTab.setEnabled(False)
+        elif index == self.ui.tabWidget.count() - 1:
+            self.ui.pushButtonNextTab.setEnabled(False)
+        else:
+            self.ui.pushButtonLastTab.setEnabled(True)
+            self.ui.pushButtonNextTab.setEnabled(True)
 
-    @QtCore.pyqtSlot(str)
+    @QtCore.pyqtSlot()
+    def on_pushButtonLastTab_clicked(self):
+        idx = self.ui.tabWidget.currentIndex()
+        if idx > 0:
+            self.ui.tabWidget.setCurrentIndex(idx - 1)
+
+    @QtCore.pyqtSlot()
+    def on_pushButtonNextTab_clicked(self):
+        idx = self.ui.tabWidget.currentIndex()
+        if idx < self.ui.tabWidget.count() - 1:
+            self.ui.tabWidget.setCurrentIndex(idx + 1)
+
+    def _sync_mode_ui(self, mode: str):
+        for m, name in _TARGET_SPINBOX.items():
+            spin = getattr(self.ui, name)
+            spin.setStyleSheet("" if m == mode else "color: gray;")
+        btn = getattr(self.ui, _MODE_BUTTON[mode])
+        if not btn.isChecked():
+            btn.setChecked(True)
+
     def on_mode_changed(self, mode: str):
-        self._highlight_active_target(mode)
-        if self._updating_ui:
-            return
+        self._sync_mode_ui(mode)
         self.settings.l1060_mode = mode
         if self.api is not None:
             self.api.select_mode(mode)
@@ -128,6 +207,71 @@ class L1060DevicePanel(DevicePanelBase):
         elif mode == "CP":
             self.api.set_power(value)
 
+    ######### 辅助功能-预设组 #########
+
+    def set_preset(self, _):
+        text = self.ui.comboPreset.currentText()
+        if not text or not text[1].isdigit():
+            return
+        mode, value = self.settings.l1060_presets[text[1]]
+        getattr(self.ui, _TARGET_SPINBOX[mode]).setValue(value)
+        self.on_mode_changed(mode)
+        self.on_target_changed(mode)
+        self.ui.comboPreset.setCurrentIndex(0)
+
+    def refresh_preset(self):
+        idx = self.ui.comboPreset.currentIndex()
+        self.ui.comboPreset.clear()
+        self.ui.comboPreset.addItem("[>] " + self.tr("选择预设"))
+        self.ui.comboPreset.addItems(
+            [
+                f"[{k}] {mode} {value:07.3f}{_MODE_UNIT[mode]}"
+                for k, (mode, value) in self.settings.l1060_presets.items()
+            ]
+        )
+        self.ui.comboPreset.setCurrentIndex(idx)
+        self.ui.comboPreset.setItemData(0, 0, QtCore.Qt.UserRole - 1)
+        idx = self.ui.comboPresetEdit.currentIndex()
+        self.ui.comboPresetEdit.clear()
+        self.ui.comboPresetEdit.addItems(
+            [f"Preset-{k}" for k in self.settings.l1060_presets]
+        )
+        self.ui.comboPresetEdit.setCurrentIndex(idx)
+
+    def get_preset(self, text):
+        if "-" not in text:
+            return
+        mode, value = self.settings.l1060_presets[text.split("-")[1]]
+        self.ui.comboPresetEditMode.setCurrentText(mode)
+        self.ui.spinBoxPresetTarget.setValue(value)
+
+    @QtCore.pyqtSlot(str)
+    def on_preset_mode_changed(self, mode: str):
+        lo, hi, step = _MODE_RANGE[mode]
+        self.ui.spinBoxPresetTarget.setSuffix(_MODE_UNIT[mode])
+        self.ui.spinBoxPresetTarget.setRange(lo, hi)
+        self.ui.spinBoxPresetTarget.setSingleStep(step)
+
+    @QtCore.pyqtSlot()
+    def on_btnPresetSave_clicked(self):
+        preset = self.ui.comboPresetEdit.currentText()
+        if not preset:
+            return
+        preset = preset.split("-")[1]
+        mode = self.ui.comboPresetEditMode.currentText()
+        value = self.ui.spinBoxPresetTarget.value()
+        try:
+            self.settings.l1060_presets[preset] = (mode, value)
+            setting.save(SETTING_FILE)
+            self.ui.btnPresetSave.setText(self.tr("保存成功"))
+            self.refresh_preset()
+        except Exception:
+            logger.exception(self.tr("保存预设失败"))
+            self.ui.btnPresetSave.setText(self.tr("保存失败"))
+        QtCore.QTimer.singleShot(
+            1000, lambda: self.ui.btnPresetSave.setText(self.tr("保存"))
+        )
+
     @QtCore.pyqtSlot(bool)
     def on_load_on_toggled(self, checked: bool):
         if self.api is None:
@@ -141,7 +285,13 @@ class L1060DevicePanel(DevicePanelBase):
             self.ui.btnLoadOn.setChecked(False)
             self.ui.btnLoadOn.blockSignals(False)
 
-    def link(self, bus, pipe: int = 0, fps: float = 50):
+    def refresh_led_color(self):
+        if self.api is None:
+            return
+        color_rgb = bytes.fromhex(self.settings.color.lstrip("#"))
+        self.api.set_led_color((color_rgb[0], color_rgb[1], color_rgb[2]))
+
+    def link(self, bus, pipe: int = 0, fps: float = 50, session_start_time=None):
         if not self.settings.idcode:
             raise ValueError(self.tr("IDCODE为空, 请先完成连接设置"))
         color_rgb = bytes.fromhex(self.settings.color.lstrip("#"))
@@ -162,7 +312,7 @@ class L1060DevicePanel(DevicePanelBase):
         self.api = api
         self.api.register_realtime_value_callback(self.state_callback)
         t = time.perf_counter()
-        self.store.start_time = t
+        self.store.start_time = t if session_start_time is None else session_start_time
         self.store.eng_start_time = t
         self.store.last_time = t
         self.store.energy = 0
@@ -241,6 +391,7 @@ class L1060DevicePanel(DevicePanelBase):
             "current": currents,
             "power": voltages * currents,
             "resistance": np.where(currents != 0, voltages / currents, self.open_r),
+            "temperature": np.full(len_, self._temp_f),
         }
         self.store.append(raw_rtvalues, values, len_, t1)
         self.fps_counter.tick()
@@ -260,12 +411,11 @@ class L1060DevicePanel(DevicePanelBase):
             Protection,
             ProtectionLatched,
         ) = self.api.get_status()
-        if LoadMode != self.settings.l1060_mode and not self.ui.comboBoxMode.hasFocus():
-            self._updating_ui = True
-            self.ui.comboBoxMode.setCurrentText(LoadMode)
-            self._updating_ui = False
+        if LoadMode != self.settings.l1060_mode:
+            self._sync_mode_ui(LoadMode)
             self.settings.l1060_mode = LoadMode
-        self.ui.labelTemperature.setText(f"{Temperature:.1f}°C")
+        self._temp_f = Temperature * 9 / 5 + 32
+        self.ui.labelTemperature.setText(f"{Temperature:.0f}°C/{self._temp_f:.0f}°F")
         self.ui.btnLoadOn.blockSignals(True)
         self.ui.btnLoadOn.setChecked(bool(LoadActive))
         self.ui.btnLoadOn.blockSignals(False)
@@ -290,6 +440,7 @@ class L1060DevicePanel(DevicePanelBase):
             iavg = sum(store.current_tmp) / len(store.current_tmp)
             store.voltage_tmp.clear()
             store.current_tmp.clear()
+            self.ui.lcdEnerge.display(f"{store.energy:.{3+setting.ui.interp}f}")
         power = vavg * iavg
         if iavg >= 0.002:
             resistance = vavg / iavg
@@ -327,7 +478,7 @@ class L1060DevicePanel(DevicePanelBase):
         set_color(self.ui.labelLinkState, None)
         self.ui.frameOutputSetting.setEnabled(False)
         self.ui.frameSystemState.setEnabled(False)
-        self.ui.labelTemperature.setText("[N/A]")
+        self.ui.labelTemperature.setText("")
         self.ui.labelProtection.setText("")
         set_color(self.ui.labelProtection, None)
         self.ui.btnLoadOn.blockSignals(True)
@@ -338,9 +489,10 @@ class L1060DevicePanel(DevicePanelBase):
             self.ui.lcdVoltage,
             self.ui.lcdCurrent,
             self.ui.lcdPower,
+            self.ui.lcdEnerge,
             self.ui.lcdResistance,
         ):
-            lcd.display("--")
+            lcd.display("")
 
     def open_state_ui(self):
         self.ui.labelLinkState.setText(self.tr("已连接"))
@@ -348,11 +500,31 @@ class L1060DevicePanel(DevicePanelBase):
         self.ui.frameOutputSetting.setEnabled(True)
         self.ui.frameSystemState.setEnabled(True)
 
+    def _enforce_lcd_min_width(self):
+        for lcd in (
+            self.ui.lcdVoltage,
+            self.ui.lcdCurrent,
+            self.ui.lcdPower,
+            self.ui.lcdEnerge,
+            self.ui.lcdResistance,
+        ):
+            lcd.setMinimumWidth(130)
+
+    def set_interp(self, interp):
+        self.ui.lcdVoltage.setDigitCount(6)
+        self.ui.lcdCurrent.setDigitCount(6)
+        self.ui.lcdResistance.setDigitCount(8)
+        self.ui.lcdPower.setDigitCount(6)
+        self.ui.lcdEnerge.setDigitCount(6 + interp)
+
     def apply_theme(self):
         set_color(self.ui.lcdVoltage, setting.get_color("lcd_voltage"))
         set_color(self.ui.lcdCurrent, setting.get_color("lcd_current"))
         set_color(self.ui.lcdPower, setting.get_color("lcd_power"))
+        set_color(self.ui.lcdEnerge, setting.get_color("lcd_energy"))
+        set_color(self.ui.labelTemperature, setting.get_color("lcd_temperature"))
         set_color(self.ui.lcdResistance, setting.get_color("lcd_resistance"))
+        self._enforce_lcd_min_width()
 
 
 DEVICE_PANEL_TYPES["L1060"] = L1060DevicePanel

@@ -52,6 +52,25 @@ class DeviceDataStore:
             c.key: np.zeros(data_length, np.float64) for c in channels
         }
 
+    def mark_gap(self) -> None:
+        """Insert a broken-line marker at the current head, e.g. on unlink,
+        so a later resume doesn't draw a straight line across the time
+        nothing was recorded - relies on the curve being plotted with
+        connect="finite"."""
+        with self.sync_lock:
+            if self.update_count == 0:
+                return
+            if self.update_count >= self.data_length:
+                self.times = np.roll(self.times, -1)
+                for k in self.channel_keys:
+                    self.series[k] = np.roll(self.series[k], -1)
+                self.update_count -= 1
+            idx = self.update_count
+            self.times[idx] = time.perf_counter() - self.start_time
+            for k in self.channel_keys:
+                self.series[k][idx] = np.nan
+            self.update_count += 1
+
     def clear(self) -> None:
         with self.sync_lock:
             self.times = np.zeros(self.data_length, np.float64)
@@ -82,8 +101,14 @@ class DeviceDataStore:
             dt = t1 - self.last_time
             self.last_time = t1
             eng = 0.0
+            energy_samples = None
             if "power" in values_by_channel:
-                eng = float(np.sum(values_by_channel["power"])) * (dt / len_)
+                per_sample_eng = np.asarray(values_by_channel["power"], np.float64) * (
+                    dt / len_
+                )
+                eng = float(np.sum(per_sample_eng))
+                if "energy" in self.channel_keys:
+                    energy_samples = self.energy + np.cumsum(per_sample_eng)
                 self.energy += eng
             if self.update_count + len_ > self.data_length:
                 offset = self.update_count + len_ - self.data_length
@@ -94,9 +119,11 @@ class DeviceDataStore:
             for idx in range(len_):
                 self.times[self.update_count + idx] = t - dt + (dt / len_) * (idx + 1)
             for k in self.channel_keys:
-                self.series[k][self.update_count : self.update_count + len_] = (
-                    values_by_channel[k]
-                )
+                # energy is derived from power+dt here rather than supplied by
+                # the caller, since it needs the running total (self.energy)
+                # this store already tracks for the LCD/eng_start_time reset.
+                values = energy_samples if k == "energy" else values_by_channel[k]
+                self.series[k][self.update_count : self.update_count + len_] = values
             self.update_count += len_
             return eng
 
@@ -120,9 +147,9 @@ class DeviceDataStore:
             time_,
             start_index,
             to_index,
-            np.max(eval_data),
-            np.min(eval_data),
-            np.mean(eval_data),
+            np.nanmax(eval_data),
+            np.nanmin(eval_data),
+            np.nanmean(eval_data),
         )
 
 

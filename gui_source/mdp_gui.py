@@ -30,7 +30,6 @@ except ImportError:
 
     logger.success("Found mdp_controller in repo")
 
-import pyqtgraph as pg
 from PyQt5 import QtCore, QtGui, QtWidgets
 from qframelesswindow import FramelessWindow
 
@@ -40,6 +39,8 @@ from mdp_gui_template import Ui_MainWindow
 from superqt.utils import signals_blocked
 
 VERSION = "Ver4.5"
+CHANNEL_ORDER = ["voltage", "current", "resistance", "power", "energy", "temperature"]
+DEFAULT_ACTIVE_CHANNELS = {"voltage", "current"}
 qdarktheme.enable_hi_dpi()
 app = QtWidgets.QApplication(sys.argv)
 
@@ -65,10 +66,11 @@ global_font = QtGui.QFont()
 global_font.setFamily(fonts[0])
 app.setFont(global_font)
 
-from mdp_custom import CustomMessageBox, CustomTitleBar, FmtAxisItem
+from mdp_custom import CustomMessageBox, CustomTitleBar
 from settings_model import setting
 from device_core import csv_unit
 from device_panel import DEVICE_PANEL_TYPES
+from graph_block import GraphBlock
 from device_panel_p906 import CHANNEL_BY_KEY, CHANNEL_SHORT  # noqa: F401 (registers P906 in DEVICE_PANEL_TYPES)
 from device_panel_l1060 import (  # noqa: F401 (registers L1060 in DEVICE_PANEL_TYPES)
     CHANNEL_BY_KEY as _L1060_CHANNEL_BY_KEY,
@@ -97,7 +99,6 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
         for dev in setting.devices:
             self._add_panel_for_device(dev)
         self.connection = ConnectionManager(self.panels)
-        self.initDataCombos()
         self.initSignals()
         self.initGraph()
         self.initTimer()
@@ -143,10 +144,23 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
         for dev in setting.devices:
             self._add_panel_for_device(dev)
         self.connection.panels = self.panels
-        self.initDataCombos()
+        for block in self.graph_blocks.values():
+            block.set_panels(self.panels)
         self.on_btnGraphClear_clicked(skip_confirm=True)
         self._update_title_for_model()
         self.panels_changed.emit()
+
+    def on_device_color_changed(self, device_id: str):
+        """A device's wheel color was edited and saved in the Settings
+        dialog: push it live to the hardware wheel (if linked) and refresh
+        its graph chip/curve, neither of which otherwise gets re-touched
+        after the panel/curve was first created."""
+        panel = self._panel_by_id.get(device_id)
+        if panel is None:
+            return
+        panel.refresh_led_color()
+        for block in self.graph_blocks.values():
+            block.refresh_device_color(panel)
 
     def _update_title_for_model(self):
         if any(p.model == "P905" for p in self.panels):
@@ -161,8 +175,11 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
     def wheelEvent(self, event: QtGui.QWheelEvent) -> None:
         pos = event.pos()
         for panel in self.panels:
-            label_geom = panel.ui.labelTab.geometry()
-            label_pos = panel.ui.labelTab.mapTo(self, QtCore.QPoint(0, 0))
+            label = getattr(panel.ui, "labelTab", None)
+            if label is None:  # e.g. L1060 panels have no tab bar to scroll-switch
+                continue
+            label_geom = label.geometry()
+            label_pos = label.mapTo(self, QtCore.QPoint(0, 0))
             label_rect = QtCore.QRect(label_pos, label_geom.size())
             if panel.api is not None and label_rect.contains(pos):
                 delta = event.angleDelta().y()
@@ -205,29 +222,8 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
         set_color(self.ui.labelErrRate, clr)
         set_color(self.ui.labelComSpeed, clr)
 
-    def initDataCombos(self):
-        for combo in (self.ui.comboGraph1Data, self.ui.comboGraph2Data):
-            with signals_blocked(combo):
-                combo.clear()
-                for panel in self.panels:
-                    for ch in panel.channels:
-                        combo.addItem(
-                            f"{panel.display_name}: {ch.label}",
-                            (panel.device_id, ch.key),
-                        )
-                combo.addItem(self.tr("无"), None)
-        if self.ui.comboGraph2Data.count() > 1:
-            with signals_blocked(self.ui.comboGraph2Data):
-                self.ui.comboGraph2Data.setCurrentIndex(1)
-
     def initSignals(self):
         self.ui.comboDataFps.currentTextChanged.connect(self.set_data_fps)
-        self.ui.comboGraph1Data.currentIndexChanged.connect(
-            lambda _: self.set_graph1_data(self.ui.comboGraph1Data.currentData())
-        )
-        self.ui.comboGraph2Data.currentIndexChanged.connect(
-            lambda _: self.set_graph2_data(self.ui.comboGraph2Data.currentData())
-        )
         self.ui.horizontalSlider.sliderMoved.connect(
             self.on_horizontalSlider_sliderMoved
         )
@@ -241,13 +237,17 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
     ##########  基本功能  ##########
 
     def close_state_ui(self):
-        self.ui.frameGraph.setEnabled(False)
         for widget in [self.ui.labelComSpeed, self.ui.labelErrRate]:
             set_color(widget, None)
             widget.setText("[N/A]")
-        self.curve1.setData(x=[], y=[])
-        self.curve2.setData(x=[], y=[])
-        self.ui.labelGraphInfo.setText("No Info")
+        # Once every panel is unlinked, leave already-graphed data on screen
+        # for review (the CLEAR button is the explicit way to discard it)
+        # instead of wiping it - only reset to the empty/disabled state if
+        # there's nothing to review yet.
+        if any(p.store.update_count > 0 for p in self.panels):
+            return
+        for block in self.graph_blocks.values():
+            block.clear()
         self.ui.horizontalSlider.setRange(0, 10)
         self.ui.horizontalSlider.setValue((2, 8))
         self.ui.labelBufferSize.setText("N/A")
@@ -256,14 +256,12 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
         self.ui.frameGraphControl.setEnabled(False)
 
     def open_state_ui(self):
-        self.ui.frameGraph.setEnabled(True)
         self.ui.frameGraphControl.setEnabled(True)
 
     def apply_theme(self, sys_theme):
-        self.ui.widgetGraph1.setBackground(None)
-        self.ui.widgetGraph2.setBackground(None)
+        for block in self.graph_blocks.values():
+            block.plot_widget.setBackground(None)
         self.CustomTitleBar.set_theme(sys_theme)
-        self.update_pen()
         self.ui.horizontalSlider.setStyleSheet("background: none;")
         self.ui.horizontalSlider.setBarVisible(False)
         for panel in self.panels:
@@ -274,15 +272,21 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
             if panel.linked:
                 was_last = sum(p.linked for p in self.panels) == 1
                 self.connection.unlink_panel(panel)
+                panel.store.mark_gap()
                 if was_last:
-                    self.draw_graph_timer.stop()
+                    # Keep the redraw timer alive if there's data to review
+                    # (close_state_ui leaves it on screen instead of
+                    # clearing it) so the buffer slider still scrubs the
+                    # existing curves; only stop it once there's nothing
+                    # left to draw.
+                    if not any(p.store.update_count > 0 for p in self.panels):
+                        self.draw_graph_timer.stop()
                     if self.graph_record_save_timer.isActive():
                         self.on_btnGraphRecord_clicked()
                     self.close_state_ui()
             else:
                 first_link = not self.connection.is_open
                 self.connection.link_panel(panel, self.data_fps)
-                panel.store.clear()
                 if first_link:
                     self.draw_graph_timer.start(
                         round(1000 / min(self.data_fps, setting.ui.graph_max_fps))
@@ -328,36 +332,70 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
     ##########  图像绘制  ##########
 
     def initGraph(self):
-        self.ui.widgetGraph1.setBackground(None)
-        self.ui.widgetGraph2.setBackground(None)
-        self.ui.widgetGraph1.setLabel(
-            "left", CHANNEL_BY_KEY["voltage"].label, units=CHANNEL_BY_KEY["voltage"].unit
-        )
-        self.ui.widgetGraph2.setLabel(
-            "left", CHANNEL_BY_KEY["current"].label, units=CHANNEL_BY_KEY["current"].unit
-        )
-        self.ui.widgetGraph1.showGrid(x=True, y=True)
-        self.ui.widgetGraph2.showGrid(x=True, y=True)
-        self.ui.widgetGraph1.setMouseEnabled(x=False, y=False)
-        self.ui.widgetGraph2.setMouseEnabled(x=False, y=False)
-        self.pen1 = pg.mkPen(color=setting.get_color("line1"), width=1)
-        self.pen2 = pg.mkPen(color=setting.get_color("line2"), width=1)
-        self.curve1 = self.ui.widgetGraph1.plot(pen=self.pen1, clear=True)
-        self.curve2 = self.ui.widgetGraph2.plot(pen=self.pen2, clear=True)
         self._graph_auto_scale_flag = True
-        axis1 = FmtAxisItem(orientation="left")
-        axis2 = FmtAxisItem(orientation="left")
-        axis1.syncWith(axis2, left_spacing=True)
-        axis2.syncWith(axis1, left_spacing=True)
-        self.ui.widgetGraph1.setAxisItems(axisItems={"left": axis1})
-        self.ui.widgetGraph2.setAxisItems(axisItems={"left": axis2})
-        if self.panels:
-            self.set_graph1_data((self.panels[0].device_id, "voltage"), skip_update=True)
-            self.set_graph2_data((self.panels[0].device_id, "current"), skip_update=True)
+        self.graph_blocks = {}
+        self._channel_buttons = {
+            "voltage": self.ui.btnGraphVoltage,
+            "current": self.ui.btnGraphCurrent,
+            "resistance": self.ui.btnGraphResistance,
+            "power": self.ui.btnGraphPower,
+            "energy": self.ui.btnGraphEnergy,
+            "temperature": self.ui.btnGraphTemp,
+        }
+        for key, button in self._channel_buttons.items():
+            button.setChecked(key in DEFAULT_ACTIVE_CHANNELS)
+            button.toggled.connect(partial(self._on_channel_toggled, key))
+        for key in CHANNEL_ORDER:
+            if key in DEFAULT_ACTIVE_CHANNELS:
+                self._show_graph_block(key)
 
-    def update_pen(self):
-        self.pen1.setColor(QtGui.QColor(setting.get_color("line1")))
-        self.pen2.setColor(QtGui.QColor(setting.get_color("line2")))
+    def _show_graph_block(self, key):
+        block = self.graph_blocks.get(key)
+        if block is None:
+            block = GraphBlock(key, CHANNEL_BY_KEY[key])
+            block.set_panels(self.panels)
+            mouse_enabled = self.graph_keep_flag or (not self._graph_auto_scale_flag)
+            block.set_mouse_enabled(mouse_enabled)
+            self.graph_blocks[key] = block
+        insert_at = sum(
+            1
+            for k in CHANNEL_ORDER[: CHANNEL_ORDER.index(key)]
+            if self._channel_buttons[k].isChecked()
+        )
+        self.ui.layoutGraphs.insertWidget(insert_at, block, stretch=1)
+        block.show()
+        self._resync_axes()
+
+    def _hide_graph_block(self, key):
+        block = self.graph_blocks.get(key)
+        if block is None:
+            return
+        self.ui.layoutGraphs.removeWidget(block)
+        block.setParent(None)
+        self._resync_axes()
+
+    def _on_channel_toggled(self, key, checked):
+        if checked:
+            self._show_graph_block(key)
+        else:
+            self._hide_graph_block(key)
+        if self.draw_graph_timer.isActive():
+            self.draw_graph()
+
+    def _resync_axes(self):
+        group = []
+        for key in CHANNEL_ORDER:
+            if self._channel_buttons[key].isChecked():
+                block = self.graph_blocks.get(key)
+                if block is not None:
+                    block.axis.syncWith(group, left_spacing=True)
+
+    def _set_graph_controls_enabled(self, enabled):
+        for button in self._channel_buttons.values():
+            button.setEnabled(enabled)
+        for block in self.graph_blocks.values():
+            for chip in block.chips.values():
+                chip.setEnabled(enabled)
 
     _left_last = -1
 
@@ -388,15 +426,16 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
         )
         if self.graph_keep_flag:
             return
-        data1 = self.ui.comboGraph1Data.currentData()
-        data2 = self.ui.comboGraph2Data.currentData()
-        panel1 = self._panel_by_id.get(data1[0]) if data1 else None
-        panel2 = self._panel_by_id.get(data2[0]) if data2 else None
-        key1 = data1[1] if data1 else None
-        key2 = data2[1] if data2 else None
-        sync_panel = panel1 or panel2 or (self.panels[0] if self.panels else None)
-        if sync_panel is None:
+        if not self.panels:
             return
+        needed_panels = []
+        seen_ids = set()
+        for block in self.graph_blocks.values():
+            for panel in block.checked_panels(self.panels):
+                if panel.device_id not in seen_ids:
+                    seen_ids.add(panel.device_id)
+                    needed_panels.append(panel)
+        sync_panel = needed_panels[0] if needed_panels else self.panels[0]
         with sync_panel.store.sync_lock:
             update_count = sync_panel.store.update_count
             if update_count > setting.ui.display_pts + 5:
@@ -433,34 +472,7 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
                 self.ui.horizontalSlider.setRange(0, 10)
             if syncing:
                 self.ui.horizontalSlider.setValue((left, update_count))
-            # Fetch whichever series belong to sync_panel here, still under its
-            # lock - for the common case (panel1/panel2 both resolve to the
-            # same store) this keeps the slider math and the series read in
-            # one critical section, exactly like the single-store original.
-            series1 = (
-                sync_panel.store.get_series(key1, display_pts, r_offset)
-                if panel1 is sync_panel
-                else None
-            )
-            series2 = (
-                sync_panel.store.get_series(key2, display_pts, r_offset)
-                if panel2 is sync_panel
-                else None
-            )
-        if series1 is None:
-            if panel1 is None:
-                series1 = (None,) * 7
-            else:
-                with panel1.store.sync_lock:
-                    series1 = panel1.store.get_series(key1, display_pts, r_offset)
-        if series2 is None:
-            if panel2 is None:
-                series2 = (None,) * 7
-            else:
-                with panel2.store.sync_lock:
-                    series2 = panel2.store.get_series(key2, display_pts, r_offset)
-        data1, time1, start_index1, to_index1, max1, min1, avg1 = series1
-        data2, time2, start_index2, to_index2, max2, min2, avg2 = series2
+
         self.ui.labelBufferSize.setText(
             f"{update_count/sync_panel.store.data_length*100:.1f}%"
         )
@@ -474,70 +486,48 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
                 setting.get_color("general_yellow"),
             )
 
-        _ = CHANNEL_SHORT.get(key1)
-        if data1 is not None and data1.size > 0:
-            self.curve1.setData(x=time1, y=data1)
-            text1 = f"{_}avg: {float_str(avg1)}  {_}max: {float_str(max1)}  {_}min: {float_str(min1)}  {_}pp: {float_str(max1 - min1)}"
-        else:
-            self.curve1.setData(x=[], y=[])
-            text1 = f"{_}avg: N/A  {_}max: N/A  {_}min: N/A  {_}pp: N/A"
-        _ = CHANNEL_SHORT.get(key2)
-        if data2 is not None and data2.size > 0:
-            self.curve2.setData(x=time2, y=data2)
-            text2 = f"{_}avg: {float_str(avg2)}  {_}max: {float_str(max2)}  {_}min: {float_str(min2)}  {_}pp: {float_str(max2 - min2)}"
-        else:
-            self.curve2.setData(x=[], y=[])
-            text2 = f"{_}avg: N/A  {_}max: N/A  {_}min: N/A  {_}pp: N/A"
-        if data1 is not None and data2 is not None:
-            text = text1 + "  |  " + text2
-        elif data1 is not None:
-            text = text1
-        elif data2 is not None:
-            text = text2
-        else:
-            text = "No Info"
-        self.ui.labelGraphInfo.setText(text)
-        if self._graph_auto_scale_flag:
-            if data1 is not None and time1.size != 0:
-                if max1 != np.inf and min1 != -np.inf:
-                    add1 = max(0.01, (max1 - min1) * 0.05)
-                    self.ui.widgetGraph1.setYRange(min1 - add1, max1 + add1)
-                    self.ui.widgetGraph1.setXRange(
-                        time1[start_index1], time1[to_index1 - 1]
+        for block in self.graph_blocks.values():
+            checked_ids = {p.device_id for p in block.checked_panels(self.panels)}
+            short = CHANNEL_SHORT.get(block.channel_key, "")
+            stats_lines = []
+            vmin = vmax = xmin = xmax = None
+            for panel in self.panels:
+                curve = block.curves.get(panel.device_id)
+                if curve is None:
+                    continue
+                if panel.device_id not in checked_ids:
+                    curve.setData(x=[], y=[])
+                    continue
+                with panel.store.sync_lock:
+                    data, time_, start_index, to_index, mx, mn, avg = (
+                        panel.store.get_series(block.channel_key, display_pts, r_offset)
                     )
-            if data2 is not None and time2.size != 0:
-                if max2 != np.inf and min2 != -np.inf:
-                    add2 = max(0.01, (max2 - min2) * 0.05)
-                    self.ui.widgetGraph2.setYRange(min2 - add2, max2 + add2)
-                    self.ui.widgetGraph2.setXRange(
-                        time2[start_index2], time2[to_index2 - 1]
-                    )
-
-    def set_graph1_data(self, data, skip_update=False):
-        if data is None:
-            self.ui.widgetGraph1.hide()
-            return
-        self.ui.widgetGraph1.show()
-        _, key = data
-        ch = CHANNEL_BY_KEY[key]
-        self.ui.widgetGraph1.setLabel("left", ch.label, units=ch.unit)
-        if not skip_update and self.draw_graph_timer.isActive():  # force update axis
-            self.ui.widgetGraph1.setYRange(0, 0)
-            self.ui.widgetGraph2.setYRange(0, 0)
-            self.draw_graph()
-
-    def set_graph2_data(self, data, skip_update=False):
-        if data is None:
-            self.ui.widgetGraph2.hide()
-            return
-        self.ui.widgetGraph2.show()
-        _, key = data
-        ch = CHANNEL_BY_KEY[key]
-        self.ui.widgetGraph2.setLabel("left", ch.label, units=ch.unit)
-        if not skip_update and self.draw_graph_timer.isActive():
-            self.ui.widgetGraph1.setYRange(0, 0)
-            self.ui.widgetGraph2.setYRange(0, 0)
-            self.draw_graph()
+                if data is None or data.size == 0:
+                    curve.setData(x=[], y=[])
+                    continue
+                curve.setData(x=time_, y=data)
+                vmin = mn if vmin is None else min(vmin, mn)
+                vmax = mx if vmax is None else max(vmax, mx)
+                xmin = time_[start_index] if xmin is None else min(xmin, time_[start_index])
+                xmax = time_[to_index - 1] if xmax is None else max(xmax, time_[to_index - 1])
+                color = f"#{panel.settings.color.lstrip('#')}"
+                stats_lines.append(
+                    f'<span style="color:{color}">{panel.display_name}</span> '
+                    f"{short}avg: {float_str(avg)}  {short}max: {float_str(mx)}  "
+                    f"{short}min: {float_str(mn)}  {short}pp: {float_str(mx - mn)}"
+                )
+            block.stats_label.setText(
+                "&nbsp;&nbsp;|&nbsp;&nbsp;".join(stats_lines) if stats_lines else "No Info"
+            )
+            if (
+                self._graph_auto_scale_flag
+                and vmax is not None
+                and vmax != np.inf
+                and vmin != -np.inf
+            ):
+                add = max(0.01, (vmax - vmin) * 0.05)
+                block.plot_widget.setYRange(vmin - add, vmax + add)
+                block.plot_widget.setXRange(xmin, xmax)
 
     @QtCore.pyqtSlot()
     def on_btnGraphClear_clicked(self, _=None, skip_confirm=False):
@@ -549,25 +539,25 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
             return
         for panel in self.panels:
             panel.store.clear()
-        self.curve1.setData(x=[], y=[])
-        self.curve2.setData(x=[], y=[])
+        for block in self.graph_blocks.values():
+            block.clear()
         set_color(self.ui.labelBufferSize, None)
+
+    def _set_graphs_mouse_enabled(self, enabled):
+        for block in self.graph_blocks.values():
+            block.set_mouse_enabled(enabled)
 
     @QtCore.pyqtSlot()
     def on_btnGraphKeep_clicked(self):
         self.graph_keep_flag = not self.graph_keep_flag
         if self.graph_keep_flag:
             self.ui.btnGraphKeep.setText(self.tr("解除"))
-            self.ui.comboGraph1Data.setEnabled(False)
-            self.ui.comboGraph2Data.setEnabled(False)
         else:
             self.ui.btnGraphKeep.setText(self.tr("保持"))
-            self.ui.comboGraph1Data.setEnabled(True)
-            self.ui.comboGraph2Data.setEnabled(True)
+        self._set_graph_controls_enabled(not self.graph_keep_flag)
         mouse_enabled = self.graph_keep_flag or (not self._graph_auto_scale_flag)
         self.ui.frameGraphControl.setEnabled(not mouse_enabled)
-        self.ui.widgetGraph1.setMouseEnabled(x=mouse_enabled, y=mouse_enabled)
-        self.ui.widgetGraph2.setMouseEnabled(x=mouse_enabled, y=mouse_enabled)
+        self._set_graphs_mouse_enabled(mouse_enabled)
 
     @QtCore.pyqtSlot()
     def on_btnGraphAutoScale_clicked(self):
@@ -578,8 +568,7 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
             self.ui.btnGraphAutoScale.setText(self.tr("手动"))
         mouse_enabled = self.graph_keep_flag or (not self._graph_auto_scale_flag)
         self.ui.frameGraphControl.setEnabled(not mouse_enabled)
-        self.ui.widgetGraph1.setMouseEnabled(x=mouse_enabled, y=mouse_enabled)
-        self.ui.widgetGraph2.setMouseEnabled(x=mouse_enabled, y=mouse_enabled)
+        self._set_graphs_mouse_enabled(mouse_enabled)
 
     def _device_path(self, base_path: str, panel) -> str:
         """One shared path if there's exactly one panel (byte-identical to
@@ -708,6 +697,7 @@ DialogGraphics.set_interp_sig.connect(MainWindow.set_interp_all)
 DialogGraphics.theme_requested.connect(lambda theme: set_theme(theme))
 MainWindow.ui.btnRecordFloatWindow.clicked.connect(FloatingWindow.switch_visibility)
 DialogSettings.devices_changed.connect(MainWindow.rebuild_panels)
+DialogSettings.device_color_changed.connect(MainWindow.on_device_color_changed)
 
 
 def wire_panels():
@@ -773,7 +763,7 @@ set_theme(setting.ui.theme)
 
 
 def show_app():
-    MainWindow.show()
+    MainWindow.showMaximized()
     MainWindow.activateWindow()
     sys.exit(app.exec_())
 

@@ -14,6 +14,18 @@ DEFAULT_PRESETS = {
     "9": (30, 10),
 }
 
+DEFAULT_L1060_PRESETS = {
+    "1": ("CC", 1.0),
+    "2": ("CC", 2.0),
+    "3": ("CV", 3.3),
+    "4": ("CV", 5.0),
+    "5": ("CV", 12.0),
+    "6": ("CR", 50.0),
+    "7": ("CR", 100.0),
+    "8": ("CP", 10.0),
+    "9": ("CP", 20.0),
+}
+
 DEFAULT_COLOR_PALETTE = {
     "dark": {
         "off": "khaki",
@@ -24,7 +36,7 @@ DEFAULT_COLOR_PALETTE = {
         "lcd_current": "default",
         "lcd_power": "default",
         "lcd_energy": "default",
-        "lcd_avg_power": "default",
+        "lcd_temperature": "default",
         "lcd_resistance": "default",
         "general_green": "mediumaquamarine",
         "general_red": "orangered",
@@ -38,7 +50,7 @@ DEFAULT_COLOR_PALETTE = {
         "lcd_current": "default",
         "lcd_power": "default",
         "lcd_energy": "default",
-        "lcd_avg_power": "default",
+        "lcd_temperature": "default",
         "lcd_resistance": "default",
         "off": "darkgoldenrod",
         "on": "darkgreen",
@@ -102,6 +114,7 @@ class DeviceSettings:
         # physically dialed into the unit).
         self.l1060_mode = "CC"
         self.l1060_targets = {"CC": 1.0, "CV": 5.0, "CR": 100.0, "CP": 10.0}
+        self.l1060_presets = dict(DEFAULT_L1060_PRESETS)
 
 
 class AdapterSettings:

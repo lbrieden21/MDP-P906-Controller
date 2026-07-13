@@ -1,4 +1,4 @@
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets
 from loguru import logger
 from qframelesswindow import FramelessWindow
 from serial.tools.list_ports import comports
@@ -12,6 +12,7 @@ from settings_model import SETTING_FILE, DeviceSettings, setting
 
 class MDPSettings(QtWidgets.QDialog, FramelessWindow):
     devices_changed = QtCore.pyqtSignal()
+    device_color_changed = QtCore.pyqtSignal(str)
 
     def __init__(self, connection_manager, parent=None):
         super().__init__(parent)
@@ -142,7 +143,7 @@ class MDPSettings(QtWidgets.QDialog, FramelessWindow):
         self.ui.checkBoxOutputWarn.setChecked(dev.output_warning)
         self.ui.checkBoxSetLock.setChecked(dev.lock_when_output)
         self.ui.checkBoxIgnoreHWLock.setChecked(dev.ignore_hw_lock)
-        self.ui.lineEditColorIndicator.setStyleSheet(
+        self.ui.btnColorIndicator.setStyleSheet(
             f"background-color: #{dev.color.lstrip('#')}"
         )
 
@@ -187,7 +188,7 @@ class MDPSettings(QtWidgets.QDialog, FramelessWindow):
         color = self.ui.lineEditColor.text().lstrip("#")
         try:
             _ = bytes.fromhex(color)
-            self.ui.lineEditColorIndicator.setStyleSheet(f"background-color: #{color}")
+            self.ui.btnColorIndicator.setStyleSheet(f"background-color: #{color}")
         except Exception:
             CustomMessageBox(
                 self,
@@ -195,6 +196,18 @@ class MDPSettings(QtWidgets.QDialog, FramelessWindow):
                 self.tr("请输入16进制RGB颜色代码(例如: 66CCFF)"),
             )
             self.ui.lineEditColor.setText(self._current_device().color)
+
+    @QtCore.pyqtSlot()
+    def on_btnColorIndicator_clicked(self):
+        current = QtGui.QColor(f"#{self.ui.lineEditColor.text().lstrip('#')}")
+        if not current.isValid():
+            current = QtGui.QColor(f"#{self._current_device().color.lstrip('#')}")
+        picked = QtWidgets.QColorDialog.getColor(current, self, self.tr("选择颜色"))
+        if not picked.isValid():
+            return
+        hex6 = picked.name().lstrip("#").upper()
+        self.ui.lineEditColor.setText(hex6)
+        self.ui.btnColorIndicator.setStyleSheet(f"background-color: #{hex6}")
 
     def save_adapter_settings(self):
         setting.adapter.baudrate = int(self.ui.spinBoxBaud.value())
@@ -216,6 +229,7 @@ class MDPSettings(QtWidgets.QDialog, FramelessWindow):
         )
 
     def save_device_settings(self, dev: DeviceSettings):
+        old_color = dev.color
         dev.idcode = self.ui.lineEditIdcode.text()
         dev.color = self.ui.lineEditColor.text()
         dev.m01ch = f"CH-{int(self.ui.spinBoxM01.value())}"
@@ -223,6 +237,8 @@ class MDPSettings(QtWidgets.QDialog, FramelessWindow):
         dev.output_warning = self.ui.checkBoxOutputWarn.isChecked()
         dev.lock_when_output = self.ui.checkBoxSetLock.isChecked()
         dev.ignore_hw_lock = self.ui.checkBoxIgnoreHWLock.isChecked()
+        if dev.color != old_color:
+            self.device_color_changed.emit(dev.id)
 
     def save_settings(self):
         self.save_adapter_settings()
