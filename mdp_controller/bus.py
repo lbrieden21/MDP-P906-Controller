@@ -13,11 +13,26 @@ from mdp_controller.nrf24_adapter import (
     SpeedCounter,
 )
 
-# Pipe-address derivation for devices dispatched onto pipes 1-5. Pipe 0 always
-# uses the bus's own configured address (matches today's single-device
-# behavior exactly, no re-match needed). This prefix byte is otherwise
-# unclaimed protocol-wise and just needs to keep every pipe>=1 address
-# distinct, which idcode (unique per device) already guarantees.
+# Pipe-address derivation: every device gets an address that shares its
+# upper 4 bytes with the bus's own configured address and differs only in
+# the last byte (one of _PIPE_ADDRESS_LSBS, indexed by pipe 1-5) -- the same
+# base_addr + (0xE1+k) scheme the real MDP-M01 hub uses. This isn't a style
+# choice: real nRF24L01+ hardware only gives pipes 1 and 0 a fully
+# independent 5-byte RX address; pipes 2-5 only have a single configurable
+# LSB register apiece and silently share pipe 1's upper 4 bytes for
+# reception (confirmed against this repo's own firmware,
+# nrf24l01p_open_rx_pipe() in nrf_adapter_source_multiceiver/Core/Src/
+# nrf24l01p.c -- pipe==1 writes all 5 bytes, pipe>1 writes only addr[0]).
+# A per-device *idcode*-derived address (this file's previous scheme) broke
+# exactly this: two devices' idcodes essentially never share upper bytes, so
+# only whichever device landed on pipe 1 would actually be reachable.
+# Because the address only depends on (bus's own configured address, pipe
+# number) -- never on idcode or which bus instance computes it -- a
+# throwaway match-only MDPBus (Settings dialog's "Match" button) and the
+# real session bus agree on a device's address as long as they're given the
+# same target pipe. Pipe 0 itself is never used for a device: RX_ADDR_P0 is
+# the adapter's own identity address, shared with TX_ADDR for ShockBurst
+# auto-ack, so it can't be reassigned per-device either.
 _PIPE_ADDRESS_PREFIX = 0xE1
 
 _MATCH_COM_TIMEOUT = 0.04
@@ -84,22 +99,20 @@ class MDPBus:
     def speed_counter(self) -> SpeedCounter:
         return self._adp.speed_counter
 
-    def _pipe_address(self, idcode: bytes, pipe: int) -> bytes:
-        if pipe == 0:
-            return self._address
-        return bytes([_PIPE_ADDRESS_PREFIX]) + idcode
+    def _pipe_address(self, pipe: int) -> bytes:
+        assert 1 <= pipe <= 5, f"pipe must be 1-5, got {pipe}"
+        return self._address[:4] + bytes([_PIPE_ADDRESS_PREFIX + pipe])
 
     def _next_free_pipe(self) -> int:
-        for pipe in range(6):
+        for pipe in range(1, 6):
             if pipe not in self._pipe_owners:
                 return pipe
-        raise Exception("No free NRF24 pipe available (max 6 devices)")
+        raise Exception("No free NRF24 pipe available (max 5 devices)")
 
     def attach(self, device, pipe: int):
         with self._lock:
-            address = self._pipe_address(device.idcode, pipe)
-            if pipe != 0:
-                self._adp.nrf_open_pipe(pipe, address)
+            address = self._pipe_address(pipe)
+            self._adp.nrf_open_pipe(pipe, address)
             device.address = address
             self._pipe_owners[pipe] = device
         logger.info(f"Attached device (idcode: {device.idcode.hex().upper()}) to pipe {pipe}")
@@ -167,10 +180,24 @@ class MDPBus:
             return None
         return self._match_data
 
-    def auto_match(self, try_times: int = 3) -> Tuple[str, int]:
+    def auto_match(self, try_times: int = 3, pipe: Optional[int] = None) -> Tuple[str, int]:
         """
         Discover an unmatched device via broadcast and dispatch it onto the
-        next free pipe.
+        given pipe.
+
+        Args:
+            pipe: Target pipe (1-5) to dispatch the device onto. Pass the
+                device's real, eventual pipe explicitly (e.g. its index in
+                setting.devices + 1) whenever this call's result needs to
+                agree with a later attach() on a *different* MDPBus instance
+                (e.g. the Settings dialog's "Match" button uses a throwaway
+                bus) -- since address is a pure function of (this bus's
+                configured address, pipe number), not of idcode, two bus
+                instances only compute the same address for a device if
+                they're given the same pipe. Defaults to this bus's own next
+                free pipe, which is only correct when there's no other bus
+                instance's pipe assignment to stay consistent with (e.g. a
+                single-device standalone script).
 
         Returns:
             Tuple[str, int]: (idcode hex string, pipe number it was dispatched to).
@@ -201,8 +228,9 @@ class MDPBus:
                 self._current_target = setting_old.address
                 raise Exception("Failed to auto match with MDP-P906")
 
-            pipe = self._next_free_pipe()
-            address = self._pipe_address(idcode, pipe)
+            if pipe is None:
+                pipe = self._next_free_pipe()
+            address = self._pipe_address(pipe)
             self._match_transfer(
                 mdp_protocal.gen_dispatch_ch_addr(address, self._freq - 2400)
             )
@@ -213,8 +241,7 @@ class MDPBus:
 
             self._adp.nrf_set_settings(setting_old)
             self._current_target = setting_old.address
-            if pipe != 0:
-                self._adp.nrf_open_pipe(pipe, address)
+            self._adp.nrf_open_pipe(pipe, address)
             self._pipe_owners.setdefault(pipe, None)
 
         logger.success(

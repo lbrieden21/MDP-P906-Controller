@@ -1,88 +1,13 @@
 import math
 import random
 import time
-from typing import Callable, List, Literal, Optional, Tuple
+from typing import Callable, List, Optional, Tuple
 
 from loguru import logger
 
+from mdp_controller.__sim_bus import MDPBus, SpeedCounter  # noqa: F401 (re-exported)
+
 logger.warning("You are using the simulated version of MDP-P906, for testing only")
-
-
-class SpeedCounter:
-    def __init__(self, *args, **kwargs):
-        self._speed_Bps = 1024
-        self._error_rate = 0.1
-
-    @property
-    def bps(self) -> float:
-        return self._speed_Bps * 8
-
-    @property
-    def Bps(self) -> float:
-        return self._speed_Bps
-
-    @property
-    def Kbps(self) -> float:
-        return self.KBps * 8
-
-    @property
-    def KBps(self) -> float:
-        return self._speed_Bps / 1024
-
-    @property
-    def Mbps(self) -> float:
-        return self.MBps * 8
-
-    @property
-    def MBps(self) -> float:
-        return self._speed_Bps / 1024 / 1024
-
-    @property
-    def error_rate(self) -> float:
-        return self._error_rate
-
-
-class MDPBus:
-    """
-    SIMULATED VERSION, FOR TESTING ONLY
-    """
-
-    def __init__(
-        self,
-        port: Optional[str] = None,
-        baudrate: int = 921600,
-        address: str = "AA:BB:CC:DD:EE",
-        freq: int = 2442,
-        tx_output_power: Literal[
-            "7dBm", "4dBm", "3dBm", "1dBm", "0dBm", "-4dBm", "-6dBm", "-12dBm"
-        ] = "4dBm",
-        debug: bool = False,
-    ):
-        logger.info(
-            f"MDPBus init params: port={port}, baudrate={baudrate}, address={address}, "
-            f"freq={freq}, tx_output_power={tx_output_power}, debug={debug}"
-        )
-
-    @property
-    def speed_counter(self) -> SpeedCounter:
-        return SpeedCounter()
-
-    def attach(self, device, pipe: int = 0):
-        logger.info(f"Attach device to pipe {pipe}")
-        device.address = b"\x00" * 5
-
-    def detach(self, device):
-        logger.info("Detach device")
-
-    def transfer(self, owner, packet: bytes, wait_response: bool = True) -> bytes:
-        return b""
-
-    def auto_match(self, try_times: int = 3) -> Tuple[str, int]:
-        logger.info("Auto match")
-        return "11223344", 0
-
-    def close(self):
-        logger.info("MDPBus closed")
 
 
 class MDP_P906:

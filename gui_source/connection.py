@@ -40,7 +40,10 @@ class ConnectionManager(QtCore.QObject):
         if opened_bus:
             self.bus = self._build_bus()
         try:
-            panel.link(self.bus, self.panels.index(panel), fps)
+            # Pipes 1-5 only -- pipe 0's RX address is tied to the adapter's
+            # own configured address, not independently settable per device
+            # (see MDPBus._pipe_address), so it's never used for a device.
+            panel.link(self.bus, self.panels.index(panel) + 1, fps)
         except Exception:
             logger.exception(f"Failed to link device {panel.device_id}")
             if opened_bus:
@@ -60,10 +63,17 @@ class ConnectionManager(QtCore.QObject):
             self.bus = None
             bus.close()
 
-    def match(self) -> str:
+    def match(self, pipe: int) -> str:
+        """
+        Args:
+            pipe: The real pipe this device will occupy once linked (its
+                index in setting.devices + 1) -- see MDPBus.auto_match()'s
+                docstring for why this must be passed explicitly rather than
+                left to this throwaway bus's own pipe bookkeeping.
+        """
         bus = self._build_bus()
         try:
-            idcode, _pipe = bus.auto_match()
+            idcode, _pipe = bus.auto_match(pipe=pipe)
         finally:
             bus.close()
         return idcode

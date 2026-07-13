@@ -96,6 +96,12 @@ class DeviceSettings:
         self.i_threshold = 0.002
         self.avgmode = 1
         self.cali = CalibrationSettings()
+        # L1060-only, display-only fallback painted before the first real
+        # Type10 response lands after a fresh app launch -- never auto-pushed
+        # to the device on link() (would silently override whatever's
+        # physically dialed into the unit).
+        self.l1060_mode = "CC"
+        self.l1060_targets = {"CC": 1.0, "CV": 5.0, "CR": 100.0, "CP": 10.0}
 
 
 class AdapterSettings:

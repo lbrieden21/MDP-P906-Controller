@@ -70,6 +70,10 @@ from settings_model import setting
 from device_core import csv_unit
 from device_panel import DEVICE_PANEL_TYPES
 from device_panel_p906 import CHANNEL_BY_KEY, CHANNEL_SHORT  # noqa: F401 (registers P906 in DEVICE_PANEL_TYPES)
+from device_panel_l1060 import (  # noqa: F401 (registers L1060 in DEVICE_PANEL_TYPES)
+    CHANNEL_BY_KEY as _L1060_CHANNEL_BY_KEY,
+    CHANNEL_SHORT as _L1060_CHANNEL_SHORT,
+)
 from connection import ConnectionManager
 from dialogs import MDPGraphics, MDPSettings
 from aux_windows import ResultGraphWindow, TransparentFloatingWindow

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'settings.ui'
+# Form implementation generated from reading ui file 'mdp_gui_template/settings.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.11
 #
@@ -277,6 +277,14 @@ class Ui_DialogSettings(object):
         self.comboBoxDevice.setFont(font)
         self.comboBoxDevice.setObjectName("comboBoxDevice")
         self.horizontalLayout_deviceSelect.addWidget(self.comboBoxDevice)
+        self.comboBoxNewDeviceType = QtWidgets.QComboBox(DialogSettings)
+        font = QtGui.QFont()
+        font.setFamily("Sarasa Fixed SC SemiBold")
+        self.comboBoxNewDeviceType.setFont(font)
+        self.comboBoxNewDeviceType.setObjectName("comboBoxNewDeviceType")
+        self.comboBoxNewDeviceType.addItem("")
+        self.comboBoxNewDeviceType.addItem("")
+        self.horizontalLayout_deviceSelect.addWidget(self.comboBoxNewDeviceType)
         self.btnDeviceAdd = QtWidgets.QPushButton(DialogSettings)
         self.btnDeviceAdd.setMaximumSize(QtCore.QSize(28, 16777215))
         font = QtGui.QFont()
@@ -478,6 +486,9 @@ class Ui_DialogSettings(object):
         self.comboBoxPower.setItemText(7, _translate("DialogSettings", "-12dBm"))
         self.label_44.setText(_translate("DialogSettings", "- MDP-P906 -"))
         self.label_deviceSelect.setText(_translate("DialogSettings", "设备"))
+        self.comboBoxNewDeviceType.setToolTip(_translate("DialogSettings", "新设备类型"))
+        self.comboBoxNewDeviceType.setItemText(0, _translate("DialogSettings", "P906"))
+        self.comboBoxNewDeviceType.setItemText(1, _translate("DialogSettings", "L1060"))
         self.btnDeviceAdd.setToolTip(_translate("DialogSettings", "添加设备"))
         self.btnDeviceAdd.setText(_translate("DialogSettings", "+"))
         self.btnDeviceRemove.setToolTip(_translate("DialogSettings", "删除当前设备"))

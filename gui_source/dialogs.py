@@ -78,13 +78,15 @@ class MDPSettings(QtWidgets.QDialog, FramelessWindow):
             CustomMessageBox(self, self.tr("错误"), self.tr("请先断开连接"))
             return
         self.save_device_settings(self._current_device())
+        dtype = self.ui.comboBoxNewDeviceType.currentText()
+        prefix = dtype.lower()
         existing_ids = {d.id for d in setting.devices}
         n = len(setting.devices) + 1
-        new_id = f"p906-{n}"
+        new_id = f"{prefix}-{n}"
         while new_id in existing_ids:
             n += 1
-            new_id = f"p906-{n}"
-        setting.devices.append(DeviceSettings(type="P906", id=new_id, name=f"P906 #{n}"))
+            new_id = f"{prefix}-{n}"
+        setting.devices.append(DeviceSettings(type=dtype, id=new_id, name=f"{dtype} #{n}"))
         setting.save(SETTING_FILE)
         self.refresh_device_combo(select_index=len(setting.devices) - 1)
         self.initValues()
@@ -162,8 +164,9 @@ class MDPSettings(QtWidgets.QDialog, FramelessWindow):
             CustomMessageBox(self, self.tr("错误"), self.tr("请先断开连接"))
             return
         self.save_settings()
+        pipe = max(0, self.ui.comboBoxDevice.currentIndex()) + 1
         try:
-            idcode = self.connection_manager.match()
+            idcode = self.connection_manager.match(pipe)
         except Exception as e:
             logger.exception(self.tr("自动配对失败"))
             CustomMessageBox(self, self.tr("自动配对失败"), str(e))

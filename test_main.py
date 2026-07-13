@@ -7,7 +7,7 @@ if __name__ == "__main__":
     mdp = MDP_P906(bus, idcode="08375434", led_color=(0x66, 0xCC, 0xFF), debug=False)
 
     try:
-        bus.attach(mdp, 0)
+        bus.attach(mdp, 1)
         mdp.connect()
     except Exception:
         print("Connection failed, try to auto match")

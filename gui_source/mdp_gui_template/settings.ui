@@ -686,7 +686,7 @@
     </widget>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_deviceSelect" stretch="2,3,0,0">
+    <layout class="QHBoxLayout" name="horizontalLayout_deviceSelect" stretch="2,3,0,0,0">
      <item>
       <widget class="QLabel" name="label_deviceSelect">
        <property name="minimumSize">
@@ -718,6 +718,28 @@
          <family>Sarasa Fixed SC SemiBold</family>
         </font>
        </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="comboBoxNewDeviceType">
+       <property name="font">
+        <font>
+         <family>Sarasa Fixed SC SemiBold</family>
+        </font>
+       </property>
+       <property name="toolTip">
+        <string>新设备类型</string>
+       </property>
+       <item>
+        <property name="text">
+         <string>P906</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>L1060</string>
+        </property>
+       </item>
       </widget>
      </item>
      <item>
