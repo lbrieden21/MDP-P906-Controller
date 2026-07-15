@@ -94,6 +94,7 @@ class L1060DevicePanel(DevicePanelBase):
         self.open_r = OPEN_R
         self.fps_counter = FPSCounter()
         self._temp_f = 0.0
+        self._load_commanded_on = False
 
         self._init_timers()
         self._init_mode_buttons()
@@ -189,15 +190,25 @@ class L1060DevicePanel(DevicePanelBase):
     def on_mode_changed(self, mode: str):
         self._sync_mode_ui(mode)
         self.settings.l1060_mode = mode
-        if self.api is not None:
-            self.api.select_mode(mode)
-
-    def on_target_changed(self, mode: str):
-        spin = getattr(self.ui, _TARGET_SPINBOX[mode])
-        value = spin.value()
-        self.settings.l1060_targets[mode] = value
         if self.api is None:
             return
+        if not self._load_commanded_on:
+            self.api.select_mode(mode)
+            self._push_target(mode, self.settings.l1060_targets[mode])
+            return
+        # Mimic the front panel's "Turn off before SET" interlock: cycle the
+        # load off to apply the mode change, then back on.
+        self.api.set_load_on(False)
+        self._load_commanded_on = False
+        self._flush_pending_targets(mode)
+        ok = self.api.set_load_on(True)
+        self._load_commanded_on = ok
+        if not ok:
+            self.ui.btnLoadOn.blockSignals(True)
+            self.ui.btnLoadOn.setChecked(False)
+            self.ui.btnLoadOn.blockSignals(False)
+
+    def _push_target(self, mode: str, value: float):
         if mode == "CC":
             self.api.set_current(value)
         elif mode == "CV":
@@ -207,7 +218,26 @@ class L1060DevicePanel(DevicePanelBase):
         elif mode == "CP":
             self.api.set_power(value)
 
-    ######### 辅助功能-预设组 #########
+    def _flush_pending_targets(self, desired_mode: str):
+        for mode in ("CC", "CV", "CR", "CP"):
+            self._push_target(mode, self.settings.l1060_targets[mode])
+        self.api.select_mode(desired_mode)
+
+    def on_target_changed(self, mode: str):
+        spin = getattr(self.ui, _TARGET_SPINBOX[mode])
+        value = spin.value()
+        self.settings.l1060_targets[mode] = value
+        if self.api is None:
+            return
+        # Writing a different mode's register is an implicit mode-select on
+        # this firmware and gets fought/reverted while the load is live, so
+        # only cross-mode edits are staged. The active mode's own field is
+        # not a mode change and pushes immediately.
+        if self._load_commanded_on and mode != self.settings.l1060_mode:
+            return
+        self._push_target(mode, value)
+
+    ######### Auxiliary Functions - Preset Group #########
 
     def set_preset(self, _):
         text = self.ui.comboPreset.currentText()
@@ -215,8 +245,8 @@ class L1060DevicePanel(DevicePanelBase):
             return
         mode, value = self.settings.l1060_presets[text[1]]
         getattr(self.ui, _TARGET_SPINBOX[mode]).setValue(value)
+        self.settings.l1060_targets[mode] = value
         self.on_mode_changed(mode)
-        self.on_target_changed(mode)
         self.ui.comboPreset.setCurrentIndex(0)
 
     def refresh_preset(self):
@@ -280,7 +310,12 @@ class L1060DevicePanel(DevicePanelBase):
             self.ui.btnLoadOn.blockSignals(False)
             return
         ok = self.api.set_load_on(checked)
-        if checked and not ok:
+        if not checked:
+            self._load_commanded_on = False
+            self._flush_pending_targets(self.settings.l1060_mode)
+            return
+        self._load_commanded_on = ok
+        if not ok:
             self.ui.btnLoadOn.blockSignals(True)
             self.ui.btnLoadOn.setChecked(False)
             self.ui.btnLoadOn.blockSignals(False)
@@ -334,6 +369,7 @@ class L1060DevicePanel(DevicePanelBase):
         api = self.api
         self.api = None
         api.close()
+        self._load_commanded_on = False
         self.linked = False
         self.close_state_ui()
         self.link_state_changed.emit()
@@ -420,6 +456,7 @@ class L1060DevicePanel(DevicePanelBase):
         self.ui.btnLoadOn.setChecked(bool(LoadActive))
         self.ui.btnLoadOn.blockSignals(False)
         if ProtectionLatched:
+            self._load_commanded_on = False
             self.ui.labelProtection.setText(_PROTECTION_LABELS.get(Protection, "LATCHED"))
             self.ui.labelProtection.setToolTip(
                 self.tr("需要在设备上物理按下 Run 按钮才能解除保护锁存")
@@ -453,6 +490,9 @@ class L1060DevicePanel(DevicePanelBase):
         self.ui.lcdResistance.display(r_text)
         self.values_signal.emit(vavg, iavg, power)
         if self.api is not None:
+            # Only the active mode's spinbox is synced here, and its edits
+            # are never staged (on_target_changed pushes them live), so this
+            # readback can't clobber a pending cross-mode edit.
             mode = self.settings.l1060_mode
             targets = self.api.get_targets()
             if mode in targets:

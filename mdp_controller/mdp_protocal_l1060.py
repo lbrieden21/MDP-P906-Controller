@@ -62,32 +62,16 @@ def _decode_digit_voltage(byte_a: int, byte_b: int) -> Optional[float]:
 
 
 # ---------------------------------------------------------------------------
-# Type 7: get / set voltage & current, live measurement (exact base-100
-# digit-pair decode -- no gain/offset correction needed, unlike P906).
+# Type 7: get / live measurement (exact base-100 digit-pair decode -- no
+# gain/offset correction needed, unlike P906). Setters for all four target
+# registers (CC/CV/CR/CP) live in the Type 10 section below -- see the note
+# there on why CV/CC used to ride this channel and no longer do.
 # ---------------------------------------------------------------------------
 
 
 @lru_cache()
 def gen_get_type7(idcode: bytes, m01_channel: int = 0, blink: bool = True) -> bytes:
     return gen_packet(7, bytes.fromhex(_common_prefix(idcode, m01_channel, blink)))
-
-
-def gen_set_voltage(
-    idcode: bytes, voltage: float, m01_channel: int = 0, blink: bool = True
-) -> bytes:
-    assert 0.0 <= voltage <= 30.0
-    v = "{:07.3f}".format(voltage).replace(".", "")
-    d = _common_prefix(idcode, m01_channel, blink) + "0303" + v
-    return gen_packet(7, bytes.fromhex(d))
-
-
-def gen_set_current(
-    idcode: bytes, current: float, m01_channel: int = 0, blink: bool = True
-) -> bytes:
-    assert 0.0 < current < 10.0
-    c = "{:07.3f}".format(current).replace(".", "")
-    d = _common_prefix(idcode, m01_channel, blink) + "0203" + c
-    return gen_packet(7, bytes.fromhex(d))
 
 
 def _parse_sample_slots(sample_data: bytes) -> List[dict]:
@@ -217,16 +201,44 @@ def parse_type9_response(data: bytes) -> Tuple[bytes, Optional[bool]]:
 
 
 # ---------------------------------------------------------------------------
-# Type 10: mode select / load switch / set resistance & power / target-page
-# get. Each get response carries one of four rotating target pages
-# (CC->CR->CP->CV->CC...), self-reported via the trailing 5 bytes
-# (family(2) + value(3)), advancing per get the device receives (not per
-# response reaching the host -- both directions can drop independently).
+# Type 10: mode select / load switch / set current, voltage, resistance &
+# power / target-page get. Each get response carries one of four rotating
+# target pages (CC->CR->CP->CV->CC...), self-reported via the trailing 5
+# bytes (family(2) + value(3)), advancing per get the device receives (not
+# per response reaching the host -- both directions can drop independently).
+#
+# gen_set_current/gen_set_voltage used to ride Type 7 instead (the live
+# measurement channel), tagged with the same family codes used here. That
+# didn't isolate CC/CV from the disturbance it was meant to avoid: writing
+# the CV target register flips the device's reported LoadMode to CV even
+# when sent as this passive Type-10 page write, with no gen_select_mode
+# alongside it (hardware-confirmed). So the transient when editing CV while
+# CC is active is inherent to writing that register at all, not a Type-7
+# side effect -- moving to Type 10 here is for protocol consistency (one
+# write path for all four targets), not a fix for that transient.
 # ---------------------------------------------------------------------------
 
 
 def gen_get_type10(idcode: bytes, m01_channel: int = 0, blink: bool = True) -> bytes:
     return gen_packet(10, bytes.fromhex(_common_prefix(idcode, m01_channel, blink)))
+
+
+def gen_set_current(
+    idcode: bytes, current: float, m01_channel: int = 0, blink: bool = True
+) -> bytes:
+    assert 0.0 < current < 10.0
+    milliamps = round(current * 1000)
+    d = _common_prefix(idcode, m01_channel, blink) + "0203"
+    return gen_packet(10, bytes.fromhex(d) + bytes.fromhex("{:06d}".format(milliamps)))
+
+
+def gen_set_voltage(
+    idcode: bytes, voltage: float, m01_channel: int = 0, blink: bool = True
+) -> bytes:
+    assert 0.0 <= voltage <= 30.0
+    millivolts = round(voltage * 1000)
+    d = _common_prefix(idcode, m01_channel, blink) + "0303"
+    return gen_packet(10, bytes.fromhex(d) + bytes.fromhex("{:06d}".format(millivolts)))
 
 
 def gen_set_resistance(
