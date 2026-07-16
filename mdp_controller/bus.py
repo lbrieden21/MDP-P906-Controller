@@ -147,8 +147,20 @@ class MDPBus:
                 self._adp.nrf_set_tx_target(owner.address)
                 self._current_target = owner.address
 
+            context = (
+                f"pipe addr ..{owner.address[-1]:02X}, type 0x{packet[0]:02X}, "
+                f"{'waited' if wait_response else 'fire-and-forget'}"
+            )
+
             if not wait_response:
-                self._adp.nrf_send(packet, timeout=owner.com_timeout)
+                if _retry is None:
+                    _retry = owner.com_retry
+                try:
+                    self._adp.nrf_send(packet, timeout=owner.com_timeout, context=context)
+                except NRF24AdapterError:
+                    if _retry > 0:
+                        return self.transfer(owner, packet, wait_response, _retry - 1)
+                    raise
                 return b""
 
             if _retry is None:
@@ -157,7 +169,7 @@ class MDPBus:
             owner._transfer_wait_header = packet[0]
             owner._transfer_event.clear()
             try:
-                self._adp.nrf_send(packet, timeout=owner.com_timeout)
+                self._adp.nrf_send(packet, timeout=owner.com_timeout, context=context)
             except NRF24AdapterError:
                 if _retry > 0:
                     return self.transfer(owner, packet, wait_response, _retry - 1)

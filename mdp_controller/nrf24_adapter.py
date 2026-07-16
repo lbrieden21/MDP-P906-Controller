@@ -175,6 +175,8 @@ class NRF24Adapter:
         self._debug = debug
         self._connect_event = threading.Event()
         self._send_event = threading.Event()
+        self._send_ok = False
+        self._last_send_context = ""
         self._recv_callback: Optional[Callable[[int, bytes], None]] = None
         self._query_event = threading.Event()
         self._query_data = b""
@@ -280,12 +282,16 @@ class NRF24Adapter:
             self._action_event.set()
         elif cmd == RESPONSE.NRF_SEND_OK:
             self._counter.resp_ok()
+            self._send_ok = True
             self._send_event.set()
             if self._debug:
                 logger.trace("NRF Response: NRF send success")
         elif cmd == RESPONSE.NRF_SEND_FAIL:
             self._counter.resp_err()
-            logger.warning("NRF Response: NRF send no ack")
+            self._send_ok = False
+            self._send_event.set()
+            context = f" ({self._last_send_context})" if self._last_send_context else ""
+            logger.warning(f"NRF Response: NRF send no ack{context}")
         elif cmd == RESPONSE.NRF_RECV_OK:
             pipe, payload = data[0], data[1:]
             self._counter.update(len(payload), check_resp=False)
@@ -340,10 +346,15 @@ class NRF24Adapter:
             logger.info(f"NRF24-Adapter baudrate set to {baudrate}")
 
     def nrf_send(
-        self, data: bytes, wait_response: bool = True, timeout: Optional[float] = 2
+        self,
+        data: bytes,
+        wait_response: bool = True,
+        timeout: Optional[float] = 2,
+        context: str = "",
     ):
         if wait_response:
             self._send_event.clear()
+        self._last_send_context = context
         self._write(CMD.NRF_TX, data)
         self._counter.update(len(data), check_resp=True)
         if wait_response:
@@ -351,6 +362,8 @@ class NRF24Adapter:
                 raise NRF24AdapterError("NRF send timeout")
             else:
                 self._send_event.clear()
+                if not self._send_ok:
+                    raise NRF24AdapterError("NRF send no ack")
 
     def nrf_register_recv_callback(self, callback: Callable[[int, bytes], None]):
         self._recv_callback = callback

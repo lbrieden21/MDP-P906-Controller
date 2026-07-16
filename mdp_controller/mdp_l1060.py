@@ -371,7 +371,7 @@ class MDP_L1060:
         )
         self._status["LoadMode"] = mode
 
-    def set_load_on(self, on: bool, retries: int = 3, settle_s: float = 0.05) -> bool:
+    def set_load_on(self, on: bool, retries: int = 3, settle_s: float = 0.075) -> bool:
         """
         Turn the load on/off, confirming the device-reported switch state
         (LoadEnabled) in both directions.
@@ -417,9 +417,10 @@ class MDP_L1060:
                 wait_response=False,
             )
             # The bit usually flips within one poll, but can trail the write
-            # by a few hundred ms on the off-path -- poll a small budget
-            # before charging a retry (which re-sends the switch write).
-            for _ in range(4):
+            # by a few hundred ms on the off-path -- poll a budget covering
+            # that lag before charging a retry (which re-sends the switch
+            # write).
+            for _ in range(6):
                 time.sleep(settle_s)
                 if self._refresh_type10() and self._status["LoadEnabled"] == on:
                     return True
