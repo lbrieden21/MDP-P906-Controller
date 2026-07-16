@@ -162,6 +162,25 @@ class MDP_L1060:
     def _transfer(self, packet: bytes, wait_response: bool = True):
         return self._bus.transfer(self, packet, wait_response)
 
+    def _refresh_type10(self) -> bool:
+        """
+        One waited Type 10 get -- the authoritative read of the load-switch
+        state (LoadEnabled, sd[4] bit 0, the same field the real M01 polls).
+        Also lands one rotating target page as a side effect.
+
+        Returns:
+            bool: True if a response arrived and updated the status cache.
+        """
+        try:
+            self._transfer(
+                mdp_protocal_l1060.gen_get_type10(
+                    self._idcode, self._m01_channel, blink=self._blink
+                )
+            )
+            return True
+        except (TimeoutError, NRF24AdapterError):
+            return False
+
     def close(self):
         self._bus.detach(self)
         logger.info("MDP-L1060 closed")
@@ -175,8 +194,12 @@ class MDP_L1060:
         Returns:
             Tuple containing:
             - LoadMode (str): 'CC' / 'CV' / 'CR' / 'CP'
-            - LoadActive (Optional[bool]): True if current is actually flowing (Type 7 derived)
-            - LoadEnabled (Optional[bool]): True if the load switch is on (Type 10 derived, may lag)
+            - LoadActive (Optional[bool]): True if current is actually flowing (Type 7
+              derived; conduction lags switch-on by ~1 s and can be legitimately False
+              while the switch is on, e.g. CV target above the source voltage)
+            - LoadEnabled (Optional[bool]): the genuine load-switch state (Type 10
+              sd[4] bit 0, the same field the real M01 polls); refreshed whenever a
+              Type 10 response arrives, None until the first one does
             - Temperature (float): Device temperature
             - InputVoltage (float): USB/power-input rail voltage (NOT load-terminal voltage)
             - Voltage (float): Load-terminal voltage
@@ -350,23 +373,24 @@ class MDP_L1060:
 
     def set_load_on(self, on: bool, retries: int = 3, settle_s: float = 0.05) -> bool:
         """
-        Turn the load on/off, with confirm-and-retry on the on-path.
+        Turn the load on/off, confirming the device-reported switch state
+        (LoadEnabled) in both directions.
 
-        A dropped load-on packet still looks accepted (fire-and-forget write,
-        no per-write ack payload worth trusting), so turning on re-sends the
-        current mode select, sends the switch write, then confirms current
-        actually flowed (LoadActive, from Type 7) before trusting it --
-        resending the whole sequence on failure, not just re-polling. This is
-        a second, higher-level retry layer on top of MDPBus.transfer()'s own
-        internal retry (which only covers wait_response=True calls and can't
-        detect a dropped fire-and-forget switch write at all).
+        A dropped switch packet still looks accepted: the write is
+        fire-and-forget, and the radio-level "response" to a switch write is
+        a byte-identical stale duplicate of the previous reply, never a fresh
+        ack (bench-verified 2026-07-16). So each attempt re-sends the mode
+        select (on-path only) and the switch write, then confirms with fresh
+        waited Type 10 gets until LoadEnabled reports the commanded state.
 
-        Turning off is a single fire-and-forget write, no confirmation --
-        matches the proven mdp_commander sequence.
+        LoadActive (current flowing, Type 7) is NOT the confirm signal:
+        conduction lags the switch closing by ~1 s, and is legitimately zero
+        in on-states like a CV target above the source voltage -- confirming
+        on it reports False for a load that is genuinely on.
 
         Returns:
-            bool: True if confirmed (or off, which isn't confirmed), False if
-            refused (protection latched) or not confirmed after retries.
+            bool: True once LoadEnabled confirms the commanded state, False
+            if refused (protection latched) or not confirmed after retries.
         """
         assert self._idcode is not None, "Please pair first"
         if on and self._status["ProtectionLatched"]:
@@ -392,17 +416,15 @@ class MDP_L1060:
                 ),
                 wait_response=False,
             )
-            if not on:
-                return True
-            time.sleep(settle_s)
-            try:
-                self.get_status()
-            except (TimeoutError, NRF24AdapterError):
-                continue
-            if self._status["LoadActive"]:
-                return True
-            logger.warning(f"set_load_on(True) not confirmed, retry {attempt+1}/{retries}")
-        logger.error(f"set_load_on(True) failed after {retries} retries")
+            # The bit usually flips within one poll, but can trail the write
+            # by a few hundred ms on the off-path -- poll a small budget
+            # before charging a retry (which re-sends the switch write).
+            for _ in range(4):
+                time.sleep(settle_s)
+                if self._refresh_type10() and self._status["LoadEnabled"] == on:
+                    return True
+            logger.warning(f"set_load_on({on}) not confirmed, retry {attempt+1}/{retries}")
+        logger.error(f"set_load_on({on}) failed after {retries} retries")
         return False
 
     def set_led_color(self, rgb: Tuple[int, int, int]):
@@ -462,5 +484,11 @@ class MDP_L1060:
                 )
             logger.error(f"Connect got no valid measurement, retry - {i+1}/{retry_times}")
             time.sleep(0.1)
+        # Seed the load-switch state so LoadEnabled is known from link time
+        # instead of None until the first slow target poll. Best-effort: a
+        # lossy link here just leaves it None, it is not a connect failure.
+        for _ in range(3):
+            if self._refresh_type10():
+                break
         logger.debug(f"MDP-L1060 init status: {self._status}")
         logger.success("MDP-L1060 Connected")

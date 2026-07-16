@@ -198,7 +198,11 @@ class L1060DevicePanel(DevicePanelBase):
             return
         # Mimic the front panel's "Turn off before SET" interlock: cycle the
         # load off to apply the mode change, then back on.
-        self.api.set_load_on(False)
+        if not self.api.set_load_on(False):
+            # Off never confirmed -- the load may still be live. Leave the
+            # interlock engaged; the staged mode/targets apply on the next
+            # confirmed off.
+            return
         self._load_commanded_on = False
         self._flush_pending_targets(mode)
         ok = self.api.set_load_on(True)
@@ -311,8 +315,16 @@ class L1060DevicePanel(DevicePanelBase):
             return
         ok = self.api.set_load_on(checked)
         if not checked:
-            self._load_commanded_on = False
-            self._flush_pending_targets(self.settings.l1060_mode)
+            if ok:
+                self._load_commanded_on = False
+                self._flush_pending_targets(self.settings.l1060_mode)
+            else:
+                # Off never confirmed -- the load may still be live, so keep
+                # the interlock engaged and don't write staged targets into
+                # a live load. update_state() re-syncs from LoadEnabled.
+                self.ui.btnLoadOn.blockSignals(True)
+                self.ui.btnLoadOn.setChecked(True)
+                self.ui.btnLoadOn.blockSignals(False)
             return
         self._load_commanded_on = ok
         if not ok:
@@ -438,7 +450,7 @@ class L1060DevicePanel(DevicePanelBase):
         (
             LoadMode,
             LoadActive,
-            _LoadEnabled,
+            LoadEnabled,
             Temperature,
             _InputVoltage,
             _Voltage,
@@ -452,8 +464,17 @@ class L1060DevicePanel(DevicePanelBase):
             self.settings.l1060_mode = LoadMode
         self._temp_f = Temperature * 9 / 5 + 32
         self.ui.labelTemperature.setText(f"{Temperature:.0f}°C/{self._temp_f:.0f}°F")
+        # LoadEnabled is the device-reported switch state (authoritative);
+        # syncing the interlock flag from it heals any desync left by an
+        # unconfirmed set_load_on. LoadActive is only conduction -- it lags
+        # switch-on by ~1 s -- so it's just the fallback while LoadEnabled
+        # is still unknown.
+        if LoadEnabled is not None:
+            self._load_commanded_on = LoadEnabled
         self.ui.btnLoadOn.blockSignals(True)
-        self.ui.btnLoadOn.setChecked(bool(LoadActive))
+        self.ui.btnLoadOn.setChecked(
+            bool(LoadActive) if LoadEnabled is None else LoadEnabled
+        )
         self.ui.btnLoadOn.blockSignals(False)
         if ProtectionLatched:
             self._load_commanded_on = False
