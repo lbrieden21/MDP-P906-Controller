@@ -219,12 +219,12 @@ class MDP_P906:
         """
         logger.info(f"Set LED color to: {rgb}")
 
-    def connect(self, retry_times: int = 3):
+    def connect(self, timeout: float = 8.0):
         """
         Connect to the MDP-P906 and prepare information for calibration.
 
         Args:
-            retry_times (int): The number of times to try to connect to the MDP-P906.
+            timeout (float): Total retry budget in seconds (unused in sim).
 
         Raises:
             Exception: If failed to connect to the MDP-P906.

@@ -445,7 +445,7 @@ class MDP_L1060:
             )
         )
 
-    def connect(self, retry_times: int = 3):
+    def connect(self, timeout: float = 8.0):
         """
         Connect to the MDP-L1060.
 
@@ -457,13 +457,19 @@ class MDP_L1060:
         gain/offset correction.
 
         Args:
-            retry_times (int): The number of times to try to connect to the MDP-L1060.
+            timeout (float): Total retry budget in seconds. Time-based, not
+                attempt-based: a freshly powered-on device ACKs nothing at
+                the radio level for the first ~3-4.5 s (measured on real
+                hardware for both L1060 and P906), so the budget must
+                outlast that boot window for a connect racing a power-on.
 
         Raises:
-            Exception: If failed to connect to the MDP-L1060.
+            Exception: If failed to connect to the MDP-L1060 within the budget.
         """
         assert self._idcode is not None, "Please pair first"
-        for i in range(retry_times + 1):
+        deadline = time.monotonic() + timeout
+        last_log = 0.0
+        while True:
             try:
                 self._transfer(
                     mdp_protocal_l1060.gen_set_led_color(
@@ -472,18 +478,21 @@ class MDP_L1060:
                 )
                 self.get_status()
             except (NRF24AdapterError, TimeoutError, AssertionError) as e:
-                if i == retry_times:
+                now = time.monotonic()
+                if now >= deadline:
                     raise Exception("Failed to connect to MDP-L1060") from e
-                logger.error(f"Connect failed, retry - {i+1}/{retry_times}")
+                if now - last_log >= 1.0:
+                    logger.error(f"Connect failed, retrying for {deadline - now:.1f}s more")
+                    last_log = now
                 time.sleep(0.1)
                 continue
             if self._status["AnchorValid"]:
                 break
-            if i == retry_times:
+            if time.monotonic() >= deadline:
                 raise Exception(
                     "Failed to connect to MDP-L1060: no valid measurement anchor"
                 )
-            logger.error(f"Connect got no valid measurement, retry - {i+1}/{retry_times}")
+            logger.error("Connect got no valid measurement, retrying")
             time.sleep(0.1)
         # Seed the load-switch state so LoadEnabled is known from link time
         # instead of None until the first slow target poll. Best-effort: a

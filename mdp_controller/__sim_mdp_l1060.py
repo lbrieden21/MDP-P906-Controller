@@ -194,5 +194,5 @@ class MDP_L1060:
     def set_led_color(self, rgb: Tuple[int, int, int]):
         logger.info(f"Set LED color to: {rgb}")
 
-    def connect(self, retry_times: int = 3):
+    def connect(self, timeout: float = 8.0):
         logger.success("MDP-L1060 Connected")

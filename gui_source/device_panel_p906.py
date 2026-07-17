@@ -466,7 +466,7 @@ class P906DevicePanel(DevicePanelBase):
         )
         try:
             bus.attach(api, pipe)
-            api.connect(retry_times=2)
+            api.connect(timeout=8.0)
         except Exception:
             api.close()
             raise
