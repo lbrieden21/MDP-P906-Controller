@@ -243,7 +243,7 @@ class MDPDevice:
         """
         assert self._idcode is not None, "Please pair first"
         deadline = time.monotonic() + timeout
-        last_log = 0.0
+        last_log = time.monotonic()
         while True:
             try:
                 self._connect_probe()
