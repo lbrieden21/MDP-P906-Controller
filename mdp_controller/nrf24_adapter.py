@@ -290,8 +290,9 @@ class NRF24Adapter:
             self._counter.resp_err()
             self._send_ok = False
             self._send_event.set()
-            context = f" ({self._last_send_context})" if self._last_send_context else ""
-            logger.warning(f"NRF Response: NRF send no ack{context}")
+            if self._debug:
+                context = f" ({self._last_send_context})" if self._last_send_context else ""
+                logger.trace(f"NRF Response: NRF send no ack{context}")
         elif cmd == RESPONSE.NRF_RECV_OK:
             pipe, payload = data[0], data[1:]
             self._counter.update(len(payload), check_resp=False)
