@@ -6,6 +6,7 @@ from typing import Dict, Literal, Optional, Tuple
 from loguru import logger
 
 import mdp_controller.mdp_protocal as mdp_protocal
+from mdp_controller.mdp_device import _hex_to_bytes
 from mdp_controller.nrf24_adapter import (
     NRF24Adapter,
     NRF24AdapterError,
@@ -36,11 +37,6 @@ from mdp_controller.nrf24_adapter import (
 _PIPE_ADDRESS_PREFIX = 0xE1
 
 _MATCH_COM_TIMEOUT = 0.04
-
-
-def _hex_to_bytes(s: str) -> bytes:
-    s = s.replace("0x", "").replace(":", "").replace(" ", "")
-    return bytes.fromhex(s)
 
 
 class MDPBus:

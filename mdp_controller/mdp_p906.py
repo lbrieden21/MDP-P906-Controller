@@ -1,26 +1,17 @@
-import time
-from threading import Event
-from typing import TYPE_CHECKING, Callable, List, Optional, Tuple
+from typing import TYPE_CHECKING, List, Optional, Tuple
 
 from loguru import logger
 
 import mdp_controller.mdp_protocal as mdp_protocal
-from mdp_controller.nrf24_adapter import NRF24AdapterError
+from mdp_controller.mdp_device import MDPDevice
 
 if TYPE_CHECKING:
     from mdp_controller.bus import MDPBus
 
 
-def _convert_to_rgb565(r: int, g: int, b: int) -> int:
-    return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3)
+class MDP_P906(MDPDevice):
+    device_name = "MDP-P906"
 
-
-def _hex_to_bytes(s: str) -> bytes:
-    s = s.replace("0x", "").replace(":", "").replace(" ", "")
-    return bytes.fromhex(s)
-
-
-class MDP_P906:
     def __init__(
         self,
         bus: "MDPBus",
@@ -45,15 +36,16 @@ class MDP_P906:
             blink (bool): Whether to blink the "under-control" indicator of the P906.
             debug (bool): Show debug info.
         """
-        self._bus = bus
-        self.address: Optional[bytes] = None
-        self._idcode = _hex_to_bytes(idcode) if idcode is not None else None
-        self._m01_channel = m01_channel
-        self._led_color = _convert_to_rgb565(*led_color)
-        self._com_timeout = com_timeout
-        self._com_retry = com_retry
-        self._blink = blink
-        self._debug = debug
+        super().__init__(
+            bus,
+            idcode=idcode,
+            m01_channel=m01_channel,
+            led_color=led_color,
+            com_timeout=com_timeout,
+            com_retry=com_retry,
+            blink=blink,
+            debug=debug,
+        )
         self._status = {
             "Model": "Unknown",
             "HVzero16": 0.0,
@@ -72,112 +64,64 @@ class MDP_P906:
             "RealtimeOutput9": [0.0 for _ in range(9)],
         }
 
-        self._transfer_data = b""
-        self._transfer_wait_header = -1
-        self._transfer_event = Event()
-
-        self._rtvalue_callback: Optional[Callable[[list], None]] = None
-
-    @property
-    def idcode(self) -> Optional[bytes]:
-        return self._idcode
-
-    @property
-    def com_timeout(self) -> Optional[float]:
-        return self._com_timeout
-
-    @property
-    def com_retry(self) -> int:
-        return self._com_retry
-
-    @property
-    def speed_counter(self):
-        return self._bus.speed_counter
-
-    def _on_packet(self, data: bytes):
-        try:
-            if data[0] == 7:
-                (
-                    errflag,
-                    input_volt,
-                    input_curr,
-                    voltage,
-                    current,
-                    locked,
-                    state,
-                    temperature,
-                    realtime_adc,
-                ) = mdp_protocal.parse_type7_response(
-                    data,
-                    self._status["HVzero16"],
-                    self._status["HVgain16"],
-                    self._status["HCzero04"],
-                    self._status["HCgain04"],
-                )
-                self._status["ErrFlag"] = errflag
-                self._status["InputVoltage"] = input_volt
-                self._status["InputCurrent"] = input_curr
-                self._status["SetVoltage"] = voltage
-                self._status["SetCurrent"] = current
-                self._status["Locked"] = bool(locked)
-                self._status["State"] = {0: "off", 1: "cc", 2: "cv", 3: "on"}[state]
-                self._status["Temperature"] = temperature
-                self._status["RealtimeOutput4"] = realtime_adc
-            elif data[0] == 9:
-                idcode, HVzero16, HVgain16, HCzero04, HCgain04, model = (
-                    mdp_protocal.parse_type9_response(data)
-                )
-                if idcode != self._idcode:
-                    logger.warning(f"Type-9 ID code mismatch: {idcode}!={self._idcode}")
-                self._status["HVzero16"] = HVzero16
-                self._status["HVgain16"] = HVgain16
-                self._status["HCzero04"] = HCzero04
-                self._status["HCgain04"] = HCgain04
-                self._status["Model"] = {1: "P905", 2: "P906"}.get(model, "Unknown")
-            elif data[0] == 8:
-                errflag, values = mdp_protocal.parse_type8_response(
-                    data,
-                    self._status["HVzero16"],
-                    self._status["HVgain16"],
-                    self._status["HCzero04"],
-                    self._status["HCgain04"],
-                )
-                self._status["ErrFlag"] = errflag
-                self._status["RealtimeOutput9"] = values
-                if self._rtvalue_callback is not None:
-                    self._rtvalue_callback(values)
-            elif data[0] == 4:
-                self._status["SetCurrent"], self._status["SetVoltage"] = (
-                    mdp_protocal.parse_type4_response(data)
-                )
-            elif data[0] == 5:
-                pass
-            elif data[0] == 6:
-                logger.info(
-                    f"Dispatch device result: {mdp_protocal.parse_type6_response(data)}"
-                )
-            else:
-                logger.warning(f"Unhandled Type-{data[0]}: {data.hex(' ').upper()}")
-
-            if self._debug:
-                logger.trace(
-                    f"Type-{data[0]}: {data.hex(' ').upper()} -> {self._status}"
-                )
-
-        except Exception:
-            logger.exception("Parse error")
-
-        if data[0] == self._transfer_wait_header:
-            self._transfer_data = data
-            self._transfer_wait_header = -1
-            self._transfer_event.set()
-
-    def _transfer(self, packet: bytes, wait_response: bool = True):
-        return self._bus.transfer(self, packet, wait_response)
-
-    def close(self):
-        self._bus.detach(self)
-        logger.info("MDP-P906 closed")
+    def _handle_packet(self, data: bytes) -> bool:
+        if data[0] == 7:
+            (
+                errflag,
+                input_volt,
+                input_curr,
+                voltage,
+                current,
+                locked,
+                state,
+                temperature,
+                realtime_adc,
+            ) = mdp_protocal.parse_type7_response(
+                data,
+                self._status["HVzero16"],
+                self._status["HVgain16"],
+                self._status["HCzero04"],
+                self._status["HCgain04"],
+            )
+            self._status["ErrFlag"] = errflag
+            self._status["InputVoltage"] = input_volt
+            self._status["InputCurrent"] = input_curr
+            self._status["SetVoltage"] = voltage
+            self._status["SetCurrent"] = current
+            self._status["Locked"] = bool(locked)
+            self._status["State"] = {0: "off", 1: "cc", 2: "cv", 3: "on"}[state]
+            self._status["Temperature"] = temperature
+            self._status["RealtimeOutput4"] = realtime_adc
+        elif data[0] == 9:
+            idcode, HVzero16, HVgain16, HCzero04, HCgain04, model = (
+                mdp_protocal.parse_type9_response(data)
+            )
+            if idcode != self._idcode:
+                logger.warning(f"Type-9 ID code mismatch: {idcode}!={self._idcode}")
+            self._status["HVzero16"] = HVzero16
+            self._status["HVgain16"] = HVgain16
+            self._status["HCzero04"] = HCzero04
+            self._status["HCgain04"] = HCgain04
+            self._status["Model"] = {1: "P905", 2: "P906"}.get(model, "Unknown")
+        elif data[0] == 8:
+            errflag, values = mdp_protocal.parse_type8_response(
+                data,
+                self._status["HVzero16"],
+                self._status["HVgain16"],
+                self._status["HCzero04"],
+                self._status["HCgain04"],
+            )
+            self._status["ErrFlag"] = errflag
+            self._status["RealtimeOutput9"] = values
+            if self._rtvalue_callback is not None:
+                self._rtvalue_callback(values)
+        elif data[0] == 4:
+            self._status["SetCurrent"], self._status["SetVoltage"] = (
+                mdp_protocal.parse_type4_response(data)
+            )
+        else:
+            return False
+        return True
 
     def get_status(
         self,
@@ -230,61 +174,6 @@ class MDP_P906:
             self._status["RealtimeOutput4"],
             self._status["Model"],
         )
-
-    def get_realtime_value(self) -> List[Tuple[float, float]]:
-        """
-        Get the realtime values of output in sync mode.
-
-        Returns:
-            List[Tuple[float, float]]: A 9-value list of (voltage/V, current/A)
-
-        Note:
-            return [] if failed.
-        """
-        assert self._idcode is not None, "Please pair first"
-        try:
-            self._transfer(
-                mdp_protocal.gen_get_type8(
-                    self._idcode, self._m01_channel, blink=self._blink
-                )
-            )
-            return self._status["RealtimeOutput9"]
-        except (TimeoutError, NRF24AdapterError):
-            return []
-
-    def request_realtime_value(self) -> bool:
-        """
-        Request the realtime values of output in async mode.
-
-        Note:
-            Should call register_realtime_value_callback() first.
-
-        Returns:
-            bool: True if success, False if failed.
-        """
-        assert self._idcode is not None, "Please pair first"
-        try:
-            self._transfer(
-                mdp_protocal.gen_get_type8(
-                    self._idcode, self._m01_channel, blink=self._blink
-                ),
-                wait_response=False,
-            )
-            return True
-        except (TimeoutError, NRF24AdapterError):
-            return False
-
-    def register_realtime_value_callback(self, callback: Callable[[list], None]):
-        """
-        Register a callback function to handle the realtime values of output in async mode.
-
-        Args:
-            callback (Callable[[list], None]): A function that takes a list of (voltage in V, current in A) as input.
-
-        Note:
-            The callback will be called in a separate thread. get_realtime_value() will also trigger the callback like request_realtime_value(), but in blocking mode.
-        """
-        self._rtvalue_callback = callback
 
     def set_output(self, state: bool):
         """
@@ -350,56 +239,13 @@ class MDP_P906:
         self._transfer(mdp_protocal.gen_get_volt_cur())
         return self._status["SetVoltage"], self._status["SetCurrent"]
 
-    def set_led_color(self, rgb: Tuple[int, int, int]):
+    def _connect_probe(self):
         """
-        Set the LED color of the digital wheel.
-
-        Args:
-            rgb (Tuple[int, int, int]): The color of the LED, in the form of (R, G, B).
+        Probe via update_gain_offset(): the round-trip also latches the four
+        calibration constants into _status, which every Type-7/8 decode
+        depends on.
         """
-        assert self._idcode is not None, "Please pair first"
-        rgb565 = _convert_to_rgb565(*rgb)
-        self._led_color = rgb565
-        logger.debug(f"Set LED color to: {rgb565}")
-        self._transfer(
-            mdp_protocal.gen_set_led_color(
-                self._idcode, self._led_color, self._m01_channel, blink=self._blink
-            )
-        )
-
-    def connect(self, timeout: float = 8.0):
-        """
-        Connect to the MDP-P906 and prepare information for calibration.
-
-        Args:
-            timeout (float): Total retry budget in seconds. Time-based, not
-                attempt-based: a freshly powered-on device ACKs nothing at
-                the radio level for the first ~3-4.5 s (measured on real
-                hardware for both P906 and L1060), so the budget must
-                outlast that boot window for a connect racing a power-on.
-
-        Raises:
-            Exception: If failed to connect to the MDP-P906 within the budget.
-        """
-        assert self._idcode is not None, "Please pair first"
-        deadline = time.monotonic() + timeout
-        last_log = 0.0
-        while True:
-            try:
-                self.update_gain_offset()
-                self.get_status()
-            except (NRF24AdapterError, TimeoutError, AssertionError) as e:
-                now = time.monotonic()
-                if now >= deadline:
-                    raise Exception("Failed to connect to MDP-P906") from e
-                if now - last_log >= 1.0:
-                    logger.error(f"Connect failed, retrying for {deadline - now:.1f}s more")
-                    last_log = now
-                time.sleep(0.1)
-                continue
-            break
-        logger.debug(f"MDP init status: {self._status}")
-        logger.success("MDP-P906 Connected")
+        self.update_gain_offset()
 
     def update_gain_offset(self) -> Tuple[int, int, int, int]:
         """

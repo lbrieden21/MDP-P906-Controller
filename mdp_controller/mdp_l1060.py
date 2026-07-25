@@ -1,26 +1,21 @@
 import time
-from threading import Event
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Dict, Optional, Tuple
 
 from loguru import logger
 
 import mdp_controller.mdp_protocal_l1060 as mdp_protocal_l1060
+from mdp_controller.mdp_device import MDPDevice
 from mdp_controller.nrf24_adapter import NRF24AdapterError
 
 if TYPE_CHECKING:
     from mdp_controller.bus import MDPBus
 
 
-def _convert_to_rgb565(r: int, g: int, b: int) -> int:
-    return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3)
+class MDP_L1060(MDPDevice):
+    device_name = "MDP-L1060"
 
+    _connect_ready_error = "no valid measurement anchor"
 
-def _hex_to_bytes(s: str) -> bytes:
-    s = s.replace("0x", "").replace(":", "").replace(" ", "")
-    return bytes.fromhex(s)
-
-
-class MDP_L1060:
     def __init__(
         self,
         bus: "MDPBus",
@@ -45,15 +40,16 @@ class MDP_L1060:
             blink (bool): Whether to blink the "under-control" indicator of the L1060.
             debug (bool): Show debug info.
         """
-        self._bus = bus
-        self.address: Optional[bytes] = None
-        self._idcode = _hex_to_bytes(idcode) if idcode is not None else None
-        self._m01_channel = m01_channel
-        self._led_color = _convert_to_rgb565(*led_color)
-        self._com_timeout = com_timeout
-        self._com_retry = com_retry
-        self._blink = blink
-        self._debug = debug
+        super().__init__(
+            bus,
+            idcode=idcode,
+            m01_channel=m01_channel,
+            led_color=led_color,
+            com_timeout=com_timeout,
+            com_retry=com_retry,
+            blink=blink,
+            debug=debug,
+        )
         self._status = {
             "ErrFlag": 0,
             "Temperature": 0.0,
@@ -70,97 +66,59 @@ class MDP_L1060:
             "ProtectionLatched": False,
         }
 
-        self._transfer_data = b""
-        self._transfer_wait_header = -1
-        self._transfer_event = Event()
-
-        self._rtvalue_callback: Optional[Callable[[list], None]] = None
-
-    @property
-    def idcode(self) -> Optional[bytes]:
-        return self._idcode
-
-    @property
-    def com_timeout(self) -> Optional[float]:
-        return self._com_timeout
-
-    @property
-    def com_retry(self) -> int:
-        return self._com_retry
-
-    @property
-    def speed_counter(self):
-        return self._bus.speed_counter
-
-    def _on_packet(self, data: bytes):
-        try:
-            if data[0] == 7:
-                result = mdp_protocal_l1060.parse_type7_response(data)
-                self._status["ErrFlag"] = result["errflag"]
-                self._status["Temperature"] = result["temperature"]
-                if result["load_mode"] != "Unknown":
-                    self._status["LoadMode"] = result["load_mode"]
-                self._status["LoadActive"] = result["load_active"]
-                if result["input_voltage"] is not None:
-                    self._status["InputVoltage"] = result["input_voltage"]
-                if result["voltage"] is not None and result["current"] is not None:
-                    self._status["Voltage"] = result["voltage"]
-                    self._status["Current"] = result["current"]
-                    self._status["AnchorValid"] = True
-            elif data[0] == 8:
-                if not self._status["AnchorValid"]:
-                    logger.debug("L1060 Type-8: no valid Type-7 anchor yet, skipping unwrap")
-                else:
-                    errflag, values = mdp_protocal_l1060.parse_type8_response(
-                        data, self._status["Voltage"], self._status["Current"]
-                    )
-                    self._status["ErrFlag"] = errflag
-                    self._status["RealtimeOutput9"] = values
-                    if self._rtvalue_callback is not None:
-                        self._rtvalue_callback(values)
-            elif data[0] == 9:
-                idcode, _latched = mdp_protocal_l1060.parse_type9_response(data)
-                if idcode != self._idcode:
-                    logger.warning(f"Type-9 ID code mismatch: {idcode}!={self._idcode}")
-            elif data[0] == 10:
-                result = mdp_protocal_l1060.parse_type10_response(data)
-                if result["errflag"] is not None:
-                    self._status["ErrFlag"] = result["errflag"]
-                if result["load_mode"] not in (None, "Unknown"):
-                    self._status["LoadMode"] = result["load_mode"]
-                if result["load_enabled"] is not None:
-                    self._status["LoadEnabled"] = result["load_enabled"]
-                if result["input_voltage"] is not None:
-                    self._status["InputVoltage"] = result["input_voltage"]
-                if result["page"] is not None:
-                    self._status["Targets"][result["page"]] = result["target_value"]
-                protection_latched = bool(result["errflag"]) and result["load_enabled"] is False
-                self._status["ProtectionLatched"] = protection_latched
-                self._status["Protection"] = result["protection"] if protection_latched else None
-            elif data[0] == 5:
-                pass
-            elif data[0] == 6:
-                logger.info(
-                    f"Dispatch device result: {mdp_protocal_l1060.parse_type6_response(data)}"
-                )
+    def _handle_packet(self, data: bytes) -> bool:
+        if data[0] == 7:
+            result = mdp_protocal_l1060.parse_type7_response(data)
+            self._status["ErrFlag"] = result["errflag"]
+            self._status["Temperature"] = result["temperature"]
+            if result["load_mode"] != "Unknown":
+                self._status["LoadMode"] = result["load_mode"]
+            self._status["LoadActive"] = result["load_active"]
+            if result["input_voltage"] is not None:
+                self._status["InputVoltage"] = result["input_voltage"]
+            if result["voltage"] is not None and result["current"] is not None:
+                self._status["Voltage"] = result["voltage"]
+                self._status["Current"] = result["current"]
+                self._status["AnchorValid"] = True
+        elif data[0] == 8:
+            # Type-8 carries wrapped deltas, so it is only decodable against a
+            # Type-7 anchor -- unwrapping against a zero/stale reference would
+            # silently corrupt the measurement rather than fail. Until connect()
+            # has landed an anchor, these samples are dropped, and neither
+            # get_realtime_value() nor the request_realtime_value() callback
+            # produces anything.
+            if not self._status["AnchorValid"]:
+                logger.debug("L1060 Type-8: no valid Type-7 anchor yet, skipping unwrap")
             else:
-                logger.warning(f"Unhandled Type-{data[0]}: {data.hex(' ').upper()}")
-
-            if self._debug:
-                logger.trace(
-                    f"Type-{data[0]}: {data.hex(' ').upper()} -> {self._status}"
+                errflag, values = mdp_protocal_l1060.parse_type8_response(
+                    data, self._status["Voltage"], self._status["Current"]
                 )
-
-        except Exception:
-            logger.exception("Parse error")
-
-        if data[0] == self._transfer_wait_header:
-            self._transfer_data = data
-            self._transfer_wait_header = -1
-            self._transfer_event.set()
-
-    def _transfer(self, packet: bytes, wait_response: bool = True):
-        return self._bus.transfer(self, packet, wait_response)
+                self._status["ErrFlag"] = errflag
+                self._status["RealtimeOutput9"] = values
+                if self._rtvalue_callback is not None:
+                    self._rtvalue_callback(values)
+        elif data[0] == 9:
+            idcode, _latched = mdp_protocal_l1060.parse_type9_response(data)
+            if idcode != self._idcode:
+                logger.warning(f"Type-9 ID code mismatch: {idcode}!={self._idcode}")
+        elif data[0] == 10:
+            result = mdp_protocal_l1060.parse_type10_response(data)
+            if result["errflag"] is not None:
+                self._status["ErrFlag"] = result["errflag"]
+            if result["load_mode"] not in (None, "Unknown"):
+                self._status["LoadMode"] = result["load_mode"]
+            if result["load_enabled"] is not None:
+                self._status["LoadEnabled"] = result["load_enabled"]
+            if result["input_voltage"] is not None:
+                self._status["InputVoltage"] = result["input_voltage"]
+            if result["page"] is not None:
+                self._status["Targets"][result["page"]] = result["target_value"]
+            protection_latched = bool(result["errflag"]) and result["load_enabled"] is False
+            self._status["ProtectionLatched"] = protection_latched
+            self._status["Protection"] = result["protection"] if protection_latched else None
+        else:
+            return False
+        return True
 
     def _refresh_type10(self) -> bool:
         """
@@ -180,10 +138,6 @@ class MDP_L1060:
             return True
         except (TimeoutError, NRF24AdapterError):
             return False
-
-    def close(self):
-        self._bus.detach(self)
-        logger.info("MDP-L1060 closed")
 
     def get_status(
         self,
@@ -226,61 +180,6 @@ class MDP_L1060:
             self._status["Protection"],
             self._status["ProtectionLatched"],
         )
-
-    def get_realtime_value(self) -> List[Tuple[float, float]]:
-        """
-        Get the realtime values of output in sync mode.
-
-        Returns:
-            List[Tuple[float, float]]: A 9-value list of (voltage/V, current/A)
-
-        Note:
-            return [] if failed.
-        """
-        assert self._idcode is not None, "Please pair first"
-        try:
-            self._transfer(
-                mdp_protocal_l1060.gen_get_type8(
-                    self._idcode, self._m01_channel, blink=self._blink
-                )
-            )
-            return self._status["RealtimeOutput9"]
-        except (TimeoutError, NRF24AdapterError):
-            return []
-
-    def request_realtime_value(self) -> bool:
-        """
-        Request the realtime values of output in async mode.
-
-        Note:
-            Should call register_realtime_value_callback() first. Only fires
-            the callback once a valid Type-7 anchor exists (see connect()) --
-            unwrapping Type-8 samples against a zero/stale anchor would
-            silently corrupt the measurement.
-
-        Returns:
-            bool: True if success, False if failed.
-        """
-        assert self._idcode is not None, "Please pair first"
-        try:
-            self._transfer(
-                mdp_protocal_l1060.gen_get_type8(
-                    self._idcode, self._m01_channel, blink=self._blink
-                ),
-                wait_response=False,
-            )
-            return True
-        except (TimeoutError, NRF24AdapterError):
-            return False
-
-    def register_realtime_value_callback(self, callback: Callable[[list], None]):
-        """
-        Register a callback function to handle the realtime values of output in async mode.
-
-        Args:
-            callback (Callable[[list], None]): A function that takes a list of (voltage in V, current in A) as input.
-        """
-        self._rtvalue_callback = callback
 
     def request_target_page(self) -> bool:
         """
@@ -428,23 +327,6 @@ class MDP_L1060:
         logger.error(f"set_load_on({on}) failed after {retries} retries")
         return False
 
-    def set_led_color(self, rgb: Tuple[int, int, int]):
-        """
-        Set the LED color of the digital wheel.
-
-        Args:
-            rgb (Tuple[int, int, int]): The color of the LED, in the form of (R, G, B).
-        """
-        assert self._idcode is not None, "Please pair first"
-        rgb565 = _convert_to_rgb565(*rgb)
-        self._led_color = rgb565
-        logger.debug(f"Set LED color to: {rgb565}")
-        self._transfer(
-            mdp_protocal_l1060.gen_set_led_color(
-                self._idcode, self._led_color, self._m01_channel, blink=self._blink
-            )
-        )
-
     def connect(self, timeout: float = 8.0):
         """
         Connect to the MDP-L1060.
@@ -456,49 +338,24 @@ class MDP_L1060:
         L1060's Type 7/8 decode is exact base-100/wrap-unwrap arithmetic, no
         gain/offset correction.
 
-        Args:
-            timeout (float): Total retry budget in seconds. Time-based, not
-                attempt-based: a freshly powered-on device ACKs nothing at
-                the radio level for the first ~3-4.5 s (measured on real
-                hardware for both L1060 and P906), so the budget must
-                outlast that boot window for a connect racing a power-on.
-
-        Raises:
-            Exception: If failed to connect to the MDP-L1060 within the budget.
+        See MDPDevice.connect() for the retry-budget semantics of `timeout`.
         """
-        assert self._idcode is not None, "Please pair first"
-        deadline = time.monotonic() + timeout
-        last_log = 0.0
-        while True:
-            try:
-                self._transfer(
-                    mdp_protocal_l1060.gen_set_led_color(
-                        self._idcode, self._led_color, self._m01_channel, blink=self._blink
-                    )
-                )
-                self.get_status()
-            except (NRF24AdapterError, TimeoutError, AssertionError) as e:
-                now = time.monotonic()
-                if now >= deadline:
-                    raise Exception("Failed to connect to MDP-L1060") from e
-                if now - last_log >= 1.0:
-                    logger.error(f"Connect failed, retrying for {deadline - now:.1f}s more")
-                    last_log = now
-                time.sleep(0.1)
-                continue
-            if self._status["AnchorValid"]:
-                break
-            if time.monotonic() >= deadline:
-                raise Exception(
-                    "Failed to connect to MDP-L1060: no valid measurement anchor"
-                )
-            logger.error("Connect got no valid measurement, retrying")
-            time.sleep(0.1)
+        super().connect(timeout)
+
+    def _connect_probe(self):
+        self._transfer(
+            mdp_protocal_l1060.gen_set_led_color(
+                self._idcode, self._led_color, self._m01_channel
+            )
+        )
+
+    def _connect_ready(self) -> bool:
+        return self._status["AnchorValid"]
+
+    def _post_connect(self):
         # Seed the load-switch state so LoadEnabled is known from link time
         # instead of None until the first slow target poll. Best-effort: a
         # lossy link here just leaves it None, it is not a connect failure.
         for _ in range(3):
             if self._refresh_type10():
                 break
-        logger.debug(f"MDP-L1060 init status: {self._status}")
-        logger.success("MDP-L1060 Connected")
