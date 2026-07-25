@@ -32,6 +32,7 @@ A lot of time was spent optimizing the communication quality based on this proje
 - Function generator (sine/square/triangle/sawtooth/random)
 - Operation sequence (single or loop execution of action sequences)
 - Battery simulator (supports custom battery voltage curves/capacity/internal resistance/series-connection settings)
+- MDP-L1060 electronic load support: mode-aware parameter sweep, sequence automation, and battery discharge testing (see [L1060 Auxiliary Tools](#l1060-electronic-load-auxiliary-tools) below)
 - Multi-device support: connect and monitor several power supplies at once, each with its own panel and independent link/unlink control
 - Data floating window
 - Customizable waveform buffer length
@@ -100,6 +101,16 @@ I have released a PyInstaller packaged version, you can just download and run it
 #### Multiple Devices
 
 The GUI can drive more than one device at a time. Open **Connection Settings**, use the **+**/**-** buttons next to the device selector to add or remove a device, and configure each one's IDCODE/color/channel there. Every device gets its own panel (stacked in the left column) with its own **LINK/UNLINK** button, so devices can be connected and disconnected independently of each other — the radio adapter itself stays shared and opens/closes automatically as needed.
+
+#### L1060 Electronic Load Auxiliary Tools
+
+The L1060 panel has a Preset tab plus three automated-run tabs, each usable in any of the load's CC/CV/CR/CP modes:
+
+- **Sweep** — steps the target from a start to a stop value, dwelling at each step while the chosen response channel (voltage/current/power/resistance) is recorded live. The commanded-target-vs-response curve appears as a toggleable block in the main window's graph row (like the Discharge voltage-vs-Ah curve), hidden until a sweep has been run.
+- **Sequence** — runs an editable list of Delay/Wait/Set-mode-target actions, single-run or looped, with save/load to a text file (same editor pattern as the P906's sequence tool).
+- **Discharge** — runs a battery discharge test at a fixed mode/target and integrates elapsed time, Ah, and Wh. A minimum terminal-voltage cutoff is **required** before Start (there is no universally safe default across battery chemistries/series counts); maximum Ah, Wh, and duration are optional additional stop conditions. Results can be exported to CSV and plotted (terminal voltage vs. discharged Ah).
+
+Each tool has a **"Leave load on when finished/stopped"** checkbox (unchecked by default) that only applies to a normal completion or that tool's own Stop button. It never overrides a protection fault, a manual Load Off, or a panel disconnect — those always force the load off. If the L1060's protection latches (OVP/OCP/OPP/UVP/OTP) while a tool is running, the run stops immediately and the load is switched off; the panel stays connected, but a physical press of the **Run** button on the device itself is required to clear the latch before output can be re-enabled.
 
 #### GUI Environment Variables
 

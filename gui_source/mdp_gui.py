@@ -39,8 +39,19 @@ from mdp_gui_template import Ui_MainWindow
 from superqt.utils import signals_blocked
 
 VERSION = "Ver4.5"
-CHANNEL_ORDER = ["voltage", "current", "resistance", "power", "energy", "temperature"]
+CHANNEL_ORDER = [
+    "voltage", "current", "resistance", "power", "energy", "temperature", "ah", "wh", "discharge", "sweep",
+]
 DEFAULT_ACTIVE_CHANNELS = {"voltage", "current"}
+# Only meaningful for device types that support the discharge/sweep workflows
+# (currently just L1060); each group's buttons stay hidden until some panel
+# actually has that workflow's data, rather than cluttering the row
+# unconditionally like the always-applicable channels above. Kept as two
+# separate groups (not one combined set) so running Sweep doesn't also
+# reveal the unrelated Discharge/Ah/Wh buttons, and vice versa.
+DISCHARGE_GATED_CHANNELS = {"ah", "wh", "discharge"}
+SWEEP_GATED_CHANNELS = {"sweep"}
+GATED_CHANNELS = DISCHARGE_GATED_CHANNELS | SWEEP_GATED_CHANNELS
 qdarktheme.enable_hi_dpi()
 app = QtWidgets.QApplication(sys.argv)
 
@@ -68,10 +79,10 @@ app.setFont(global_font)
 
 from mdp_custom import CustomMessageBox, CustomTitleBar
 from settings_model import setting
-from device_core import csv_unit
+from device_core import ChannelSpec, csv_unit
 from device_panel import DEVICE_PANEL_TYPES
 from graph_block import GraphBlock
-from device_panel_p906 import CHANNEL_BY_KEY, CHANNEL_SHORT  # noqa: F401 (registers P906 in DEVICE_PANEL_TYPES)
+from device_panel_p906 import CHANNEL_BY_KEY as _P906_CHANNEL_BY_KEY, CHANNEL_SHORT as _P906_CHANNEL_SHORT  # noqa: F401 (registers P906 in DEVICE_PANEL_TYPES)
 from device_panel_l1060 import (  # noqa: F401 (registers L1060 in DEVICE_PANEL_TYPES)
     CHANNEL_BY_KEY as _L1060_CHANNEL_BY_KEY,
     CHANNEL_SHORT as _L1060_CHANNEL_SHORT,
@@ -81,6 +92,28 @@ from dialogs import MDPGraphics, MDPSettings
 from aux_windows import ResultGraphWindow, TransparentFloatingWindow
 
 update_pyqtgraph_setting()
+
+# Merged so channels that only one device type has (e.g. L1060's Ah/Wh
+# discharge totals) still resolve here -- every panel type's blocks are
+# built from this one shared lookup.
+CHANNEL_BY_KEY = {**_P906_CHANNEL_BY_KEY, **_L1060_CHANNEL_BY_KEY}
+CHANNEL_SHORT = {**_P906_CHANNEL_SHORT, **_L1060_CHANNEL_SHORT}
+# Not a real store channel/series -- this pairs two existing L1060 series
+# (voltage against accumulated ah) for the conventional discharge curve, so
+# it only needs a label/unit for the block's title and left axis.
+CHANNEL_BY_KEY["discharge"] = ChannelSpec(
+    "discharge", QtCore.QCoreApplication.translate("MDPMainwindow", "放电曲线"), "V"
+)
+CHANNEL_SHORT["discharge"] = "V"
+# Also not a real store series -- pairs L1060's sweep_target (x) against
+# whichever response channel (voltage/current/power/resistance) that panel's
+# sweep was last run with (y). Unlike "discharge" above, that response and
+# its unit vary per run, so the left/bottom axis labels can't be fixed here
+# and are instead kept in sync in _sync_sweep_axes().
+CHANNEL_BY_KEY["sweep"] = ChannelSpec(
+    "sweep", QtCore.QCoreApplication.translate("MDPMainwindow", "扫描曲线"), ""
+)
+CHANNEL_SHORT["sweep"] = ""
 
 
 class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainWindow
@@ -341,6 +374,10 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
             "power": self.ui.btnGraphPower,
             "energy": self.ui.btnGraphEnergy,
             "temperature": self.ui.btnGraphTemp,
+            "ah": self.ui.btnGraphAh,
+            "wh": self.ui.btnGraphWh,
+            "discharge": self.ui.btnGraphDischarge,
+            "sweep": self.ui.btnGraphSweep,
         }
         for key, button in self._channel_buttons.items():
             button.setChecked(key in DEFAULT_ACTIVE_CHANNELS)
@@ -353,6 +390,12 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
         block = self.graph_blocks.get(key)
         if block is None:
             block = GraphBlock(key, CHANNEL_BY_KEY[key])
+            if key == "discharge":
+                # Only the label differs here -- the window/curve update path
+                # is the same as every other block (see _series_for_block()).
+                block.plot_widget.setLabel("bottom", "Ah")
+            elif key == "sweep":
+                self._sync_sweep_axes(block)
             block.set_panels(self.panels)
             mouse_enabled = self.graph_keep_flag or (not self._graph_auto_scale_flag)
             block.set_mouse_enabled(mouse_enabled)
@@ -382,6 +425,23 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
         if self.draw_graph_timer.isActive():
             self.draw_graph()
 
+    def _sync_gated_channels(self, keys, visible):
+        for key in keys:
+            button = self._channel_buttons[key]
+            if visible and not button.isVisible():
+                # Edge-triggered on the hidden->visible transition (not
+                # every tick while already visible) so auto-selecting a
+                # freshly revealed button doesn't fight a user who later
+                # manually unchecks it while data is still present.
+                button.setChecked(True)
+            elif not visible and button.isChecked():
+                # Unchecking (rather than just hiding the button) routes
+                # through _on_channel_toggled so the now-stale block is
+                # actually hidden too, not left on screen with no visible
+                # toggle to hide it again.
+                button.setChecked(False)
+            button.setVisible(visible)
+
     def _resync_axes(self):
         group = []
         for key in CHANNEL_ORDER:
@@ -396,6 +456,60 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
         for block in self.graph_blocks.values():
             for chip in block.chips.values():
                 chip.setEnabled(enabled)
+
+    def _sync_sweep_axes(self, block):
+        """Unlike every other block's fixed left/bottom axis (set once at
+        construction from its ChannelSpec), Sweep's response channel and
+        mode -- and so its axis units -- can change from run to run, so
+        these must be re-applied whenever they might have changed rather
+        than just once. Not attempting per-panel-differing axes if multiple
+        L1060 panels have swept with different responses/modes (accepted
+        edge case) -- just label off the first panel that has swept."""
+        panel = next((p for p in self.panels if p.has_sweep_data()), None)
+        response_key = getattr(panel, "_sweep_response_key", "voltage") if panel else "voltage"
+        response_spec = CHANNEL_BY_KEY.get(response_key, CHANNEL_BY_KEY["voltage"])
+        target_unit = getattr(panel, "_sweep_target_unit", "") if panel else ""
+        block.plot_widget.setLabel("left", response_spec.label, units=response_spec.unit)
+        block.plot_widget.setLabel("bottom", self.tr("目标"), units=target_unit)
+
+    def _series_for_block(self, block, panel, display_pts, r_offset):
+        """(xs, ys, mx, mn, avg) for one panel's curve in this block, over
+        the exact same scrolling window (display_pts/r_offset, computed once
+        per tick above) every other block uses -- must be called with
+        panel.store.sync_lock held. "discharge" and "sweep" are the two
+        exceptions to a single store.get_series() call: each pairs two
+        existing series from that same window (voltage against accumulated
+        ah; sweep_target against whichever response channel that panel's
+        sweep was run with) instead of one series against time. Still just a
+        lookup against the same window everyone else uses, not separate
+        windowing logic."""
+        if block.channel_key == "discharge":
+            ah, _, start_index, to_index, _, _, _ = panel.store.get_series(
+                "ah", display_pts, r_offset
+            )
+            voltage, _, _, _, mx, mn, avg = panel.store.get_series(
+                "voltage", display_pts, r_offset
+            )
+            if ah is None or voltage is None or ah.size == 0:
+                return None, None, None, None, None
+            return ah[start_index:to_index], voltage[start_index:to_index], mx, mn, avg
+        if block.channel_key == "sweep":
+            response_key = getattr(panel, "_sweep_response_key", "voltage")
+            target, _, start_index, to_index, _, _, _ = panel.store.get_series(
+                "sweep_target", display_pts, r_offset
+            )
+            response, _, _, _, mx, mn, avg = panel.store.get_series(
+                response_key, display_pts, r_offset
+            )
+            if target is None or response is None or target.size == 0:
+                return None, None, None, None, None
+            return target[start_index:to_index], response[start_index:to_index], mx, mn, avg
+        data, time_, start_index, to_index, mx, mn, avg = panel.store.get_series(
+            block.channel_key, display_pts, r_offset
+        )
+        if data is None or data.size == 0:
+            return None, None, None, None, None
+        return time_[start_index:to_index], data[start_index:to_index], mx, mn, avg
 
     _left_last = -1
 
@@ -424,6 +538,15 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
         self.ui.labelFps.setText(
             " | ".join(f"{p.display_name}: {p.fps_counter.fps:.1f}Hz" for p in self.panels)
         )
+        # Visible while a run is active or its result is still held; hidden
+        # again once Clear drops that result (panel.clear_aux_data()) and no
+        # run is running, at which point the toggle is also force-unchecked
+        # so its now-hidden block doesn't stay stuck on screen.
+        self._sync_gated_channels(DISCHARGE_GATED_CHANNELS, any(p.has_discharge_data() for p in self.panels))
+        self._sync_gated_channels(SWEEP_GATED_CHANNELS, any(p.has_sweep_data() for p in self.panels))
+        sweep_block = self.graph_blocks.get("sweep")
+        if sweep_block is not None:
+            self._sync_sweep_axes(sweep_block)
         if self.graph_keep_flag:
             return
         if not self.panels:
@@ -501,7 +624,16 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
 
         for block in self.graph_blocks.values():
             checked_ids = {p.device_id for p in block.checked_panels(self.panels)}
-            short = CHANNEL_SHORT.get(block.channel_key, "")
+            if block.channel_key == "sweep":
+                sweep_panel = next((p for p in self.panels if p.has_sweep_data()), None)
+                response_key = (
+                    getattr(sweep_panel, "_sweep_response_key", "voltage")
+                    if sweep_panel
+                    else "voltage"
+                )
+                short = CHANNEL_SHORT.get(response_key, "")
+            else:
+                short = CHANNEL_SHORT.get(block.channel_key, "")
             stats_lines = []
             vmin = vmax = xmin = xmax = None
             for panel in self.panels:
@@ -512,10 +644,10 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
                     curve.setData(x=[], y=[])
                     continue
                 with panel.store.sync_lock:
-                    data, time_, start_index, to_index, mx, mn, avg = (
-                        panel.store.get_series(block.channel_key, display_pts, r_offset)
+                    xs, ys, mx, mn, avg = self._series_for_block(
+                        block, panel, display_pts, r_offset
                     )
-                if data is None or data.size == 0:
+                if xs is None or xs.size == 0:
                     curve.setData(x=[], y=[])
                     continue
                 # Plot exactly the same window the stats below are computed
@@ -524,11 +656,11 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
                 # peak recorded before the load was switched off) stay
                 # visibly drawn even after the axis had already narrowed to
                 # the current window's range.
-                curve.setData(x=time_[start_index:to_index], y=data[start_index:to_index])
+                curve.setData(x=xs, y=ys)
                 vmin = mn if vmin is None else min(vmin, mn)
                 vmax = mx if vmax is None else max(vmax, mx)
-                xmin = time_[start_index] if xmin is None else min(xmin, time_[start_index])
-                xmax = time_[to_index - 1] if xmax is None else max(xmax, time_[to_index - 1])
+                xmin = xs[0] if xmin is None else min(xmin, xs[0])
+                xmax = xs[-1] if xmax is None else max(xmax, xs[-1])
                 color = f"#{panel.settings.color.lstrip('#')}"
                 stats_lines.append(
                     f'<span style="color:{color}">{panel.display_name}</span> '
@@ -558,6 +690,7 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
             return
         for panel in self.panels:
             panel.store.clear()
+            panel.clear_aux_data()
         for block in self.graph_blocks.values():
             block.clear()
         set_color(self.ui.labelBufferSize, None)

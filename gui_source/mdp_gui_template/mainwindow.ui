@@ -431,6 +431,114 @@
               </widget>
              </item>
              <item>
+              <widget class="QPushButton" name="btnGraphAh">
+               <property name="maximumSize">
+                <size>
+                 <width>90</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="font">
+                <font>
+                 <family>Sarasa Fixed SC SemiBold</family>
+                </font>
+               </property>
+               <property name="toolTip">
+                <string>显示/隐藏放电安时曲线</string>
+               </property>
+               <property name="visible">
+                <bool>false</bool>
+               </property>
+               <property name="checkable">
+                <bool>true</bool>
+               </property>
+               <property name="text">
+                <string>安时</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="btnGraphWh">
+               <property name="maximumSize">
+                <size>
+                 <width>90</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="font">
+                <font>
+                 <family>Sarasa Fixed SC SemiBold</family>
+                </font>
+               </property>
+               <property name="toolTip">
+                <string>显示/隐藏放电瓦时曲线</string>
+               </property>
+               <property name="visible">
+                <bool>false</bool>
+               </property>
+               <property name="checkable">
+                <bool>true</bool>
+               </property>
+               <property name="text">
+                <string>瓦时</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="btnGraphDischarge">
+               <property name="maximumSize">
+                <size>
+                 <width>90</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="font">
+                <font>
+                 <family>Sarasa Fixed SC SemiBold</family>
+                </font>
+               </property>
+               <property name="toolTip">
+                <string>显示/隐藏放电曲线(电压-安时)</string>
+               </property>
+               <property name="visible">
+                <bool>false</bool>
+               </property>
+               <property name="checkable">
+                <bool>true</bool>
+               </property>
+               <property name="text">
+                <string>放电曲线</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="btnGraphSweep">
+               <property name="maximumSize">
+                <size>
+                 <width>90</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="font">
+                <font>
+                 <family>Sarasa Fixed SC SemiBold</family>
+                </font>
+               </property>
+               <property name="toolTip">
+                <string>显示/隐藏扫描曲线(响应-目标)</string>
+               </property>
+               <property name="visible">
+                <bool>false</bool>
+               </property>
+               <property name="checkable">
+                <bool>true</bool>
+               </property>
+               <property name="text">
+                <string>扫描曲线</string>
+               </property>
+              </widget>
+             </item>
+             <item>
               <widget class="QLabel" name="label_29">
                <property name="minimumSize">
                 <size>

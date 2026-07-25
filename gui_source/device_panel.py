@@ -49,3 +49,28 @@ class DevicePanelBase(QtWidgets.QWidget):
 
     def stop_record(self):
         raise NotImplementedError
+
+    def has_discharge_data(self) -> bool:
+        """Whether this panel is currently running, or still holds the
+        results of, a discharge workflow -- used to reveal the Ah/Wh graph
+        channels (which only apply to device types supporting the discharge
+        workflow, currently only L1060) once they'd actually show
+        something, and to hide them again once clear_aux_data() drops that
+        result (and no run is active)."""
+        return False
+
+    def has_sweep_data(self) -> bool:
+        """Whether this panel is currently running, or still holds the
+        results of, a sweep workflow -- used to reveal the Sweep graph
+        channel (which only applies to device types supporting the sweep
+        workflow, currently only L1060) once it'd actually show something,
+        and to hide it again once clear_aux_data() drops that result (and
+        no run is active)."""
+        return False
+
+    def clear_aux_data(self) -> None:
+        """Drop any held discharge/sweep results so has_discharge_data()/
+        has_sweep_data() go back to False, unless that workflow is actively
+        running right now. Called by the main window's Clear-buffer action
+        alongside store.clear() -- a no-op for device types (e.g. P906)
+        that don't support these workflows."""
