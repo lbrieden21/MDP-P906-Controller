@@ -10,45 +10,33 @@ from loguru import logger
 from PyQt5 import QtCore, QtGui, QtWidgets
 from simple_pid import PID
 
-from app_context import DEBUG, FPSCounter, set_color
-from device_core import ChannelSpec, RecordData
-from device_panel import DEVICE_PANEL_TYPES, DevicePanelBase
+from app_context import FPSCounter, set_color
+from device_panel import (
+    BASE_CHANNEL_SHORT,
+    BASE_CHANNELS,
+    DEVICE_PANEL_TYPES,
+    OPEN_R,
+    RECORD_CHANNELS,
+    DevicePanelBase,
+)
 from mdp_controller import MDP_P906
 from mdp_custom import CustomInputDialog, CustomMessageBox
 from mdp_gui_template import Ui_DevicePanelP906
 from settings_model import SETTING_FILE, setting
 
 
-OPEN_R = 1e7
-
-CHANNELS = [
-    ChannelSpec("voltage", QtCore.QCoreApplication.translate("MDPMainwindow", "电压"), "V"),
-    ChannelSpec("current", QtCore.QCoreApplication.translate("MDPMainwindow", "电流"), "A"),
-    ChannelSpec("power", QtCore.QCoreApplication.translate("MDPMainwindow", "功率"), "W"),
-    ChannelSpec(
-        "resistance",
-        QtCore.QCoreApplication.translate("MDPMainwindow", "阻值"),
-        "Ω",
-        hide_above=OPEN_R,
-    ),
-    ChannelSpec("energy", QtCore.QCoreApplication.translate("MDPMainwindow", "能量"), "J"),
-    ChannelSpec(
-        "temperature", QtCore.QCoreApplication.translate("MDPMainwindow", "温度"), "°F"
-    ),
-]
+# The P906 has no channels beyond the shared set. CHANNEL_BY_KEY/
+# CHANNEL_SHORT stay module-level names here because mdp_gui imports them
+# from each panel module by name and merges them.
+CHANNELS = BASE_CHANNELS
 CHANNEL_BY_KEY = {c.key: c for c in CHANNELS}
-CHANNEL_SHORT = {
-    "voltage": "V",
-    "current": "I",
-    "power": "P",
-    "resistance": "R",
-    "energy": "E",
-    "temperature": "T",
-}
-RECORD_CHANNELS = [CHANNEL_BY_KEY["voltage"], CHANNEL_BY_KEY["current"]]
+CHANNEL_SHORT = BASE_CHANNEL_SHORT
 
 
 class P906DevicePanel(DevicePanelBase):
+    api_class = MDP_P906
+    record_channels = RECORD_CHANNELS
+
     def __init__(self, parent=None, device_settings=None):
         device_settings = device_settings or setting.devices[0]
         super().__init__(
@@ -71,7 +59,6 @@ class P906DevicePanel(DevicePanelBase):
         self._i_set = 0.0
         self._output_state = False
         self.output_state_str = ""
-        self.open_r = OPEN_R
         self._temp_f = 0.0
         self.continuous_energy_counter = 0
         self.model = "Unknown"
@@ -136,29 +123,6 @@ class P906DevicePanel(DevicePanelBase):
         self.ui.btnSeqLoop.setFont(c_font)
         self.ui.btnSeqSave.setFont(c_font)
         self.ui.btnSeqLoad.setFont(c_font)
-
-    @QtCore.pyqtSlot(int)
-    def on_tabWidget_currentChanged(self, index):
-        self.ui.labelTab.setText(self.ui.tabWidget.tabText(index))
-        if index == 0:
-            self.ui.pushButtonLastTab.setEnabled(False)
-        elif index == self.ui.tabWidget.count() - 1:
-            self.ui.pushButtonNextTab.setEnabled(False)
-        else:
-            self.ui.pushButtonLastTab.setEnabled(True)
-            self.ui.pushButtonNextTab.setEnabled(True)
-
-    @QtCore.pyqtSlot()
-    def on_pushButtonLastTab_clicked(self):
-        idx = self.ui.tabWidget.currentIndex()
-        if idx > 0:
-            self.ui.tabWidget.setCurrentIndex(idx - 1)
-
-    @QtCore.pyqtSlot()
-    def on_pushButtonNextTab_clicked(self):
-        idx = self.ui.tabWidget.currentIndex()
-        if idx < self.ui.tabWidget.count() - 1:
-            self.ui.tabWidget.setCurrentIndex(idx + 1)
 
     def _init_timers(self):
         self.state_request_sender_timer = QtCore.QTimer(self)
@@ -389,22 +353,9 @@ class P906DevicePanel(DevicePanelBase):
         self._stable_start_t = time.perf_counter()
         self.stable_checker_timer.start(50)
 
-    def close_state_ui(self, record_disconnect: bool = False):
-        self.ui.labelLinkState.setText(self.tr("未连接"))
-        set_color(self.ui.labelLinkState, None)
-        self.ui.frameOutputSetting.setEnabled(False)
-        self.ui.frameSystemState.setEnabled(False)
+    def _close_state_ui_device(self, record_disconnect: bool):
         self.ui.progressBarCurrent.setValue(0)
         self.ui.progressBarVoltage.setValue(0)
-        if record_disconnect:
-            # Marks the graph history with an explicit drop to (0, 0) right
-            # before unlink()'s mark_gap() breaks the line, so a reviewed
-            # chart shows the device's output actually falling away instead
-            # of flat-lining at its last real reading. Not wanted here on
-            # the plain init call - there's no real reading to mark as lost
-            # yet, and it would otherwise permanently seed this panel's
-            # buffer with one sample even if it's never linked all session.
-            self.state_callback([(0, 0)])
         self.ui.btnOutput.setText("[N/A]")
         set_color(self.ui.btnOutput, None)
         for widget in [
@@ -416,85 +367,10 @@ class P906DevicePanel(DevicePanelBase):
             widget.setText("[N/A]")
         set_color(self.ui.labelTemperature, None)
         self.ui.labelTemperature.setText("")
-        for widget in [
-            self.ui.lcdVoltage,
-            self.ui.lcdCurrent,
-            self.ui.lcdResistence,
-            self.ui.lcdPower,
-            self.ui.lcdEnerge,
-        ]:
-            widget.display("")
 
-    def open_state_ui(self):
-        self.ui.labelLinkState.setText(self.tr("已连接"))
-        set_color(self.ui.labelLinkState, setting.get_color("general_green"))
-        self.ui.frameOutputSetting.setEnabled(True)
-        self.ui.frameSystemState.setEnabled(True)
-
-    @QtCore.pyqtSlot()
-    def on_btnLink_clicked(self):
-        self.link_toggle_requested.emit()
-
-    def _enforce_lcd_min_width(self):
-        for lcd in (
-            self.ui.lcdVoltage,
-            self.ui.lcdCurrent,
-            self.ui.lcdPower,
-            self.ui.lcdEnerge,
-            self.ui.lcdResistence,
-        ):
-            lcd.setMinimumWidth(130)
-
-    def apply_theme(self):
-        set_color(self.ui.lcdVoltage, setting.get_color("lcd_voltage"))
-        set_color(self.ui.lcdCurrent, setting.get_color("lcd_current"))
-        set_color(self.ui.lcdPower, setting.get_color("lcd_power"))
-        set_color(self.ui.lcdEnerge, setting.get_color("lcd_energy"))
-        set_color(self.ui.labelTemperature, setting.get_color("lcd_temperature"))
-        set_color(self.ui.lcdResistence, setting.get_color("lcd_resistance"))
-        self._enforce_lcd_min_width()
-
-    def refresh_led_color(self):
-        if self.api is None:
-            return
-        color_rgb = bytes.fromhex(self.settings.color.lstrip("#"))
-        self.api.set_led_color((color_rgb[0], color_rgb[1], color_rgb[2]))
-
-    def link(self, bus, pipe=0, fps=50, session_start_time=None):
-        if not self.settings.idcode:
-            raise ValueError(self.tr("IDCODE为空, 请先完成连接设置"))
-        color_rgb = bytes.fromhex(self.settings.color.lstrip("#"))
-        api = MDP_P906(
-            bus,
-            idcode=self.settings.idcode,
-            blink=self.settings.blink,
-            led_color=(color_rgb[0], color_rgb[1], color_rgb[2]),
-            m01_channel=int(self.settings.m01ch[3]),
-            debug=DEBUG,
-        )
-        try:
-            bus.attach(api, pipe)
-            api.connect(timeout=8.0)
-        except Exception:
-            api.close()
-            raise
-        self.api = api
-        self.api.register_realtime_value_callback(self.state_callback)
-        t = time.perf_counter()
+    def _on_link_reset(self, t):
         self._last_state_change_t = t
-        self.store.start_time = t if session_start_time is None else session_start_time
-        self.store.eng_start_time = t
-        self.store.last_time = t
-        self.store.energy = 0
         self.continuous_energy_counter = 0
-        self.data_fps = fps
-        self.fps_counter.clear()
-        self.update_state_timer.start(100)
-        self.state_request_sender_timer.start(round(1000 / fps))
-        self.state_lcd_timer.start(round(1000 / min(fps, setting.ui.state_fps)))
-        self.linked = True
-        self.update_state()
-        self.open_state_ui()
 
     def unlink(self):
         self.state_request_sender_timer.stop()
@@ -523,21 +399,7 @@ class P906DevicePanel(DevicePanelBase):
         self.close_state_ui(record_disconnect=True)
         self.link_state_changed.emit()
 
-    def request_state(self):
-        if self.api is not None:
-            self.api.request_realtime_value()
-
-    def start_record(self):
-        self.record_data = RecordData(RECORD_CHANNELS)
-        self.record_flag = True
-
-    def stop_record(self):
-        self.record_flag = False
-        data = self.record_data
-        self.record_data = None
-        return data
-
-    def state_callback(self, rtvalues: List[Tuple[float, float]]):
+    def _preprocess_rtvalues(self, rtvalues: List[Tuple[float, float]]):
         vt, it = self.settings.v_threshold, self.settings.i_threshold
         if self.settings.cali.use:
             rtvalues = [
@@ -547,91 +409,22 @@ class P906DevicePanel(DevicePanelBase):
                 )
                 for v, i in rtvalues
             ]
-        len_ = len(rtvalues)
-        rtvalues = [(v if v > vt else 0.0, i if i > it else 0.0) for v, i in rtvalues]
-        t1 = time.perf_counter()
-        raw_rtvalues = rtvalues
-        if self.record_flag:
-            rd = self.record_data
-            if rd.start_time == 0:
-                rd.start_time = t1
-                rd.last_time = t1
-            else:
-                t = t1 - rd.start_time
-                dt = t1 - rd.last_time
-                rd.last_time = t1
-                for idx, (v, i) in enumerate(raw_rtvalues):
-                    rd.add_values(
-                        {"voltage": v, "current": i}, t - dt + (dt / len_) * (idx + 1)
-                    )
-        if len(rtvalues) == 9:
-            if self.settings.avgmode == 1:
-                rtvalues = np.array(rtvalues)
-                rtvalues = np.reshape(rtvalues, [3, 3, 2])
-                rtvalues = np.mean(rtvalues, axis=(1))
-                len_ = 3
-            elif self.settings.avgmode == 2:
-                rtvalues = np.array(rtvalues)
-                rtvalues = np.reshape(rtvalues, [1, 9, 2])
-                rtvalues = np.mean(rtvalues, axis=(1))
-                len_ = 1
-        voltages = np.array([v for v, i in rtvalues], dtype=np.float64)
-        currents = np.array([i for v, i in rtvalues], dtype=np.float64)
-        values = {
-            "voltage": voltages,
-            "current": currents,
-            "power": voltages * currents,
-            "resistance": np.where(currents != 0, voltages / currents, self.open_r),
-            "temperature": np.full(len_, self._temp_f),
-        }
-        eng = self.store.append(raw_rtvalues, values, len_, t1)
+        return [(v if v > vt else 0.0, i if i > it else 0.0) for v, i in rtvalues]
+
+    def _on_samples_appended(self, eng):
         self.continuous_energy_counter += eng
-        self.fps_counter.tick()
 
     def update_state_lcd(self):
-        store = self.store
-        if len(store.voltage_tmp) == 0 or len(store.current_tmp) == 0:
+        avgs = self._update_common_lcds()
+        if avgs is None:
             return
-        with store.sync_lock:
-            vavg = sum(store.voltage_tmp) / len(store.voltage_tmp)
-            iavg = sum(store.current_tmp) / len(store.current_tmp)
-            store.voltage_tmp.clear()
-            store.current_tmp.clear()
-            self.ui.lcdEnerge.display(f"{store.energy:.{3+setting.ui.interp}f}")
-        power = vavg * iavg
-        if iavg >= 0.002:  # 致敬P906的愚蠢adc
-            resistance = vavg / iavg
-        else:
-            resistance = self.open_r
-        r_text = f"{resistance:.2f}" if resistance < self.open_r / 100 else "--"
-        self.ui.lcdVoltage.display(f"{vavg:.3f}")
-        self.ui.lcdCurrent.display(f"{iavg:.3f}")
-        self.ui.lcdResistence.display(r_text)
-        self.ui.lcdPower.display(f"{power:.3f}")
-        self.values_signal.emit(vavg, iavg, power)
+        vavg, iavg, _power = avgs
         v_value = round(vavg / self.v_set * 1000) if self.v_set != 0 else 0
         i_value = round(iavg / self.i_set * 1000) if self.i_set != 0 else 0
         self.ui.progressBarVoltage.setValue(min(v_value, 1000))
         self.ui.progressBarCurrent.setValue(min(i_value, 1000))
         self.ui.progressBarVoltage.update()
         self.ui.progressBarCurrent.update()
-
-    def set_interp(self, interp):
-        self.ui.lcdVoltage.setDigitCount(6)
-        self.ui.lcdCurrent.setDigitCount(6)
-        self.ui.lcdResistence.setDigitCount(8)
-        self.ui.lcdPower.setDigitCount(6)
-        self.ui.lcdEnerge.setDigitCount(6 + interp)
-
-    def set_data_fps(self, fps):
-        self.data_fps = fps
-        if self.state_request_sender_timer.isActive():
-            self.state_request_sender_timer.stop()
-            self.state_request_sender_timer.start(round(1000 / fps))
-        if self.state_lcd_timer.isActive():
-            self.state_lcd_timer.stop()
-            self.state_lcd_timer.start(round(1000 / min(fps, setting.ui.state_fps)))
-        self.fps_counter.clear()
 
     @QtCore.pyqtSlot()
     def on_spinBoxVoltage_editingFinished(self):

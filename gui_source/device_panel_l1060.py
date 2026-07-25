@@ -1,14 +1,20 @@
 import datetime
 import time
-from typing import List, Tuple
 
 import numpy as np
 from loguru import logger
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from app_context import DEBUG, FPSCounter, set_color
+from app_context import FPSCounter, set_color
 from device_core import ChannelSpec, RecordData
-from device_panel import DEVICE_PANEL_TYPES, DevicePanelBase
+from device_panel import (
+    BASE_CHANNEL_SHORT,
+    BASE_CHANNELS,
+    DEVICE_PANEL_TYPES,
+    OPEN_R,
+    RECORD_CHANNELS,
+    DevicePanelBase,
+)
 from l1060_aux import (
     DelayAction,
     DischargeAccumulator,
@@ -27,22 +33,7 @@ from mdp_custom import CustomInputDialog, CustomMessageBox
 from mdp_gui_template import Ui_DevicePanelL1060
 from settings_model import SETTING_FILE, setting
 
-OPEN_R = 1e7
-
-CHANNELS = [
-    ChannelSpec("voltage", QtCore.QCoreApplication.translate("MDPMainwindow", "电压"), "V"),
-    ChannelSpec("current", QtCore.QCoreApplication.translate("MDPMainwindow", "电流"), "A"),
-    ChannelSpec("power", QtCore.QCoreApplication.translate("MDPMainwindow", "功率"), "W"),
-    ChannelSpec(
-        "resistance",
-        QtCore.QCoreApplication.translate("MDPMainwindow", "阻值"),
-        "Ω",
-        hide_above=OPEN_R,
-    ),
-    ChannelSpec("energy", QtCore.QCoreApplication.translate("MDPMainwindow", "能量"), "J"),
-    ChannelSpec(
-        "temperature", QtCore.QCoreApplication.translate("MDPMainwindow", "温度"), "°F"
-    ),
+CHANNELS = BASE_CHANNELS + [
     # Discharge-workflow running totals (l1060_aux.DischargeAccumulator).
     # Zero/flat outside an active discharge run, held at the last run's
     # final value in between -- included as ordinary store channels (rather
@@ -66,17 +57,9 @@ DISCHARGE_CHANNELS = [
     CHANNEL_BY_KEY["ah"],
     CHANNEL_BY_KEY["wh"],
 ]
-CHANNEL_SHORT = {
-    "voltage": "V",
-    "current": "I",
-    "power": "P",
-    "resistance": "R",
-    "energy": "E",
-    "temperature": "T",
-    "ah": "Ah",
-    "wh": "Wh",
-}
-RECORD_CHANNELS = [CHANNEL_BY_KEY["voltage"], CHANNEL_BY_KEY["current"]]
+# sweep_target deliberately has no short entry -- it labels the Sweep
+# block's x-axis, which never uses the short form.
+CHANNEL_SHORT = {**BASE_CHANNEL_SHORT, "ah": "Ah", "wh": "Wh"}
 
 _TARGET_SPINBOX = {
     "CC": "spinBoxTargetCC",
@@ -160,6 +143,9 @@ _SEQUENCE_TICK_MS = 50
 
 
 class L1060DevicePanel(DevicePanelBase):
+    api_class = MDP_L1060
+    record_channels = RECORD_CHANNELS
+
     def __init__(self, parent=None, device_settings=None):
         device_settings = device_settings or setting.devices[0]
         super().__init__(
@@ -178,7 +164,6 @@ class L1060DevicePanel(DevicePanelBase):
         self.api = None
         self.data_fps = 50
         self.model = "L1060"
-        self.open_r = OPEN_R
         self.fps_counter = FPSCounter()
         self._temp_f = 0.0
         self._load_commanded_on = False
@@ -238,15 +223,12 @@ class L1060DevicePanel(DevicePanelBase):
         # thin in the narrower per-device panel column.
         QtCore.QTimer.singleShot(0, self._enforce_lcd_min_width)
 
-    def set_english_fonts(self):
-        pass
-
     def _init_timers(self):
         self.state_request_sender_timer = QtCore.QTimer(self)
         self.state_request_sender_timer.setTimerType(QtCore.Qt.PreciseTimer)
         self.state_request_sender_timer.timeout.connect(self.request_state)
-        self.status_timer = QtCore.QTimer(self)
-        self.status_timer.timeout.connect(self.update_state)
+        self.update_state_timer = QtCore.QTimer(self)
+        self.update_state_timer.timeout.connect(self.update_state)
         self.target_poll_timer = QtCore.QTimer(self)
         self.target_poll_timer.timeout.connect(self.request_targets)
         self.state_lcd_timer = QtCore.QTimer(self)
@@ -292,33 +274,6 @@ class L1060DevicePanel(DevicePanelBase):
         self.ui.comboPreset.currentTextChanged.connect(self.set_preset)
         self.ui.comboPresetEdit.currentTextChanged.connect(self.get_preset)
         self.ui.comboPresetEditMode.currentTextChanged.connect(self.on_preset_mode_changed)
-
-    @QtCore.pyqtSlot()
-    def on_btnLink_clicked(self):
-        self.link_toggle_requested.emit()
-
-    @QtCore.pyqtSlot(int)
-    def on_tabWidget_currentChanged(self, index):
-        self.ui.labelTab.setText(self.ui.tabWidget.tabText(index))
-        if index == 0:
-            self.ui.pushButtonLastTab.setEnabled(False)
-        elif index == self.ui.tabWidget.count() - 1:
-            self.ui.pushButtonNextTab.setEnabled(False)
-        else:
-            self.ui.pushButtonLastTab.setEnabled(True)
-            self.ui.pushButtonNextTab.setEnabled(True)
-
-    @QtCore.pyqtSlot()
-    def on_pushButtonLastTab_clicked(self):
-        idx = self.ui.tabWidget.currentIndex()
-        if idx > 0:
-            self.ui.tabWidget.setCurrentIndex(idx - 1)
-
-    @QtCore.pyqtSlot()
-    def on_pushButtonNextTab_clicked(self):
-        idx = self.ui.tabWidget.currentIndex()
-        if idx < self.ui.tabWidget.count() - 1:
-            self.ui.tabWidget.setCurrentIndex(idx + 1)
 
     def _sync_mode_ui(self, mode: str):
         for m, name in _TARGET_SPINBOX.items():
@@ -1129,50 +1084,12 @@ class L1060DevicePanel(DevicePanelBase):
             self.ui.btnLoadOn.setChecked(False)
             self.ui.btnLoadOn.blockSignals(False)
 
-    def refresh_led_color(self):
-        if self.api is None:
-            return
-        color_rgb = bytes.fromhex(self.settings.color.lstrip("#"))
-        self.api.set_led_color((color_rgb[0], color_rgb[1], color_rgb[2]))
-
-    def link(self, bus, pipe: int = 0, fps: float = 50, session_start_time=None):
-        if not self.settings.idcode:
-            raise ValueError(self.tr("IDCODE为空, 请先完成连接设置"))
-        color_rgb = bytes.fromhex(self.settings.color.lstrip("#"))
-        api = MDP_L1060(
-            bus,
-            idcode=self.settings.idcode,
-            blink=self.settings.blink,
-            led_color=(color_rgb[0], color_rgb[1], color_rgb[2]),
-            m01_channel=int(self.settings.m01ch[3]),
-            debug=DEBUG,
-        )
-        try:
-            bus.attach(api, pipe)
-            api.connect(timeout=8.0)
-        except Exception:
-            api.close()
-            raise
-        self.api = api
-        self.api.register_realtime_value_callback(self.state_callback)
-        t = time.perf_counter()
-        self.store.start_time = t if session_start_time is None else session_start_time
-        self.store.eng_start_time = t
-        self.store.last_time = t
-        self.store.energy = 0
-        self.data_fps = fps
-        self.fps_counter.clear()
-        self.status_timer.start(100)
-        self.state_request_sender_timer.start(round(1000 / fps))
-        self.state_lcd_timer.start(round(1000 / min(fps, setting.ui.state_fps)))
+    def _start_device_timers(self):
         self.target_poll_timer.start(400)
-        self.linked = True
-        self.update_state()
-        self.open_state_ui()
 
     def unlink(self):
         self.state_request_sender_timer.stop()
-        self.status_timer.stop()
+        self.update_state_timer.stop()
         self.state_lcd_timer.stop()
         self.target_poll_timer.stop()
         # Stop any running auxiliary tool first (leave_on=True so its own
@@ -1195,41 +1112,11 @@ class L1060DevicePanel(DevicePanelBase):
         self.close_state_ui(record_disconnect=True)
         self.link_state_changed.emit()
 
-    def request_state(self):
-        if self.api is not None:
-            self.api.request_realtime_value()
-
     def request_targets(self):
         if self.api is not None:
             self.api.request_target_page()
 
-    def start_record(self):
-        self.record_data = RecordData(RECORD_CHANNELS)
-        self.record_flag = True
-
-    def stop_record(self):
-        self.record_flag = False
-        data = self.record_data
-        self.record_data = None
-        return data
-
-    def state_callback(self, rtvalues: List[Tuple[float, float]]):
-        len_ = len(rtvalues)
-        t1 = time.perf_counter()
-        raw_rtvalues = rtvalues
-        if self.record_flag:
-            rd = self.record_data
-            if rd.start_time == 0:
-                rd.start_time = t1
-                rd.last_time = t1
-            else:
-                t = t1 - rd.start_time
-                dt = t1 - rd.last_time
-                rd.last_time = t1
-                for idx, (v, i) in enumerate(raw_rtvalues):
-                    rd.add_values(
-                        {"voltage": v, "current": i}, t - dt + (dt / len_) * (idx + 1)
-                    )
+    def _on_raw_batch(self, raw_rtvalues, t1):
         if self._active_aux == "discharge" and self._discharge_acc is not None:
             # Only integrate samples from after the enable was confirmed, so
             # a batch straddling the enable moment can't credit Ah/Wh (or
@@ -1238,37 +1125,19 @@ class L1060DevicePanel(DevicePanelBase):
                 self._discharge_acc.add_batch(raw_rtvalues, t1)
                 self._discharge_last_voltage = raw_rtvalues[-1][0]
                 self._discharge_armed = True
-        if len(rtvalues) == 9:
-            if self.settings.avgmode == 1:
-                rtvalues = np.array(rtvalues)
-                rtvalues = np.reshape(rtvalues, [3, 3, 2])
-                rtvalues = np.mean(rtvalues, axis=(1))
-                len_ = 3
-            elif self.settings.avgmode == 2:
-                rtvalues = np.array(rtvalues)
-                rtvalues = np.reshape(rtvalues, [1, 9, 2])
-                rtvalues = np.mean(rtvalues, axis=(1))
-                len_ = 1
-        voltages = np.array([v for v, i in rtvalues], dtype=np.float64)
-        currents = np.array([i for v, i in rtvalues], dtype=np.float64)
+
+    def _extra_channel_values(self, len_):
         # Held flat at the running (or, between runs, final) total rather
         # than only supplied while a discharge is active -- every channel
         # needs a value each call, and freezing here is what makes the
         # graph hold its last reading after Stop instead of gapping out.
         ah_total = self._discharge_acc.ah if self._discharge_acc is not None else 0.0
         wh_total = self._discharge_acc.wh if self._discharge_acc is not None else 0.0
-        values = {
-            "voltage": voltages,
-            "current": currents,
-            "power": voltages * currents,
-            "resistance": np.where(currents != 0, voltages / currents, self.open_r),
-            "temperature": np.full(len_, self._temp_f),
+        return {
             "ah": np.full(len_, ah_total),
             "wh": np.full(len_, wh_total),
             "sweep_target": np.full(len_, self._sweep_last_target),
         }
-        self.store.append(raw_rtvalues, values, len_, t1)
-        self.fps_counter.tick()
 
     def update_state(self):
         if self.api is None:
@@ -1323,26 +1192,8 @@ class L1060DevicePanel(DevicePanelBase):
             self.ui.btnLoadOn.setEnabled(True)
 
     def update_state_lcd(self):
-        store = self.store
-        if len(store.voltage_tmp) == 0 or len(store.current_tmp) == 0:
+        if self._update_common_lcds() is None:
             return
-        with store.sync_lock:
-            vavg = sum(store.voltage_tmp) / len(store.voltage_tmp)
-            iavg = sum(store.current_tmp) / len(store.current_tmp)
-            store.voltage_tmp.clear()
-            store.current_tmp.clear()
-            self.ui.lcdEnerge.display(f"{store.energy:.{3+setting.ui.interp}f}")
-        power = vavg * iavg
-        if iavg >= 0.002:
-            resistance = vavg / iavg
-        else:
-            resistance = self.open_r
-        r_text = f"{resistance:.2f}" if resistance < self.open_r / 100 else "--"
-        self.ui.lcdVoltage.display(f"{vavg:.3f}")
-        self.ui.lcdCurrent.display(f"{iavg:.3f}")
-        self.ui.lcdPower.display(f"{power:.3f}")
-        self.ui.lcdResistance.display(r_text)
-        self.values_signal.emit(vavg, iavg, power)
         if self.api is not None:
             # Only the active mode's spinbox is synced here, and its edits
             # are never staged (on_target_changed pushes them live), so this
@@ -1357,76 +1208,13 @@ class L1060DevicePanel(DevicePanelBase):
                     spin.setValue(targets[mode])
                     spin.blockSignals(False)
 
-    def set_data_fps(self, fps: float):
-        self.data_fps = fps
-        if self.state_request_sender_timer.isActive():
-            self.state_request_sender_timer.stop()
-            self.state_request_sender_timer.start(round(1000 / fps))
-        if self.state_lcd_timer.isActive():
-            self.state_lcd_timer.stop()
-            self.state_lcd_timer.start(round(1000 / min(fps, setting.ui.state_fps)))
-        self.fps_counter.clear()
-
-    def close_state_ui(self, record_disconnect: bool = False):
-        self.ui.labelLinkState.setText(self.tr("未连接"))
-        set_color(self.ui.labelLinkState, None)
-        self.ui.frameOutputSetting.setEnabled(False)
-        self.ui.frameSystemState.setEnabled(False)
+    def _close_state_ui_device(self, record_disconnect: bool):
         self.ui.labelTemperature.setText("")
         self.ui.labelProtection.setText("")
         set_color(self.ui.labelProtection, None)
         self.ui.btnLoadOn.blockSignals(True)
         self.ui.btnLoadOn.setChecked(False)
         self.ui.btnLoadOn.blockSignals(False)
-        if record_disconnect:
-            # Marks the graph history with an explicit drop to (0, 0) right
-            # before unlink()'s mark_gap() breaks the line, so a reviewed
-            # chart shows the device's output actually falling away instead
-            # of flat-lining at its last real reading. Not wanted here on
-            # the plain init call - there's no real reading to mark as lost
-            # yet, and it would otherwise permanently seed this panel's
-            # buffer with one sample even if it's never linked all session.
-            self.state_callback([(0.0, 0.0)])
-        for lcd in (
-            self.ui.lcdVoltage,
-            self.ui.lcdCurrent,
-            self.ui.lcdPower,
-            self.ui.lcdEnerge,
-            self.ui.lcdResistance,
-        ):
-            lcd.display("")
-
-    def open_state_ui(self):
-        self.ui.labelLinkState.setText(self.tr("已连接"))
-        set_color(self.ui.labelLinkState, setting.get_color("general_green"))
-        self.ui.frameOutputSetting.setEnabled(True)
-        self.ui.frameSystemState.setEnabled(True)
-
-    def _enforce_lcd_min_width(self):
-        for lcd in (
-            self.ui.lcdVoltage,
-            self.ui.lcdCurrent,
-            self.ui.lcdPower,
-            self.ui.lcdEnerge,
-            self.ui.lcdResistance,
-        ):
-            lcd.setMinimumWidth(130)
-
-    def set_interp(self, interp):
-        self.ui.lcdVoltage.setDigitCount(6)
-        self.ui.lcdCurrent.setDigitCount(6)
-        self.ui.lcdResistance.setDigitCount(8)
-        self.ui.lcdPower.setDigitCount(6)
-        self.ui.lcdEnerge.setDigitCount(6 + interp)
-
-    def apply_theme(self):
-        set_color(self.ui.lcdVoltage, setting.get_color("lcd_voltage"))
-        set_color(self.ui.lcdCurrent, setting.get_color("lcd_current"))
-        set_color(self.ui.lcdPower, setting.get_color("lcd_power"))
-        set_color(self.ui.lcdEnerge, setting.get_color("lcd_energy"))
-        set_color(self.ui.labelTemperature, setting.get_color("lcd_temperature"))
-        set_color(self.ui.lcdResistance, setting.get_color("lcd_resistance"))
-        self._enforce_lcd_min_width()
 
 
 DEVICE_PANEL_TYPES["L1060"] = L1060DevicePanel

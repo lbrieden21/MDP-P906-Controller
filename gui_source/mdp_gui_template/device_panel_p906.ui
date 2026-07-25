@@ -550,7 +550,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QLCDNumber" name="lcdResistence">
+             <widget class="QLCDNumber" name="lcdResistance">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
                 <horstretch>0</horstretch>
