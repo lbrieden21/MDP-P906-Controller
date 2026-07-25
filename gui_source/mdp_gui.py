@@ -435,7 +435,22 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
                 if panel.device_id not in seen_ids:
                     seen_ids.add(panel.device_id)
                     needed_panels.append(panel)
-        sync_panel = needed_panels[0] if needed_panels else self.panels[0]
+        # A panel that's never been linked still logs one throwaway
+        # calibration sample at construction (close_state_ui()), so its
+        # buffer sits frozen at update_count=1 forever. Picking it as
+        # sync_panel would pin display_pts to 1 for every panel's
+        # get_series() call below, collapsing everyone's window down to
+        # just their single latest sample. Prefer an actually-linked panel
+        # as the reference; only fall back to an unlinked one (e.g. to keep
+        # reviewing a just-disconnected device's history) if nothing is
+        # currently linked.
+        linked_panels = [p for p in needed_panels if p.linked]
+        if linked_panels:
+            sync_panel = max(linked_panels, key=lambda p: p.store.update_count)
+        elif needed_panels:
+            sync_panel = max(needed_panels, key=lambda p: p.store.update_count)
+        else:
+            sync_panel = self.panels[0]
         with sync_panel.store.sync_lock:
             update_count = sync_panel.store.update_count
             if update_count > setting.ui.display_pts + 5:
@@ -445,8 +460,6 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
                 allfit = syncing and (left == 0)
                 if not self.ui.horizontalSlider.isEnabled():
                     self.ui.horizontalSlider.setEnabled(True)
-                    allfit = False
-                    left = max(1, right - setting.ui.display_pts)
                 if allfit:
                     display_pts = update_count
                 else:
@@ -505,7 +518,13 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
                 if data is None or data.size == 0:
                     curve.setData(x=[], y=[])
                     continue
-                curve.setData(x=time_, y=data)
+                # Plot exactly the same window the stats below are computed
+                # from - plotting the full buffer here while vmin/vmax only
+                # covered this window let old out-of-window samples (e.g. a
+                # peak recorded before the load was switched off) stay
+                # visibly drawn even after the axis had already narrowed to
+                # the current window's range.
+                curve.setData(x=time_[start_index:to_index], y=data[start_index:to_index])
                 vmin = mn if vmin is None else min(vmin, mn)
                 vmax = mx if vmax is None else max(vmax, mx)
                 xmin = time_[start_index] if xmin is None else min(xmin, time_[start_index])

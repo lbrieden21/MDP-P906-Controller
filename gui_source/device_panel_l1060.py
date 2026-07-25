@@ -383,7 +383,7 @@ class L1060DevicePanel(DevicePanelBase):
         api.close()
         self._load_commanded_on = False
         self.linked = False
-        self.close_state_ui()
+        self.close_state_ui(record_disconnect=True)
         self.link_state_changed.emit()
 
     def request_state(self):
@@ -534,7 +534,7 @@ class L1060DevicePanel(DevicePanelBase):
             self.state_lcd_timer.start(round(1000 / min(fps, setting.ui.state_fps)))
         self.fps_counter.clear()
 
-    def close_state_ui(self):
+    def close_state_ui(self, record_disconnect: bool = False):
         self.ui.labelLinkState.setText(self.tr("未连接"))
         set_color(self.ui.labelLinkState, None)
         self.ui.frameOutputSetting.setEnabled(False)
@@ -545,7 +545,15 @@ class L1060DevicePanel(DevicePanelBase):
         self.ui.btnLoadOn.blockSignals(True)
         self.ui.btnLoadOn.setChecked(False)
         self.ui.btnLoadOn.blockSignals(False)
-        self.state_callback([(0.0, 0.0)])
+        if record_disconnect:
+            # Marks the graph history with an explicit drop to (0, 0) right
+            # before unlink()'s mark_gap() breaks the line, so a reviewed
+            # chart shows the device's output actually falling away instead
+            # of flat-lining at its last real reading. Not wanted here on
+            # the plain init call - there's no real reading to mark as lost
+            # yet, and it would otherwise permanently seed this panel's
+            # buffer with one sample even if it's never linked all session.
+            self.state_callback([(0.0, 0.0)])
         for lcd in (
             self.ui.lcdVoltage,
             self.ui.lcdCurrent,
