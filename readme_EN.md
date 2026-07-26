@@ -44,9 +44,9 @@ A lot of time was spent optimizing the communication quality based on this proje
 
 ### Prerequisite of the Prerequisite
 
-Although the following text says that this project requires buying a module, if you already have an STM32 + NRF24L01 combo, you can easily port this project to your device by simply modifying cubemx. This is the only advantage of using the HAL library.
+Although the following text says that this project requires buying a module, if you already have an STM32 + NRF24L01 combo, you can port this project to your device by adapting the pin definitions. The current adapter firmware ([nrf_adapter_source_multiceiver/](nrf_adapter_source_multiceiver/)) is bare-metal (direct CMSIS register access, no CubeMX/HAL), so porting means editing the pin/clock setup directly in that source rather than regenerating from a `.ioc` file.
 
-I won't include the specific circuit I reverse-engineered here; you can directly refer to the pin definitions in cubemx.
+I won't include the specific circuit I reverse-engineered here; you can directly refer to the pin definitions in [nrf_adapter_source_multiceiver/Core/Inc/main.h](nrf_adapter_source_multiceiver/Core/Inc/main.h).
 
 ### Prerequisite
 
@@ -60,31 +60,42 @@ This module has an independent PA amplifier, allowing for a communication range 
 
 Fortunately, the module uses a genuine STM32F030F4P6 as the main controller, allowing us to write our programs to repurpose its hardware.
 
-### Modification Method 1
+### Modification Method
 
-Pry open the module's case and flip it over to see five test points as shown in the image below:
+**Important:** the Python driver in this repo ([mdp_controller/bus.py](mdp_controller/bus.py)) now always uses the nRF24L01+'s hardware RX pipes to address devices (`CMD_NRF_OPEN_PIPE`, 0x23) — even for a single device. That command only exists in the bare-metal multiceiver firmware under [nrf_adapter_source_multiceiver/](nrf_adapter_source_multiceiver/); the original shipped firmware (and the old pre-built release image) doesn't support it and will no longer work with this driver. There is currently no pre-built image for the multiceiver firmware, so it has to be compiled and flashed yourself over SWD.
+
+Pry open the module's case and flip it over to see the test points as shown in the image below:
 
 ![1721840680045](image/readme/1721840680045.png)
 
-Download [STM32 CubeProgrammer](https://www.st.com/en/development-tools/stm32cubeprog.html) and open it, setting it up as shown in the image below:
+Build the firmware (needs `arm-none-eabi-gcc`):
 
-![1721840819305](image/readme/1721840819305.png)
+```sh
+cd nrf_adapter_source_multiceiver
+sudo apt-get install gcc-arm-none-eabi
+make          # -> build/MDP_Adapter_Multiceiver.{elf,hex,bin}
+```
 
-Now, use a pair of tweezers to short the `BOOT0` and `3V3` test points in the image above, and **keep them shorted throughout the entire flashing process**.
-
-Insert the module into the computer, select the correct port number, and click Connect to connect. If everything goes well, you should see the image below, indicating the successful removal of the read-write protection on the chip.
-
-![1721841074236](image/readme/1721841074236.png)
-
-Next, switch to the download page, select the firmware package I [released](https://github.com/ElluIFX/MDP-P906-Controller/releases/tag/image) (of course, you can also compile it yourself), and complete the firmware flashing.
-
-![1721841174409](image/readme/1721841174409.png)
-
-### Modification Method 2
-
-This method is essentially the same as Method 1, for the situation that when entering the serial bootloader via BOOT0, you may not be able to remove the read-write protection. In this case, if you have an ST-LINK, you can connect as shown in the SWD wiring diagram before, then check the box as shown in the image to remove the protection.
+Flash it over SWD with an ST-LINK V2 — wire `SWCLK`/`SWDIO`/`GND`/`3V3` from the ST-LINK to the module's test points as shown below. The `BOOT0`/`3V3` short and serial bootloader from the old method are **not** used here.
 
 ![1721841339876](image/readme/1721841339876.png)
+
+```sh
+# stlink-tools
+sudo apt-get install stlink-tools
+st-flash write build/MDP_Adapter_Multiceiver.bin 0x08000000
+
+# or OpenOCD
+sudo apt-get install openocd
+openocd -f interface/stlink.cfg -f target/stm32f0x.cfg \
+  -c "program build/MDP_Adapter_Multiceiver.elf verify reset exit"
+```
+
+If the module still has its original read/write protection set, `st-flash` will refuse to write — run `st-flash erase` first (mass-erases and drops protection back to level 0), or with OpenOCD: `-c "stm32f0x unlock 0; reset halt"`.
+
+Alternatively, [STM32 CubeProgrammer](https://www.st.com/en/development-tools/stm32cubeprog.html) can flash the same `.bin`/`.hex` over the same SWD wiring, and has its own "remove read-out protection" option in the GUI if needed.
+
+See [nrf_adapter_source_multiceiver/README.md](nrf_adapter_source_multiceiver/README.md) for full build/flash details and firmware design notes.
 
 ### Control by API
 
@@ -101,6 +112,8 @@ I have released a PyInstaller packaged version, you can just download and run it
 #### Multiple Devices
 
 The GUI can drive more than one device at a time. Open **Connection Settings**, use the **+**/**-** buttons next to the device selector to add or remove a device, and configure each one's IDCODE/color/channel there. Every device gets its own panel (stacked in the left column) with its own **LINK/UNLINK** button, so devices can be connected and disconnected independently of each other — the radio adapter itself stays shared and opens/closes automatically as needed.
+
+This is implemented using the adapter's nRF24L01+ hardware RX pipes to tell devices apart, so it requires the [multiceiver adapter firmware](#modification-method) and is capped at **5 devices per adapter** (pipes 1-5; pipe 0 is reserved for the adapter's own transmit ACKs).
 
 #### L1060 Electronic Load Auxiliary Tools
 
