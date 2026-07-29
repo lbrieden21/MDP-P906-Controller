@@ -70,14 +70,25 @@ targets/stm32f030/   This target's full implementation of platform.h, plus
     linker/          STM32F030F4Px.ld: 15KB code region + reserved last 1KB
                      flash page for settings (see flash_store.c).
     Makefile         Builds this target; run make from inside this directory.
+targets/teensy41/    Teensy 4.1 target. platform_teensy41.cpp is the entire
+                     C/C++ boundary — every platform.h entry point in one
+                     file, wrapped in extern "C"; Arduino headers appear
+                     here and in no shared header. pins.h holds the wiring,
+                     main.cpp the setup()/loop() boot order,
+                     host_link_test.py the host-protocol acceptance check.
 Drivers/CMSIS        Copied verbatim from nrf_adapter_source/Drivers/CMSIS
                      (ST-provided register definitions only, no HAL driver
                      folder — this is the whole point of "no HAL").
+                     STM32 target only.
+Drivers/teensy4      PJRC cores/teensy4, copied verbatim — same treatment
+                     CMSIS gets. Teensy target only.
+Drivers/teensy4_libs PJRC's SPI library, likewise verbatim.
 ```
 
 A second target adds a `targets/<name>/` directory implementing the same
 `platform.h` and nothing else — `core/` never gains a conditional, so a new
-target cannot regress this hardware-validated one.
+target cannot regress an already-validated one. (Adding the Teensy target
+left the STM32 `.bin` byte-identical.)
 
 ## Design notes / deviations from the shipped firmware
 
@@ -121,18 +132,122 @@ target cannot regress this hardware-validated one.
   transaction, so this doesn't touch the timing-sensitive 50Hz Type-8
   polling path.
 
+## Teensy 4.1 target
+
+A drop-in replacement for the STM32 dongle: same framing, same command set,
+same pipe-tagged `REP_NRF_RECV_OK`, so the existing host harnesses work
+unmodified apart from the port name.
+
+Hardware-validated against the P906 + L1060 bench, and faster than the STM32
+dongle it replaces: on a 60s two-device run through the GUI it delivered ~17%
+more samples at less than half the no-ack rate (1.91% vs 4.61%), with zero
+failed requests on either. Details and method in
+`../nrf_adapter_teensy41_port_plan.md`.
+
+- **Wiring** (`targets/teensy41/pins.h`): SPI is LPSPI4 on its fixed pins —
+  SCK 13, MOSI 11, MISO 12 — plus CSN 10, CE 9, IRQ 2. SPI runs at 10MHz, the
+  nRF24L01+'s rated ceiling; the STM32 target's 12MHz (48/4) is above spec and
+  there was no reason to carry that over.
+- **No status LED.** Pin 13 is the onboard LED *and* LPSPI4's SCK, so it is
+  unavailable, and `led_on()`/`led_off()` are no-ops. They only ever drove
+  cosmetic activity indication. The STM32's four-blink boot indicator is gone
+  with it, along with the ~800ms it consumed between `protocol_init()` and the
+  first poll — nothing depends on that delay.
+- **Radio IRQ runs in thread context, not the ISR.** This is the one real
+  design change. The STM32 does blocking SPI *and* `uart_write` inside its
+  EXTI handler, which is only safe because USART1 sits at NVIC priority 1
+  against EXTI2_3's 3, so the UART ISR preempts and drains the TX ring. That
+  priority relationship does not survive the port. Here the ISR only latches
+  the edge and `loop()` calls `protocol_service_radio_irq()`; at 600MHz
+  against a 20ms Type-8 poll period the deferral costs microseconds, and
+  `uart_write` is never called from interrupt context at all.
+  Servicing is gated on the IRQ pin *level* as well as the latched edge — the
+  nRF24 holds IRQ low until STATUS is cleared, so a second event arriving
+  before servicing produces no new falling edge.
+- **Host link**: USB CDC (`Serial`) by default; `-DHOST_LINK_SERIAL1` swaps in
+  `Serial1` at 921600 for exact parity with the shipped adapter. Both sit
+  behind the same three `platform.h` functions, and nothing in `core/` is
+  conditional on the choice. On CDC `uart_set_baudrate()` is a no-op, but
+  `CMD_SET_BAUDRATE` still ACKs and still persists the value, so the command's
+  observable protocol behaviour is unchanged — only the physical link speed
+  stops responding to it. `nrf24_adapter.py` needs no changes: pyserial
+  ignores the baudrate for a CDC device.
+- **Settings**: PJRC's flash-emulated EEPROM (~4KB), with `flash_store.c`'s
+  record format unchanged — `[magic u32][len u16][payload 32][crc16]`, same
+  CRC16-CCITT — so `persisted_settings_t` round-trips identically on both
+  targets.
+- **Watchdog**: WDOG1, driven directly rather than through Teensyduino's
+  `WDT_T4` — that is a separate library needing vendoring, while `imxrt.h` (in
+  the vendored core already) declares every register, and the core itself never
+  touches WDOG1. Same approach as the STM32 target's `watchdog.c`. `WT=6` gives
+  (6+1) × 0.5s = **3.5s**, the nearest step to the STM32's ~3.3s IWDG timeout,
+  refreshed on the same 100ms cadence from `loop()`. Note `SRS` and `WDA` are
+  active-low "do not assert now" controls and must be written 1, or enabling
+  the watchdog resets the part immediately.
+
+### Why this target uses PJRC's core when the STM32 one shed HAL/CubeMX
+
+The i.MX RT1062 has **no internal flash** — code runs from external QSPI. That
+makes two required services expensive from scratch: settings storage needs a
+FlexSPI self-programming driver executing from ITCM, and USB CDC needs a full
+device stack (endpoint queue heads, transfer descriptors, enumeration,
+CDC-ACM). Plus a boot header / FlexSPI config block and a considerably hairier
+clock/PLL bring-up than the F030's HSI→PLL→48MHz. Going fully bare-metal here
+is not the same trade it was on the F030, where CMSIS register access got us
+everything.
+
 ## Building
+
+Both targets build with plain `make` against the system `arm-none-eabi-gcc`
+(14.2) — no package manager, no board manifest, no downloaded toolchain.
+Teensyduino ships its own older gcc, but 14.2 builds the PJRC core unmodified.
 
 ```sh
 sudo apt-get install gcc-arm-none-eabi   # arm-none-eabi-gcc 14.2, if not already installed
-cd targets/stm32f030
-make          # -> build/MDP_Adapter_Multiceiver.{elf,hex,bin}
-make clean
+
+cd targets/stm32f030 && make   # -> build/MDP_Adapter_Multiceiver.{elf,hex,bin}
+cd targets/teensy41  && make   # -> build/MDP_Adapter_Multiceiver.{elf,hex}
+make clean                     # either target
 ```
 
-All paths below are relative to `targets/stm32f030/`.
+To build the Teensy target against `Serial1` instead of USB CDC:
+
+```sh
+cd targets/teensy41
+make clean && make HOST_LINK=HOST_LINK_SERIAL1
+```
+
+The `make clean` is required — the flag only reaches two objects, so make will
+not rebuild them on its own when it changes.
 
 ## Flashing
+
+### Teensy 4.1
+
+```sh
+sudo apt-get install teensy-loader-cli
+cd targets/teensy41
+make flash    # teensy_loader_cli --mcu=TEENSY41 -s -w -v build/*.hex
+```
+
+`-s` soft-reboots into the bootloader over USB, so no button press is needed
+as long as the running firmware still enumerates as USB serial; `-w` waits for
+the board. Drop `-s` and press the button if the board is wedged or running a
+non-`USB_SERIAL` build.
+
+Then run the host-protocol check (no radio needed — it covers framing,
+dispatch, and EEPROM persistence across a reboot):
+
+```sh
+../../../venv/bin/python host_link_test.py /dev/ttyACM0
+```
+
+When comparing the two adapters against the same devices, park the idle one on
+an unused address and channel first. Any normal run leaves an adapter in RX on
+the bench address, where it will auto-ACK packets meant for the device under
+test — this measurably corrupts throughput and error-rate measurements.
+
+### STM32F030 dongle
 
 Via ST-LINK V2 over SWD (no BOOT0/3V3 short needed — that's only for the
 UART bootloader method in `readme_EN.md`, which doesn't apply here). Wire
@@ -141,6 +256,8 @@ which this firmware never touches (see pin mapping above), so there's no
 conflict with the app pins.
 
 ```sh
+cd targets/stm32f030
+
 # stlink-tools (st-flash)
 sudo apt-get install stlink-tools
 st-flash write build/MDP_Adapter_Multiceiver.bin 0x08000000
