@@ -5,7 +5,7 @@
  * Bare-metal port of nrf_adapter_source/Modules/nrf24l01/nrf24l01p.c
  * (originally mokhwasomssi/stm32_hal_nrf24l01p, itself only ever wrote
  * RX_ADDR_P0 -- single pipe). Behavior of every ported function is
- * unchanged; SPI/GPIO calls are retargeted from HAL to spi.c/gpio.c.
+ * unchanged; SPI/GPIO calls are retargeted from HAL to platform.h.
  *
  * New in this port: nrf24l01p_open_rx_pipe() configures RX_ADDR_Pn /
  * RX_PW_Pn / EN_RXADDR / EN_AA for pipes 1-5 (real nRF24 multiceiver),

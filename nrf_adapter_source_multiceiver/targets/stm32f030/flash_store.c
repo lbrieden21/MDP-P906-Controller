@@ -1,5 +1,17 @@
-#include "flash_store.h"
+#include "platform.h"
 #include "stm32f0xx.h"
+
+/*
+ * platform.h's store_load/store_save for the STM32F030 target: a minimal
+ * replacement for the shipped firmware's MiniFlashDB-backed settings
+ * (nrf_adapter_source/Modules/MiniFlashDB). A single reserved 1KB flash page
+ * (see linker/STM32F030F4Px.ld SETTINGS_FLASH, last page of the 16KB part)
+ * holds one record: [magic u32][payload][crc16]. NRF_SAVE erases + rewrites
+ * it; boot reads it back if the magic/crc check out. No wear-leveling -- the
+ * original didn't expose save as a high-frequency operation either (host only
+ * calls it from the settings dialog), so page-erase endurance (~10k cycles) is
+ * not a practical concern.
+ */
 
 /* Linker symbol marking the SETTINGS_FLASH page origin (see
    linker/STM32F030F4Px.ld); declared as an unsized array so GCC doesn't
@@ -44,7 +56,7 @@ static void flash_wait_busy(void) {
     while (FLASH->SR & FLASH_SR_BSY) {}
 }
 
-int flash_store_load(void *payload, size_t len) {
+int store_load(void *payload, size_t len) {
     if (len > STORE_MAX_PAYLOAD) {
         return 0;
     }
@@ -68,7 +80,7 @@ static void flash_program_halfword(uint32_t addr, uint16_t value) {
     FLASH->CR &= ~FLASH_CR_PG;
 }
 
-int flash_store_save(const void *payload, size_t len) {
+int store_save(const void *payload, size_t len) {
     if (len > STORE_MAX_PAYLOAD) {
         return 0;
     }
@@ -99,7 +111,7 @@ int flash_store_save(const void *payload, size_t len) {
     flash_lock();
 
     uint8_t check[STORE_MAX_PAYLOAD];
-    if (!flash_store_load(check, len)) {
+    if (!store_load(check, len)) {
         return 0;
     }
     for (size_t i = 0; i < len; i++) {

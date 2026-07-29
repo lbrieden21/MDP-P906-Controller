@@ -1,5 +1,5 @@
 #include "uart.h"
-#include "gpio.h"
+#include "platform.h"
 #include "stm32f0xx.h"
 #include "system_clock.h"
 
@@ -17,7 +17,7 @@
  * Type-8 polling). USART1 is NVIC priority 1, higher than EXTI2_3's
  * priority 3, so USART1's TXE/RXNE ISR can always preempt and drain these
  * rings even while EXTI2_3's handler is still running -- that's what makes
- * uart1_write()'s spin-wait-for-ring-space safe to call from there.
+ * uart_write()'s spin-wait-for-ring-space safe to call from there.
  */
 
 #define RX_RING_SIZE 256
@@ -30,30 +30,30 @@ static volatile uint8_t tx_ring[TX_RING_SIZE];
 static volatile uint16_t tx_head;
 static volatile uint16_t tx_tail;
 
-static void uart1_apply_brr(uint32_t baudrate) {
+static void uart_apply_brr(uint32_t baudrate) {
     /* 16x oversampling (CR1.OVER8=0, the reset default and what the shipped
        firmware used): USARTDIV = round(PCLK / baud). */
     USART1->BRR = (SYSTEM_CORE_CLOCK_HZ + (baudrate / 2)) / baudrate;
 }
 
-void uart1_init(uint32_t baudrate) {
+void uart_init(uint32_t baudrate) {
     RCC->APB2ENR |= RCC_APB2ENR_USART1EN;
 
     USART1->CR1 = 0;
-    uart1_apply_brr(baudrate);
+    uart_apply_brr(baudrate);
     USART1->CR1 = USART_CR1_UE | USART_CR1_TE | USART_CR1_RE | USART_CR1_RXNEIE;
 
     NVIC_SetPriority(USART1_IRQn, 1);
     NVIC_EnableIRQ(USART1_IRQn);
 }
 
-void uart1_set_baudrate(uint32_t baudrate) {
+void uart_set_baudrate(uint32_t baudrate) {
     USART1->CR1 &= ~USART_CR1_UE;
-    uart1_apply_brr(baudrate);
+    uart_apply_brr(baudrate);
     USART1->CR1 |= USART_CR1_UE;
 }
 
-void uart1_write(const uint8_t *data, size_t len) {
+void uart_write(const uint8_t *data, size_t len) {
     for (size_t i = 0; i < len; i++) {
         uint16_t next;
         while ((next = (uint16_t)((tx_head + 1) % TX_RING_SIZE)) == tx_tail) {}
@@ -63,7 +63,7 @@ void uart1_write(const uint8_t *data, size_t len) {
     USART1->CR1 |= USART_CR1_TXEIE;
 }
 
-int uart1_read_byte(uint8_t *out) {
+int uart_read_byte(uint8_t *out) {
     if (rx_head == rx_tail) {
         return 0;
     }

@@ -1,6 +1,10 @@
 #ifndef GPIO_H
 #define GPIO_H
 
+/* STM32F030-target-private. The port/mask concept does not cross the
+   platform.h boundary -- core/ sees only nrf_csn_low() and friends, which
+   gpio.c implements in terms of these. */
+
 #include "stm32f0xx.h"
 
 #define GPIO_PIN_0 (1U << 0)

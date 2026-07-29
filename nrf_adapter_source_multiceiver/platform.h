@@ -1,0 +1,63 @@
+#ifndef PLATFORM_H
+#define PLATFORM_H
+
+/*
+ * The entire contract between core/ (nrf24l01p.c, protocol.c) and the silicon.
+ *
+ * Every target under targets/ supplies a full implementation of these
+ * functions; core/ contains no #ifdefs and no MCU headers, so work on a new
+ * target cannot regress an existing one. On the STM32F030 target the
+ * implementations live in the file that owns the peripheral (gpio.c, spi.c,
+ * uart.c, system_clock.c, watchdog.c, flash_store.c, main.c) rather than in one
+ * catch-all file.
+ *
+ * These are the operations the driver actually performs. Note in particular
+ * that the nRF24 control lines are named operations, not a (port, mask) pair:
+ * the STM32 GPIO port/mask concept does not survive the platform boundary.
+ */
+
+#include <stddef.h>
+#include <stdint.h>
+
+/* SPI: master, mode 0, MSB first, 8-bit frames. CSN is not touched here --
+   nrf24l01p.c brackets each transaction with nrf_csn_low()/nrf_csn_high(). */
+uint8_t spi_transfer_byte(uint8_t tx);
+/* Full-duplex block transfer. tx==NULL sends 0xFF filler; rx==NULL discards received bytes. */
+void spi_transfer(const uint8_t *tx, uint8_t *rx, size_t len);
+
+/* nRF24L01+ control lines. */
+void nrf_csn_low(void);
+void nrf_csn_high(void);
+void nrf_ce_low(void);
+void nrf_ce_high(void);
+
+/* Status LED. Purely cosmetic activity indication driven from the TX/RX paths
+   in nrf24l01p.c -- a target with no spare pin may implement these as no-ops. */
+void led_on(void);
+void led_off(void);
+
+/* Milliseconds since boot, free-running and wrap-safe for (now - then) use. */
+uint32_t millis(void);
+void delay_ms(uint32_t ms);
+
+/* Host link. */
+void uart_write(const uint8_t *data, size_t len);
+/* Pops one buffered RX byte. Returns 1 and fills *out if one was available, else 0. */
+int uart_read_byte(uint8_t *out);
+/* No-op on targets whose host link has no configurable line rate (USB CDC).
+   CMD_SET_BAUDRATE still ACKs and still persists the value in that case. */
+void uart_set_baudrate(uint32_t baudrate);
+
+/* Settings storage: one record, payload <= 32 bytes, integrity-checked.
+   Both return 1 on success, 0 on failure/absent record. A save with len==0
+   invalidates the stored record (CMD_RESET). */
+int store_load(void *payload, size_t len);
+int store_save(const void *payload, size_t len);
+
+void watchdog_init(void);
+void watchdog_refresh(void);
+
+/* Does not return. */
+void platform_reboot(void);
+
+#endif

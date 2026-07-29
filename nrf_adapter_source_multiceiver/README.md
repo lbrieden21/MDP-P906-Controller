@@ -54,16 +54,30 @@ from the shipped source, not reverse-engineered:
 ## Layout
 
 ```
-Core/Inc, Core/Src   Application code (no HAL): startup/vector table,
-                     clock init, GPIO, SPI1, USART1, nRF24L01+ driver,
-                     flash-backed settings store, UART framing + command
-                     dispatch, main().
+core/                Platform-neutral application code: nRF24L01+ driver
+                     (nrf24l01p.c) and UART framing + command dispatch
+                     (protocol.c). No #ifdefs, no MCU headers — reaches
+                     hardware only through platform.h.
+platform.h           The whole core/ ↔ silicon contract: SPI transfer, the
+                     four nRF24 control lines, LED, millis/delay, host-link
+                     read/write/baudrate, settings load/save, watchdog,
+                     reboot.
+targets/stm32f030/   This target's full implementation of platform.h, plus
+                     startup/vector table, clock init and main(). Each
+                     peripheral file supplies its own share of the contract
+                     (gpio.c the control lines, spi.c the transfers, and so
+                     on); gpio.h's port/mask helpers are target-private.
+    linker/          STM32F030F4Px.ld: 15KB code region + reserved last 1KB
+                     flash page for settings (see flash_store.c).
+    Makefile         Builds this target; run make from inside this directory.
 Drivers/CMSIS        Copied verbatim from nrf_adapter_source/Drivers/CMSIS
                      (ST-provided register definitions only, no HAL driver
                      folder — this is the whole point of "no HAL").
-linker/              STM32F030F4Px.ld: 15KB code region + reserved last 1KB
-                     flash page for settings (see flash_store.c).
 ```
+
+A second target adds a `targets/<name>/` directory implementing the same
+`platform.h` and nothing else — `core/` never gains a conditional, so a new
+target cannot regress this hardware-validated one.
 
 ## Design notes / deviations from the shipped firmware
 
@@ -111,9 +125,12 @@ linker/              STM32F030F4Px.ld: 15KB code region + reserved last 1KB
 
 ```sh
 sudo apt-get install gcc-arm-none-eabi   # arm-none-eabi-gcc 14.2, if not already installed
+cd targets/stm32f030
 make          # -> build/MDP_Adapter_Multiceiver.{elf,hex,bin}
 make clean
 ```
+
+All paths below are relative to `targets/stm32f030/`.
 
 ## Flashing
 

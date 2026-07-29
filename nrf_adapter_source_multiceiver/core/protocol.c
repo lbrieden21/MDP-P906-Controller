@@ -1,9 +1,6 @@
 #include "protocol.h"
-#include "flash_store.h"
 #include "nrf24l01p.h"
-#include "stm32f0xx.h"
-#include "system_clock.h"
-#include "uart.h"
+#include "platform.h"
 
 typedef struct {
     uint16_t ch_mhz;
@@ -33,12 +30,12 @@ static void nrf_rx_done(uint8_t pipe);
 static void uart_send_packet(uint8_t cmd, const uint8_t *data1, size_t len1,
                               const uint8_t *data2, size_t len2) {
     uint8_t hdr[4] = {0xAA, 0x66, cmd, (uint8_t)(len1 + len2)};
-    uart1_write(hdr, 4);
+    uart_write(hdr, 4);
     if (len1) {
-        uart1_write(data1, len1);
+        uart_write(data1, len1);
     }
     if (len2) {
-        uart1_write(data2, len2);
+        uart_write(data2, len2);
     }
 }
 
@@ -92,14 +89,14 @@ static void nrf_rx_done(uint8_t pipe) {
 static void handle_command(uint8_t cmd, uint8_t *data, size_t len) {
     switch (cmd) {
         case CMD_REBOOT:
-            NVIC_SystemReset();
+            platform_reboot();
             break;
 
         case CMD_RESET:
-            (void)flash_store_save(NULL, 0); /* len=0 write invalidates the stored record */
+            (void)store_save(NULL, 0); /* len=0 write invalidates the stored record */
             uart_send_packet(REP_RESET_DONE, NULL, 0, NULL, 0);
             delay_ms(100);
-            NVIC_SystemReset();
+            platform_reboot();
             break;
 
         case CMD_SET_BAUDRATE:
@@ -111,10 +108,10 @@ static void handle_command(uint8_t cmd, uint8_t *data, size_t len) {
                          (uint32_t)data[0] * 10000;
             uart_send_packet(REP_BAUDRATE_SET, NULL, 0, NULL, 0);
             delay_ms(100);
-            uart1_set_baudrate(s_baudrate);
+            uart_set_baudrate(s_baudrate);
             {
                 persisted_settings_t ps = {nrf_setting, s_baudrate};
-                flash_store_save(&ps, sizeof(ps));
+                store_save(&ps, sizeof(ps));
             }
             break;
 
@@ -151,7 +148,7 @@ static void handle_command(uint8_t cmd, uint8_t *data, size_t len) {
 
         case CMD_NRF_SAVE: {
             persisted_settings_t ps = {nrf_setting, s_baudrate};
-            if (flash_store_save(&ps, sizeof(ps))) {
+            if (store_save(&ps, sizeof(ps))) {
                 uart_send_packet(REP_NRF_SET_SAVED, NULL, 0, NULL, 0);
             } else {
                 uart_send_packet(REP_CMD_FAILED, NULL, 0, NULL, 0);
@@ -254,23 +251,20 @@ static void feed_byte(uint8_t b) {
     }
 }
 
-void EXTI2_3_IRQHandler(void) {
-    if (EXTI->PR & (1U << 2)) {
-        EXTI->PR = (1U << 2); /* write-1-to-clear */
-        nrf24l01p_irq();
-    }
+void protocol_service_radio_irq(void) {
+    nrf24l01p_irq();
 }
 
 void protocol_init(void) {
-    /* uart1_init(921600) has already run at this point (main.c) -- mirrors
+    /* uart_init(921600) has already run at this point (main.c) -- mirrors
        the shipped firmware's boot order: bring UART up at the hard-coded
        default baud first, then switch it if a saved baudrate says otherwise. */
     persisted_settings_t ps;
-    if (flash_store_load(&ps, sizeof(ps))) {
+    if (store_load(&ps, sizeof(ps))) {
         nrf_setting = ps.nrf;
         if (ps.baudrate && ps.baudrate != s_baudrate) {
             s_baudrate = ps.baudrate;
-            uart1_set_baudrate(s_baudrate);
+            uart_set_baudrate(s_baudrate);
         }
     }
     nrf_configure(&nrf_setting);
@@ -278,7 +272,7 @@ void protocol_init(void) {
 
 void protocol_poll(void) {
     uint8_t b;
-    while (uart1_read_byte(&b)) {
+    while (uart_read_byte(&b)) {
         feed_byte(b);
     }
 }

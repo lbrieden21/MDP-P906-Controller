@@ -1,6 +1,5 @@
 #include "nrf24l01p.h"
-#include "gpio.h"
-#include "spi.h"
+#include "platform.h"
 
 #define NRF_MODE_IDLE 0
 #define NRF_MODE_RX 1
@@ -37,30 +36,11 @@ static void (*nrf_tx_callback)(uint8_t) = NULL;
 static void (*nrf_rx_callback)(uint8_t) = NULL;
 static uint8_t payload_length = 32;
 
-static inline void cs_low(void) {
-    gpio_clear(NRF_CSN_GPIO_Port, NRF_CSN_Pin);
-}
-static inline void cs_high(void) {
-    gpio_set(NRF_CSN_GPIO_Port, NRF_CSN_Pin);
-}
-static inline void ce_high(void) {
-    gpio_set(NRF_CE_GPIO_Port, NRF_CE_Pin);
-}
-static inline void ce_low(void) {
-    gpio_clear(NRF_CE_GPIO_Port, NRF_CE_Pin);
-}
-static inline void led_on(void) {
-    gpio_clear(LED_GPIO_Port, LED_Pin);
-}
-static inline void led_off(void) {
-    gpio_set(LED_GPIO_Port, LED_Pin);
-}
-
 static void read_register_multi(uint8_t reg, uint8_t *buffer, uint8_t len) {
-    cs_low();
-    spi1_transfer_byte(CMD_R_REGISTER | reg);
-    spi1_transfer(NULL, buffer, len);
-    cs_high();
+    nrf_csn_low();
+    spi_transfer_byte(CMD_R_REGISTER | reg);
+    spi_transfer(NULL, buffer, len);
+    nrf_csn_high();
 }
 
 static uint8_t read_register(uint8_t reg) {
@@ -70,10 +50,10 @@ static uint8_t read_register(uint8_t reg) {
 }
 
 static void write_register_multi(uint8_t reg, const uint8_t *value, uint8_t len) {
-    cs_low();
-    spi1_transfer_byte(CMD_W_REGISTER | reg);
-    spi1_transfer(value, NULL, len);
-    cs_high();
+    nrf_csn_low();
+    spi_transfer_byte(CMD_W_REGISTER | reg);
+    spi_transfer(value, NULL, len);
+    nrf_csn_high();
 }
 
 static void write_register(uint8_t reg, uint8_t value) {
@@ -95,10 +75,10 @@ void nrf24l01p_transmit(uint8_t *tx_payload, void (*tx_callback)(uint8_t)) {
     if (nrf_mode != NRF_MODE_TX) {
         nrf24l01p_tx_mode();
     }
-    cs_low();
-    spi1_transfer_byte(CMD_W_TX_PAYLOAD);
-    spi1_transfer(tx_payload, NULL, payload_length);
-    cs_high();
+    nrf_csn_low();
+    spi_transfer_byte(CMD_W_TX_PAYLOAD);
+    spi_transfer(tx_payload, NULL, payload_length);
+    nrf_csn_high();
     led_on();
 }
 
@@ -119,10 +99,10 @@ uint8_t nrf24l01p_transmit_then_receive(uint8_t *tx_payload,
     if (nrf_mode != NRF_MODE_TX) {
         nrf24l01p_tx_mode();
     }
-    cs_low();
-    spi1_transfer_byte(CMD_W_TX_PAYLOAD);
-    spi1_transfer(tx_payload, NULL, payload_length);
-    cs_high();
+    nrf_csn_low();
+    spi_transfer_byte(CMD_W_TX_PAYLOAD);
+    spi_transfer(tx_payload, NULL, payload_length);
+    nrf_csn_high();
     led_on();
     nrf_auto_tx_cnt++;
     return ret;
@@ -156,10 +136,10 @@ static void nrf24l01p_tx_irq(void) {
 static void nrf24l01p_rx_irq(void) {
     while (!(nrf24l01p_get_fifo_status() & 0x01)) {
         led_on();
-        cs_low();
-        uint8_t status = spi1_transfer_byte(CMD_R_RX_PAYLOAD);
-        spi1_transfer(NULL, nrf_rx_payload, payload_length);
-        cs_high();
+        nrf_csn_low();
+        uint8_t status = spi_transfer_byte(CMD_R_RX_PAYLOAD);
+        spi_transfer(NULL, nrf_rx_payload, payload_length);
+        nrf_csn_high();
         nrf24l01p_clear_rx_dr();
         nrf_rx_callback((status >> 1) & 0x07);
         led_off();
@@ -167,9 +147,16 @@ static void nrf24l01p_rx_irq(void) {
 }
 
 void nrf24l01p_reset(void) {
-    cs_high();
-    for (volatile int i = 0; i < 0xffff; i++) {}
-    ce_low();
+    nrf_csn_high();
+    /* Settle delay before the first register write. This was a cycle-count
+       busy-wait (`for (volatile int i = 0; i < 0xffff; i++) {}`), which is
+       meaningless across cores -- it measured 20490us on the 48MHz Cortex-M0
+       (SysTick-timed over 100 repetitions, read back over SWD; reproduced
+       exactly on two runs) and would be a small fraction of that on a faster
+       part. Rounded up to a whole millisecond, so every target inherits at
+       least the settle time the STM32 build was validated with. */
+    delay_ms(21);
+    nrf_ce_low();
     nrf_mode = NRF_MODE_IDLE;
 
     write_register(REG_CONFIG, 0x08);
@@ -192,40 +179,40 @@ void nrf24l01p_reset(void) {
 }
 
 void nrf24l01p_rx_mode(void) {
-    ce_low();
+    nrf_ce_low();
     write_register(REG_CONFIG, read_register(REG_CONFIG) | 0x01);
     nrf_mode = NRF_MODE_RX;
-    ce_high();
+    nrf_ce_high();
 }
 
 void nrf24l01p_tx_mode(void) {
-    ce_low();
+    nrf_ce_low();
     write_register(REG_CONFIG, read_register(REG_CONFIG) & 0xFE);
     nrf_mode = NRF_MODE_TX;
-    ce_high();
+    nrf_ce_high();
 }
 
 void nrf24l01p_idle_mode(void) {
-    ce_low();
+    nrf_ce_low();
     nrf_mode = NRF_MODE_IDLE;
 }
 
 void nrf24l01p_flush_rx_fifo(void) {
-    cs_low();
-    spi1_transfer_byte(CMD_FLUSH_RX);
-    cs_high();
+    nrf_csn_low();
+    spi_transfer_byte(CMD_FLUSH_RX);
+    nrf_csn_high();
 }
 
 void nrf24l01p_flush_tx_fifo(void) {
-    cs_low();
-    spi1_transfer_byte(CMD_FLUSH_TX);
-    cs_high();
+    nrf_csn_low();
+    spi_transfer_byte(CMD_FLUSH_TX);
+    nrf_csn_high();
 }
 
 uint8_t nrf24l01p_get_status(void) {
-    cs_low();
-    uint8_t status = spi1_transfer_byte(CMD_NOP);
-    cs_high();
+    nrf_csn_low();
+    uint8_t status = spi_transfer_byte(CMD_NOP);
+    nrf_csn_high();
     return status;
 }
 

@@ -1,4 +1,5 @@
 #include "system_clock.h"
+#include "platform.h"
 #include "stm32f0xx.h"
 
 /*

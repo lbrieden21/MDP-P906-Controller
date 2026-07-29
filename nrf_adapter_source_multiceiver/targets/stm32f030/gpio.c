@@ -1,4 +1,6 @@
 #include "gpio.h"
+#include "platform.h"
+#include "protocol.h"
 
 /*
  * Reproduces nrf_adapter_source/Core/Src/gpio.c + spi.c/usart.c MspInit pin
@@ -59,4 +61,35 @@ void gpio_init(void) {
 
     NVIC_SetPriority(EXTI2_3_IRQn, 3);
     NVIC_EnableIRQ(EXTI2_3_IRQn);
+}
+
+/* platform.h nRF24 control lines and status LED. The LED is active-low. */
+void nrf_csn_low(void) {
+    gpio_clear(NRF_CSN_GPIO_Port, NRF_CSN_Pin);
+}
+void nrf_csn_high(void) {
+    gpio_set(NRF_CSN_GPIO_Port, NRF_CSN_Pin);
+}
+void nrf_ce_low(void) {
+    gpio_clear(NRF_CE_GPIO_Port, NRF_CE_Pin);
+}
+void nrf_ce_high(void) {
+    gpio_set(NRF_CE_GPIO_Port, NRF_CE_Pin);
+}
+void led_on(void) {
+    gpio_clear(LED_GPIO_Port, LED_Pin);
+}
+void led_off(void) {
+    gpio_set(LED_GPIO_Port, LED_Pin);
+}
+
+/* Lives here rather than in core/ because both the vector-table slot and the
+   EXTI pending-bit handling are STM32-specific. Radio work still runs inside
+   the ISR on this target -- see uart.c on why that is safe here (USART1 at
+   NVIC priority 1 preempts EXTI2_3 at 3). */
+void EXTI2_3_IRQHandler(void) {
+    if (EXTI->PR & (1U << 2)) {
+        EXTI->PR = (1U << 2); /* write-1-to-clear */
+        protocol_service_radio_irq();
+    }
 }

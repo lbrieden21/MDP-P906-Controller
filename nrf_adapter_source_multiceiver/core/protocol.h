@@ -61,5 +61,8 @@ enum {
 void protocol_init(void);
 /* Drains all currently-buffered UART RX bytes through the framer/dispatcher. Call from the main loop. */
 void protocol_poll(void);
+/* Services a pending nRF24 IRQ. The target decides where this runs -- straight
+   out of the pin's interrupt handler (STM32F030) or deferred to the main loop. */
+void protocol_service_radio_irq(void);
 
 #endif

@@ -46,7 +46,7 @@ A lot of time was spent optimizing the communication quality based on this proje
 
 Although the following text says that this project requires buying a module, if you already have an STM32 + NRF24L01 combo, you can port this project to your device by adapting the pin definitions. The current adapter firmware ([nrf_adapter_source_multiceiver/](nrf_adapter_source_multiceiver/)) is bare-metal (direct CMSIS register access, no CubeMX/HAL), so porting means editing the pin/clock setup directly in that source rather than regenerating from a `.ioc` file.
 
-I won't include the specific circuit I reverse-engineered here; you can directly refer to the pin definitions in [nrf_adapter_source_multiceiver/Core/Inc/main.h](nrf_adapter_source_multiceiver/Core/Inc/main.h).
+I won't include the specific circuit I reverse-engineered here; you can directly refer to the pin definitions in [nrf_adapter_source_multiceiver/targets/stm32f030/gpio.h](nrf_adapter_source_multiceiver/targets/stm32f030/gpio.h).
 
 ### Prerequisite
 

@@ -1,4 +1,4 @@
-#include "watchdog.h"
+#include "platform.h"
 #include "stm32f0xx.h"
 
 /* Reproduces nrf_adapter_source/Core/Src/iwdg.c: prescaler /32, reload 4095,
