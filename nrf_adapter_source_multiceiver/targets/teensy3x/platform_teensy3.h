@@ -1,5 +1,5 @@
-#ifndef PLATFORM_TEENSY41_H
-#define PLATFORM_TEENSY41_H
+#ifndef PLATFORM_TEENSY3_H
+#define PLATFORM_TEENSY3_H
 
 /*
  * Target-private boot hooks, the Teensy equivalent of the STM32 target's
@@ -10,7 +10,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-/* Pin directions, SPI bring-up, and the nRF24 IRQ attach. */
+/* Pin directions, SPI bring-up (including the setSCK(14) move), and the nRF24
+   IRQ attach. */
 void platform_init(void);
 
 /* Brings the host link up at the given rate. The rate is ignored on USB CDC,

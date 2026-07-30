@@ -9,19 +9,41 @@ SIZE = arm-none-eabi-size
 ROOT = ../..
 CORE_DIR = $(ROOT)/core
 FW_DIR = $(ROOT)/Drivers/teensy4
-SPI_DIR = $(ROOT)/Drivers/teensy4_libs/SPI
+SPI_DIR = $(ROOT)/Drivers/teensy_libs/SPI
 
 # Host link. USB CDC is the primary path; -DHOST_LINK_SERIAL1 swaps in Serial1
 # at 921600 for exact behavioural parity with the shipped STM32 adapter.
 # Override on the command line: make HOST_LINK=HOST_LINK_SERIAL1
 HOST_LINK ?= HOST_LINK_USB_CDC
 
+# Board select: TEENSY41 (default) or TEENSY40. Chooses the chip define, the
+# linker script and the teensy_loader_cli --mcu argument -- nothing else.
+# pins.h and every platform_teensy4.* source file are identical on both; the
+# 4.0's ARDUINO_TEENSY40 gating already lives in the vendored Drivers/teensy4
+# core. Switching BOARD requires `make clean` first, same as HOST_LINK: the
+# define only reaches the framework objects under build/fw, and make has no
+# way to know they are stale otherwise.
+# Override on the command line: make BOARD=TEENSY40
+BOARD ?= TEENSY41
+
+ifeq ($(BOARD),TEENSY41)
+BOARD_DEF = -DARDUINO_TEENSY41
+LDSCRIPT = imxrt1062_t41.ld
+LOADER_MCU = TEENSY41
+else ifeq ($(BOARD),TEENSY40)
+BOARD_DEF = -DARDUINO_TEENSY40
+LDSCRIPT = imxrt1062.ld
+LOADER_MCU = TEENSY40
+else
+$(error Unknown BOARD '$(BOARD)' -- use TEENSY41 or TEENSY40)
+endif
+
 MCU = -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16
 
 # ARDUINO/TEENSYDUINO version numbers are what the core's own Makefile declares;
 # some core headers gate on them. LAYOUT_US_ENGLISH is required by keylayouts.c
 # even though this firmware has no HID.
-FW_DEFS = -D__IMXRT1062__ -DARDUINO_TEENSY41 -DF_CPU=600000000 \
+FW_DEFS = -D__IMXRT1062__ $(BOARD_DEF) -DF_CPU=600000000 \
           -DUSB_SERIAL -DLAYOUT_US_ENGLISH -DARDUINO=10813 -DTEENSYDUINO=159
 
 FW_INCS = -I$(ROOT) -I$(CORE_DIR) -I$(FW_DIR) -I$(SPI_DIR) -I.
@@ -41,7 +63,7 @@ FW_CXXFLAGS = $(COMMON) $(FW_INCS) -Wall $(CXXONLY)
 APP_CFLAGS = $(COMMON) $(APP_INCS) -Wall -Wextra -std=c11
 APP_CXXFLAGS = $(COMMON) $(APP_INCS) -Wall -Wextra $(CXXONLY) -D$(HOST_LINK)
 
-LDFLAGS = $(MCU) -Os -Wl,--gc-sections,--relax -T$(FW_DIR)/imxrt1062_t41.ld \
+LDFLAGS = $(MCU) -Os -Wl,--gc-sections,--relax -T$(FW_DIR)/$(LDSCRIPT) \
           -Wl,-Map=$(BUILD_DIR)/$(TARGET).map
 LIBS = -lm -lstdc++
 
@@ -97,7 +119,7 @@ size: $(BUILD_DIR)/$(TARGET).elf
 # long as the running firmware still enumerates as USB serial. Drop -s (and
 # press the button) if the board is wedged or running a non-USB_SERIAL build.
 flash: $(BUILD_DIR)/$(TARGET).hex
-	teensy_loader_cli --mcu=TEENSY41 -s -w -v $<
+	teensy_loader_cli --mcu=$(LOADER_MCU) -s -w -v $<
 
 clean:
 	rm -rf $(BUILD_DIR)

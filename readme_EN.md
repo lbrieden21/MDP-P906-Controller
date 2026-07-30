@@ -6,6 +6,17 @@ Wireless control of the power supply without the MDP-M01 display module, support
 
 ![1721844452863](image/readme/1721844452863.png)
 
+**Hardware note:** the AliExpress USB-NRF24L01 dongle module described in the
+Prerequisite section below was the original basis for this project's adapter
+firmware, but it's no longer part of the actual hardware in use — by the time
+that stage of work started, the module wasn't readily available anymore. All
+ongoing work, including the [nrf_adapter_source_multiceiver/](nrf_adapter_source_multiceiver/)
+bare-metal firmware, is developed and bench-tested against a bare
+STM32F030F4P6 dev board (same MCU) paired with an external USB-to-serial
+adapter for the host link. The dongle's shipped firmware is still the source
+the pin mapping and protocol were recovered from, so the Prerequisite section
+is kept for that lineage and for anyone who already has the original module.
+
 ## Acknowledgements
 
 The protocol part used in this project is derived from  [leommxj/mdp_commander](https://github.com/leommxj/mdp_commander). Without this project, I would have had no way to test the communication protocol between M01 and P906.
@@ -68,13 +79,19 @@ Pry open the module's case and flip it over to see the test points as shown in t
 
 ![1721840680045](image/readme/1721840680045.png)
 
-Build the firmware (needs `arm-none-eabi-gcc`):
+Build the firmware (needs `arm-none-eabi-gcc`) — for this module, that's the
+STM32F030 target specifically:
 
 ```sh
-cd nrf_adapter_source_multiceiver
+cd nrf_adapter_source_multiceiver/targets/stm32f030
 sudo apt-get install gcc-arm-none-eabi
 make          # -> build/MDP_Adapter_Multiceiver.{elf,hex,bin}
 ```
+
+The same firmware also supports an STM32 Blue Pill and four Teensy boards
+(3.5, 3.6, 4.0, 4.1) if you'd rather build your own adapter than modify this
+module — see [nrf_adapter_source_multiceiver/README.md](nrf_adapter_source_multiceiver/README.md)
+for the full board list and per-target build/flash instructions.
 
 Flash it over SWD with an ST-LINK V2 — wire `SWCLK`/`SWDIO`/`GND`/`3V3` from the ST-LINK to the module's test points as shown below. The `BOOT0`/`3V3` short and serial bootloader from the old method are **not** used here.
 

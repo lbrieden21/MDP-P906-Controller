@@ -7,6 +7,12 @@ multiceiver support: each attached device (P906, L1060) gets its own hardware
 RX pipe, so the host can attribute a response to a device by pipe number
 instead of by packet content/timing.
 
+The STM32F030 target is built and bench-tested against a bare
+STM32F030F4Px dev board plus an external USB-UART bridge for the host link —
+not the original AliExpress USB-NRF24L01 dongle module the shipped firmware
+and pin mapping were recovered from (see `../readme_EN.md`); that module
+isn't part of this project's hardware anymore.
+
 ## Status
 
 - **Parity layer**: reimplements every command the shipped firmware
@@ -62,33 +68,57 @@ platform.h           The whole core/ ↔ silicon contract: SPI transfer, the
                      four nRF24 control lines, LED, millis/delay, host-link
                      read/write/baudrate, settings load/save, watchdog,
                      reboot.
-targets/stm32f030/   This target's full implementation of platform.h, plus
-                     startup/vector table, clock init and main(). Each
+targets/stm32f030/   Bare STM32F030F4Px dev board + external USB-UART
+                     bridge — this project's actual dev/test hardware, not
+                     the original shipped dongle module its pin mapping was
+                     recovered from. Full implementation of platform.h,
+                     plus startup/vector table, clock init and main(). Each
                      peripheral file supplies its own share of the contract
                      (gpio.c the control lines, spi.c the transfers, and so
                      on); gpio.h's port/mask helpers are target-private.
     linker/          STM32F030F4Px.ld: 15KB code region + reserved last 1KB
                      flash page for settings (see flash_store.c).
     Makefile         Builds this target; run make from inside this directory.
-targets/teensy41/    Teensy 4.1 target. platform_teensy41.cpp is the entire
-                     C/C++ boundary — every platform.h entry point in one
-                     file, wrapped in extern "C"; Arduino headers appear
-                     here and in no shared header. pins.h holds the wiring,
-                     main.cpp the setup()/loop() boot order,
-                     host_link_test.py the host-protocol acceptance check.
+targets/stm32f103/   STM32 Blue Pill. Modelled file-for-file on stm32f030/ —
+                     same peripheral split, same flash_store.c/watchdog.c
+                     near-verbatim, gpio.c/spi.c/uart.c/system_clock.c
+                     rewritten for the F1's register layout and 72MHz clock
+                     tree. USART1 host link only; see "STM32 Blue Pill
+                     target" below.
+targets/teensy4x/    Teensy 4.0 / 4.1, selected by the Makefile's BOARD
+                     variable. platform_teensy4.cpp is the entire C/C++
+                     boundary — every platform.h entry point in one file,
+                     wrapped in extern "C"; Arduino headers appear here and
+                     in no shared header. pins.h holds the wiring, main.cpp
+                     the setup()/loop() boot order.
+targets/teensy3x/    Teensy 3.5 / 3.6, selected the same way. Modelled on
+                     teensy4x/ — platform_teensy3.cpp is the whole boundary,
+                     same file roles. Two real differences from teensy4x/:
+                     a working status LED (Kinetis SPI0 can move its SCK off
+                     pin 13) and a Kinetis WDOG watchdog instead of an i.MX
+                     one. See "Teensy 3.x target" below.
+host_link_test.py    Target-neutral host-protocol check (framing, dispatch,
+                     settings persistence) shared by all four boards —
+                     nothing in it depends on which is under test beyond the
+                     port name.
 Drivers/CMSIS        Copied verbatim from nrf_adapter_source/Drivers/CMSIS
                      (ST-provided register definitions only, no HAL driver
-                     folder — this is the whole point of "no HAL").
-                     STM32 target only.
+                     folder — this is the whole point of "no HAL"). STM32
+                     targets only; STM32F1xx device headers added alongside
+                     the existing STM32F0xx ones for the Blue Pill.
 Drivers/teensy4      PJRC cores/teensy4, copied verbatim — same treatment
-                     CMSIS gets. Teensy target only.
-Drivers/teensy4_libs PJRC's SPI library, likewise verbatim.
+                     CMSIS gets. teensy4x/ only.
+Drivers/teensy3      PJRC cores/teensy3, copied verbatim, same snapshot as
+                     teensy4/ so its SPI library stays in sync. teensy3x/
+                     only.
+Drivers/teensy_libs  PJRC's SPI library, likewise verbatim. Shared by both
+                     Teensy targets (renamed from teensy4_libs/ when the
+                     Teensy 3.x port started reusing it).
 ```
 
-A second target adds a `targets/<name>/` directory implementing the same
-`platform.h` and nothing else — `core/` never gains a conditional, so a new
-target cannot regress an already-validated one. (Adding the Teensy target
-left the STM32 `.bin` byte-identical.)
+A new target adds a `targets/<name>/` directory implementing the same
+`platform.h` and nothing else — `core/` never gains a conditional, so adding
+a target cannot change the code any existing target compiles.
 
 ## Design notes / deviations from the shipped firmware
 
@@ -132,33 +162,65 @@ left the STM32 `.bin` byte-identical.)
   transaction, so this doesn't touch the timing-sensitive 50Hz Type-8
   polling path.
 
-## Teensy 4.1 target
+## STM32 Blue Pill target
 
-A drop-in replacement for the STM32 dongle: same framing, same command set,
+Drop-in for the STM32F030 target in every way except the host link: same
+peripheral selection (SPI1, USART1, same pins bar the LED), so an existing
+nRF24 harness plugs straight in. USART1 at 921600 through an external
+USB-UART bridge is the **only** host link — the Blue Pill's onboard USB port
+is wired to the F103's USB-FS device peripheral, which would need a vendored
+USB device stack plus a CDC glue layer for no real benefit over reusing the
+validated USART1 path. `platform.h` already accommodates a CDC variant behind
+a `HOST_LINK` flag if this is ever wanted as a follow-on.
+
+- **Wiring** (`targets/stm32f103/gpio.h`): identical to the F030 target
+  except the LED, which moves to the onboard **PC13** (active-low,
+  open-drain, 2MHz). nRF IRQ PA2 (EXTI2), CSN PA3, CE PA4, SPI1 SCK/MISO/MOSI
+  PA5/6/7, USART1 TX/RX PA9/10 — no AFIO remap on either peripheral.
+- **SPI runs at 9MHz** (`BR_1`, /8 off the 72MHz PCLK2), under the
+  nRF24L01+'s 10MHz ceiling. The F030's 12MHz is above spec and was not
+  carried over — the same call already made for the Teensy targets.
+- **The radio is serviced in the ISR.** USART1 sits at NVIC priority 1
+  against EXTI2's priority 3, so the UART ISR can always preempt and drain
+  the TX ring from inside the radio handler; that is what lets this target
+  service the radio straight out of `EXTI2_IRQn` rather than deferring it to
+  the main loop.
+- **No bootloader.** These boards flash only over SWD (see Flashing below),
+  unlike the original dongle module's firmware, which ships a USART/DFU
+  bootloader — this target has no equivalent fallback.
+- **Settings and watchdog**: `flash_store.c` and `watchdog.c` are
+  near-verbatim copies of the F030 target's — same record format, same CRC16,
+  same IWDG prescaler/reload (`/32`, 4095, ~3.3s on LSI) — since the F1's
+  flash controller and IWDG are the same IP for these purposes. A stalled
+  main loop resets the board in ~3.2s, and the settings record survives a
+  power cycle.
+
+## Teensy 4.x target (4.0 / 4.1)
+
+A drop-in replacement for the STM32 target: same framing, same command set,
 same pipe-tagged `REP_NRF_RECV_OK`, so the existing host harnesses work
-unmodified apart from the port name.
+unmodified apart from the port name. One target directory, `targets/teensy4x/`,
+builds either board — `make` alone gives the 4.1, `make BOARD=TEENSY40` the
+4.0. Nothing else differs: `pins.h` and every `platform_teensy4.*` source file
+are identical on both, since pins 2/9/10/11/12/13 are valid on both boards and
+the 4.0's smaller emulated EEPROM (1080 bytes vs. the 4.1's, `E2END 0x437`)
+still comfortably fits the 40-byte settings record. **Switching `BOARD`
+requires `make clean` first** — the define only reaches the framework objects
+under `build/fw`, and `make` has no way to know they're stale otherwise.
 
-Hardware-validated against the P906 + L1060 bench, and faster than the STM32
-dongle it replaces: on a 60s two-device run through the GUI it delivered ~17%
-more samples at less than half the no-ack rate (1.91% vs 4.61%), with zero
-failed requests on either. Details and method in
-`../nrf_adapter_teensy41_port_plan.md`.
-
-- **Wiring** (`targets/teensy41/pins.h`): SPI is LPSPI4 on its fixed pins —
+- **Wiring** (`targets/teensy4x/pins.h`): SPI is LPSPI4 on its fixed pins —
   SCK 13, MOSI 11, MISO 12 — plus CSN 10, CE 9, IRQ 2. SPI runs at 10MHz, the
-  nRF24L01+'s rated ceiling; the STM32 target's 12MHz (48/4) is above spec and
-  there was no reason to carry that over.
+  nRF24L01+'s rated ceiling.
 - **No status LED.** Pin 13 is the onboard LED *and* LPSPI4's SCK, so it is
-  unavailable, and `led_on()`/`led_off()` are no-ops. They only ever drove
-  cosmetic activity indication. The STM32's four-blink boot indicator is gone
-  with it, along with the ~800ms it consumed between `protocol_init()` and the
-  first poll — nothing depends on that delay.
-- **Radio IRQ runs in thread context, not the ISR.** This is the one real
-  design change. The STM32 does blocking SPI *and* `uart_write` inside its
-  EXTI handler, which is only safe because USART1 sits at NVIC priority 1
-  against EXTI2_3's 3, so the UART ISR preempts and drains the TX ring. That
-  priority relationship does not survive the port. Here the ISR only latches
-  the edge and `loop()` calls `protocol_service_radio_irq()`; at 600MHz
+  unavailable, and `led_on()`/`led_off()` are no-ops — they only ever drove
+  cosmetic activity indication. There is no boot blink on this target, and so
+  no delay between `protocol_init()` and the first poll; nothing depends on
+  one.
+- **Radio IRQ runs in thread context, not the ISR.** Servicing the radio from
+  the ISR would mean blocking SPI *and* `uart_write` inside it, which is only
+  safe where the UART interrupt can preempt and drain the TX ring — there is
+  no such NVIC priority relationship here. Instead the ISR only latches the
+  edge and `loop()` calls `protocol_service_radio_irq()`; at 600MHz
   against a 20ms Type-8 poll period the deferral costs microseconds, and
   `uart_write` is never called from interrupt context at all.
   Servicing is gated on the IRQ pin *level* as well as the latched edge — the
@@ -194,40 +256,89 @@ device stack (endpoint queue heads, transfer descriptors, enumeration,
 CDC-ACM). Plus a boot header / FlexSPI config block and a considerably hairier
 clock/PLL bring-up than the F030's HSI→PLL→48MHz. Going fully bare-metal here
 is not the same trade it was on the F030, where CMSIS register access got us
-everything.
+everything. The same reasoning carries to the Teensy 3.x target below — same
+PJRC core, same trade.
+
+## Teensy 3.x target (3.5 / 3.6)
+
+Modelled directly on `targets/teensy4x/`: one target directory, `BOARD ?=
+TEENSY35` in the Makefile selects the chip (`make BOARD=TEENSY36` for the
+other), and `platform_teensy3.cpp` carries over the 4.x target's CSN/
+transaction bracketing, byte-at-a-time SPI, and deferred-to-`loop()` IRQ
+handling unchanged. **Switching `BOARD` requires `make clean` first**, same
+reason as the 4.x target.
+
+Two genuine differences from `teensy4x/`:
+
+- **The status LED works here.** Kinetis SPI0 can move its SCK off pin 13 —
+  `SPI.setSCK(14)` before `SPI.begin()` — freeing pin 13 for the onboard LED,
+  so `led_on()`/`led_off()` are real `digitalWriteFast()` calls and the
+  four-blink boot indicator is back (`pins.h`: `NRF_SCK_PIN 14`).
+- **The watchdog is Kinetis WDOG, not i.MX WDOG1**, driven directly rather
+  than through a vendored library — `tonton81/WDT_T4` is i.MX-only, and
+  PJRC's `cores/teensy3` ships no watchdog API beyond leaving the peripheral
+  disabled-but-reconfigurable at boot. Configuring it from `watchdog_init()`
+  means re-unlocking it (PJRC's `ResetHandler` already unlocked it once,
+  before `setup()` ever runs), and that unlock only holds the register window
+  open for **256 bus cycles** — interrupts are disabled across
+  unlock→configure in `platform_teensy3.cpp` so nothing can miss it. Timeout
+  is 3500 against the 1kHz LPO clock source, 3.5s — matching the 4.x target's
+  WDOG1 timeout, same 100ms refresh cadence from `loop()`.
+
+- **Wiring** (`targets/teensy3x/pins.h`): SPI0 on its fixed pins — MOSI 11,
+  MISO 12 — with SCK moved to 14 as above — plus CSN 10, CE 9, IRQ 2. Same
+  10MHz SPI ceiling as every other target.
+- **Settings**: PJRC's flash-emulated EEPROM, FlexNVM-backed — 4096 bytes on
+  the 3.5/3.6 (`E2END 0xFFF`) — with the same record format and CRC16 as
+  every other target.
+- **One linker quirk not present on the 4.x target**: the vendored
+  `mk20dx128.c` references `__rtc_localtime`, an external symbol the Arduino
+  build environment normally supplies as the compile-time Unix timestamp to
+  seed the RTC on a fresh power-up. Nothing in the vendored tree defines it,
+  so the Makefile supplies it via `-Wl,--defsym=__rtc_localtime=$(shell date
+  +%s)`. This is the one target whose `.bin` is not reproducible build to
+  build — harmless, since only the STM32F030 and Teensy 4.x `.bin`s carry a
+  byte-identical regression gate.
 
 ## Building
 
-Both targets build with plain `make` against the system `arm-none-eabi-gcc`
-(14.2) — no package manager, no board manifest, no downloaded toolchain.
-Teensyduino ships its own older gcc, but 14.2 builds the PJRC core unmodified.
+All four targets build with plain `make` against the system
+`arm-none-eabi-gcc` (14.2) — no package manager, no board manifest, no
+downloaded toolchain. Teensyduino ships its own older gcc, but 14.2 builds
+the PJRC cores unmodified.
 
 ```sh
 sudo apt-get install gcc-arm-none-eabi   # arm-none-eabi-gcc 14.2, if not already installed
 
-cd targets/stm32f030 && make   # -> build/MDP_Adapter_Multiceiver.{elf,hex,bin}
-cd targets/teensy41  && make   # -> build/MDP_Adapter_Multiceiver.{elf,hex}
-make clean                     # either target
+cd targets/stm32f030 && make                    # -> build/MDP_Adapter_Multiceiver.{elf,hex,bin}
+cd targets/stm32f103 && make                    # -> build/MDP_Adapter_Multiceiver.{elf,hex,bin}
+cd targets/teensy4x  && make                    # -> build/MDP_Adapter_Multiceiver.{elf,hex}, TEENSY41
+cd targets/teensy4x  && make BOARD=TEENSY40      # same dir, TEENSY40
+cd targets/teensy3x  && make                    # -> build/MDP_Adapter_Multiceiver.{elf,hex}, TEENSY35
+cd targets/teensy3x  && make BOARD=TEENSY36      # same dir, TEENSY36
+make clean                                       # any target
 ```
 
-To build the Teensy target against `Serial1` instead of USB CDC:
+**Switching `BOARD` on `teensy4x`/`teensy3x` requires `make clean` first** —
+the define only reaches the framework objects under `build/fw`, and `make`
+has no way to know they're stale otherwise. The same applies to switching
+`HOST_LINK` on either Teensy target.
+
+To build a Teensy target against `Serial1` instead of USB CDC:
 
 ```sh
-cd targets/teensy41
+cd targets/teensy4x   # or targets/teensy3x
 make clean && make HOST_LINK=HOST_LINK_SERIAL1
 ```
 
-The `make clean` is required — the flag only reaches two objects, so make will
-not rebuild them on its own when it changes.
-
 ## Flashing
 
-### Teensy 4.1
+### Teensy 4.0 / 4.1 / 3.5 / 3.6
 
 ```sh
 sudo apt-get install teensy-loader-cli
-cd targets/teensy41
-make flash    # teensy_loader_cli --mcu=TEENSY41 -s -w -v build/*.hex
+cd targets/teensy4x   # or targets/teensy3x
+make flash    # teensy_loader_cli --mcu=<board> -s -w -v build/*.hex
 ```
 
 `-s` soft-reboots into the bootloader over USB, so no button press is needed
@@ -236,33 +347,35 @@ the board. Drop `-s` and press the button if the board is wedged or running a
 non-`USB_SERIAL` build.
 
 Then run the host-protocol check (no radio needed — it covers framing,
-dispatch, and EEPROM persistence across a reboot):
+dispatch, and settings persistence across a reboot). It's target-neutral and
+lives at the firmware root, one level above every `targets/<name>/` dir:
 
 ```sh
-../../../venv/bin/python host_link_test.py /dev/ttyACM0
+../../../venv/bin/python ../../host_link_test.py --port /dev/ttyACM0
 ```
 
-When comparing the two adapters against the same devices, park the idle one on
+When comparing two adapters against the same devices, park the idle one on
 an unused address and channel first. Any normal run leaves an adapter in RX on
 the bench address, where it will auto-ACK packets meant for the device under
 test — this measurably corrupts throughput and error-rate measurements.
 
-### STM32F030 dongle
+### STM32F030 / STM32F103 Blue Pill
 
-Via ST-LINK V2 over SWD (no BOOT0/3V3 short needed — that's only for the
-UART bootloader method in `readme_EN.md`, which doesn't apply here). Wire
-SWCLK/SWDIO/GND/3V3 from the ST-LINK to the target; SWD uses PA13/PA14,
-which this firmware never touches (see pin mapping above), so there's no
-conflict with the app pins.
+Both flash the same way — via ST-LINK V2 over SWD, no bootloader on either
+board. Wire SWCLK/SWDIO/GND/3V3 from the ST-LINK to the target; SWD uses
+PA13/PA14, which this firmware never touches on either board (see pin
+mapping above), so there's no conflict with the app pins. (The original
+dongle module also has a UART bootloader, documented in `readme_EN.md`'s
+BOOT0/3V3-short method — irrelevant here, since SWD needs neither.)
 
 ```sh
-cd targets/stm32f030
+cd targets/stm32f030   # or targets/stm32f103
 
 # stlink-tools (st-flash)
 sudo apt-get install stlink-tools
 st-flash write build/MDP_Adapter_Multiceiver.bin 0x08000000
 
-# or OpenOCD
+# or OpenOCD -- swap target/stm32f0x.cfg for target/stm32f1x.cfg on the Blue Pill
 sudo apt-get install openocd
 openocd -f interface/stlink.cfg -f target/stm32f0x.cfg \
   -c "program build/MDP_Adapter_Multiceiver.elf verify reset exit"
@@ -270,4 +383,5 @@ openocd -f interface/stlink.cfg -f target/stm32f0x.cfg \
 
 If the target's read/write protection is set, `st-flash` will refuse to
 write — run `st-flash erase` first (mass-erases and drops RDP back to
-level 0), or `openocd ... -c "stm32f0x unlock 0; reset halt"` with OpenOCD.
+level 0), or `openocd ... -c "stm32f0x unlock 0; reset halt"` (`stm32f1x` on
+the Blue Pill) with OpenOCD.

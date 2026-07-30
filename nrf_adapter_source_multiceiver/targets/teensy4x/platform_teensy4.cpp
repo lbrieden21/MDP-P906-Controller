@@ -1,5 +1,6 @@
 /*
- * platform.h for the Teensy 4.1 target.
+ * platform.h for the Teensy 4.x target (4.0 and 4.1 -- see the Makefile's
+ * BOARD switch).
  *
  * This is the whole C/C++ boundary: Arduino headers appear here and nowhere
  * else, and every platform.h entry point is wrapped in extern "C" so core/'s
@@ -14,7 +15,7 @@
 #include <SPI.h>
 
 #include "pins.h"
-#include "platform_teensy41.h"
+#include "platform_teensy4.h"
 
 extern "C" {
 #include "platform.h"

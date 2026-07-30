@@ -1,7 +1,7 @@
 /*
- * Teensy 4.1 entry point. Mirrors targets/stm32f030/main.c's boot order: bring
- * the host link up at the hard-coded default first, then let protocol_init()
- * switch it if a saved baudrate says otherwise.
+ * Teensy 4.x (4.0/4.1) entry point. Mirrors targets/stm32f030/main.c's boot
+ * order: bring the host link up at the hard-coded default first, then let
+ * protocol_init() switch it if a saved baudrate says otherwise.
  *
  * The framework's own main() (Drivers/teensy4/main.cpp) calls setup() then
  * loop() forever, so there is no vector table or Reset_Handler to write here --
@@ -10,7 +10,7 @@
 
 #include <Arduino.h>
 
-#include "platform_teensy41.h"
+#include "platform_teensy4.h"
 
 extern "C" {
 #include "platform.h"
@@ -39,7 +39,7 @@ void loop() {
     /* Radio first: a received payload is sitting in the RX FIFO, whereas host
        bytes are already buffered by the framework and can wait a few
        microseconds. Unlike the STM32 target this runs in thread context, not
-       inside the pin ISR -- see platform_teensy41.cpp. */
+       inside the pin ISR -- see platform_teensy4.cpp. */
     if (radio_irq_pending()) {
         protocol_service_radio_irq();
     }

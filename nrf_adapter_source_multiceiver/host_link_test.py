@@ -1,15 +1,23 @@
-"""Phase 1 host-link check for the Teensy 4.1 adapter target.
+"""Host-link check for the adapter firmware, target-neutral.
 
-Exercises the framer, command dispatch and EEPROM-backed settings store over
-USB CDC. Deliberately avoids anything that needs the radio wired up -- that is
-Phase 2.
+Exercises the framer, command dispatch and the settings store (flash page on
+STM32, EEPROM-emulation on Teensy) over whatever serial port the board
+enumerates as -- USART1-via-bridge on the STM32 targets, USB CDC on the
+Teensy targets. Deliberately avoids anything that needs the radio wired up.
 """
+import argparse
 import sys
 import time
 
 import serial
 
-PORT = sys.argv[1] if len(sys.argv) > 1 else "/dev/ttyACM0"
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument(
+    "--port", required=True,
+    help="serial port, e.g. /dev/ttyACM0 (Teensy) or /dev/ttyUSB0 (STM32 dongle)",
+)
+args = parser.parse_args()
+PORT = args.port
 
 CMD_REBOOT = 0x00
 CMD_RESET = 0x03
@@ -61,8 +69,11 @@ def check(label, got, want):
         fails.append(label)
 
 
-def open_port():
-    s = serial.Serial(PORT, 921600, timeout=0.2)
+DEFAULT_BAUD = 921600
+
+
+def open_port(baud=DEFAULT_BAUD):
+    s = serial.Serial(PORT, baud, timeout=0.2)
     time.sleep(0.4)
     s.reset_input_buffer()
     return s
@@ -85,15 +96,33 @@ check("payload len", len(data) if data else 0, 13)
 default = bytes([78, 1, 7, 2, 32, 3, 1, 5, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE])
 check("payload", data.hex() if data else None, default.hex())
 
-print("3. CMD_SET_BAUDRATE (must ACK and persist even though CDC ignores it)")
-send(s, CMD_SET_BAUDRATE, bytes([9, 21, 60]))  # 9*10000 + 21*100 + 60 = 92160
+print("3. CMD_SET_BAUDRATE (UART targets really retune; CDC targets only ACK)")
+send(s, CMD_SET_BAUDRATE, bytes([11, 52, 0]))  # 11*10000 + 52*100 + 0 = 115200
 cmd, data = recv(s)
 check("reply", REP_NAMES.get(cmd), "REP_BAUDRATE_SET")
+# protocol.c applies the new rate 100ms after sending the ACK, so the host has
+# to follow it across. On CDC targets uart_set_baudrate() is a documented
+# no-op and pyserial's rate is ignored, so reopening is correct on every
+# target -- but it is only *observable* on the USART ones. Leaving the host at
+# the old rate silently orphans the link on those, which is what the original
+# 92160 value did.
+s.close()
+time.sleep(0.3)
+s = open_port(115200)
 
-print("4. link still alive after the baudrate switch")
+print("4. link still alive at the new baudrate")
 send(s, CMD_ECHO)
 cmd, data = recv(s)
 check("reply", REP_NAMES.get(cmd), "REP_ECHO")
+
+# Back to the default before anything is persisted, so the stored record and
+# every later step agree with open_port() and the firmware's own boot rate.
+send(s, CMD_SET_BAUDRATE, bytes([92, 16, 0]))  # 92*10000 + 16*100 + 0 = 921600
+cmd, data = recv(s)
+check("restored to 921600", REP_NAMES.get(cmd), "REP_BAUDRATE_SET")
+s.close()
+time.sleep(0.3)
+s = open_port()
 
 print("5. CMD_NRF_SAVE (EEPROM write)")
 send(s, CMD_NRF_SAVE)
