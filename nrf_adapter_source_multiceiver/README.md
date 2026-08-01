@@ -97,8 +97,16 @@ targets/teensy3x/    Teensy 3.5 / 3.6, selected the same way. Modelled on
                      a working status LED (Kinetis SPI0 can move its SCK off
                      pin 13) and a Kinetis WDOG watchdog instead of an i.MX
                      one. See "Teensy 3.x target" below.
+targets/esp32/       ESP32-C6, ESP32-H2, ESP32-S3 and classic ESP32
+                     (ESP-WROOM-32), selected by the Makefile's BOARD
+                     variable. Built against ESP-IDF (CMake+Kconfig, not this
+                     tree's usual Makefile-over-a-source-list) rather than
+                     vendored — see "ESP32 target" below. platform_esp32.c is
+                     the whole boundary except the host link, which splits
+                     into host_link_usb_jtag.c / host_link_uart0.c; pins.h
+                     holds the wiring, main.c the app_main()/loop boot order.
 host_link_test.py    Target-neutral host-protocol check (framing, dispatch,
-                     settings persistence) shared by all four boards —
+                     settings persistence) shared by every board —
                      nothing in it depends on which is under test beyond the
                      port name.
 Drivers/CMSIS        Copied verbatim from nrf_adapter_source/Drivers/CMSIS
@@ -142,8 +150,8 @@ a target cannot change the code any existing target compiles.
   called from interrupt context.
 - **UART**: interrupt-driven RX and TX ring buffers instead of DMA +
   idle-line detection. Simpler, no DMA driver needed. TX is TXE-interrupt-
-  drained rather than polled, so `uart_write()` hands off a frame in bounded
-  time instead of stalling the main loop for the whole UART frame time.
+  drained rather than polled, so `host_link_write()` hands off a frame in
+  bounded time instead of stalling the main loop for the whole UART frame time.
   USART1 sits at NVIC priority 1 against EXTI's 3. That relationship used to
   be load-bearing — it is what made a spin-wait inside the radio ISR safe —
   and is now merely harmless, kept rather than reset to the default.
@@ -228,16 +236,17 @@ source list and a `-D` that reaches already-built objects.
 
 Two CDC behaviours that are by design, not faults:
 
-- `uart_set_baudrate()` is a no-op — USB CDC has no line rate of its own.
+- `host_link_set_baudrate()` is a no-op — USB CDC has no line rate of its own.
   `CMD_SET_BAUDRATE` still ACKs and the value is still persisted, so the
   settings record is identical to the USART1 build's; only the physical rate
   stops responding.
-- `uart_write()` drops a whole frame rather than blocking when the CDC TX
+- `host_link_write()` drops a whole frame rather than blocking when the CDC TX
   FIFO is full, which only happens if the host has stopped reading. It must
   not wait, and in particular must not pump `tud_task()` while waiting:
-  `protocol_poll()` drains until `uart_read_byte()` runs dry, and `tud_task()`
-  is also what refills the RX FIFO, so pumping from inside `uart_write()`
-  feeds the loop that is calling it and starves the watchdog refresh.
+  `protocol_poll()` drains until `host_link_read_byte()` runs dry, and
+  `tud_task()` is also what refills the RX FIFO, so pumping from inside
+  `host_link_write()` feeds the loop that is calling it and starves the
+  watchdog refresh.
 
 - **Wiring** (`targets/stm32f103/gpio.h`): identical to the F030 target
   except the LED, which moves to the onboard **PC13** (active-low,
@@ -280,7 +289,7 @@ under `build/fw`, and `make` has no way to know they're stale otherwise.
 - **Host link**: USB CDC (`Serial`) by default; `-DHOST_LINK_SERIAL1` swaps in
   `Serial1` at 921600 for exact parity with the shipped adapter. Both sit
   behind the same three `platform.h` functions, and nothing in `core/` is
-  conditional on the choice. On CDC `uart_set_baudrate()` is a no-op, but
+  conditional on the choice. On CDC `host_link_set_baudrate()` is a no-op, but
   `CMD_SET_BAUDRATE` still ACKs and still persists the value, so the command's
   observable protocol behaviour is unchanged — only the physical link speed
   stops responding to it. `nrf24_adapter.py` needs no changes: pyserial
@@ -322,7 +331,7 @@ reason as the 4.x target.
 
 Three genuine differences from `teensy4x/`:
 
-- **`uart_write()` must call `HOST_PORT.send_now()`, and this is load-bearing.**
+- **`host_link_write()` must call `HOST_PORT.send_now()`** -- load-bearing.
   `usb_serial_write()` only hands a packet to the USB hardware once it fills
   `CDC_TX_SIZE` (64B); a partial packet instead arms a 5ms flush timer
   (`Drivers/teensy3/usb_serial.c:229-234`). Every reply this firmware sends is
@@ -368,12 +377,234 @@ Three genuine differences from `teensy4x/`:
   build — harmless, since only the STM32F030 and Teensy 4.x `.bin`s carry a
   byte-identical regression gate.
 
+## ESP32 target (C6 / H2 / S3 / classic ESP32)
+
+Four boards, one target directory, selected by `BOARD` in the Makefile:
+
+| `BOARD` | Chip | Host link default | Status LED | Notes |
+|---|---|---|---|---|
+| `ESP32C6` (default) | ESP32-C6-DevKitC-1 | native USB-Serial/JTAG | no-op | RGB LED on a strapping pin |
+| `ESP32H2` | ESP32-H2-DevKitM-1 | native USB-Serial/JTAG | no-op | same reason |
+| `ESP32S3` | ESP32-S3-DevKitC-1(-N8R8) | native USB-Serial/JTAG | no-op | RGB LED on GPIO38 (v1.1) / GPIO48 (v1.0) |
+| `ESP32` | NodeMCU-32S / HiLetgo ESP-WROOM-32 | UART0 (its only option) | **real**, GPIO2 | no native USB at all |
+
+Unlike the ARM targets above, **this one needs an SDK, not a vendored tree** —
+ESP-IDF is CMake+Kconfig driven and multi-gigabyte, so it is pinned and
+recorded rather than copied into `Drivers/`:
+
+```sh
+git clone -b v5.4.4 --recursive https://github.com/espressif/esp-idf.git ~/esp/esp-idf
+cd ~/esp/esp-idf && ./install.sh esp32,esp32c6,esp32h2,esp32s3
+python $IDF_PATH/tools/idf_tools.py install cmake ninja   # not optional on Linux --
+                                                            # install.sh marks these
+                                                            # on_request, and without
+                                                            # them idf.py fails with the
+                                                            # misleading "cmake" must be
+                                                            # available on the PATH
+```
+
+Pinned at **v5.4.4** (`idf.py --version` → `ESP-IDF v5.4.4`, compiler
+`riscv32-esp-elf-gcc (crosstool-NG esp-14.2.0_20260121) 14.2.0` for the
+RISC-V chips, a matching Xtensa toolchain for the S3/classic ESP32) — same
+reasoning as `-DTEENSYDUINO=159` above: a moving SDK under a
+vendored-everything tree is exactly what `Drivers/` exists to prevent.
+
+### Build / flash
+
+```sh
+cd targets/esp32
+source ~/esp/esp-idf/export.sh   # or: export IDF_PATH=~/esp/esp-idf
+make                                          # ESP32C6, native USB-Serial/JTAG, console off
+make BOARD=ESP32H2                            # no `make clean` needed -- BOARD gets its own
+                                               # build dir and sdkconfig
+make BOARD=ESP32S3
+make BOARD=ESP32                              # classic ESP32, UART0 host link (forced)
+make CONSOLE=1                                # add the ESP-IDF console -- see below
+make flash PORT=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_<MAC>-if00
+make BOARD=ESP32 flash PORT=/dev/serial/by-path/<...>-port0   # bridge port; see host link below
+```
+
+`/dev/ttyACM*`/`/dev/ttyUSB*` are not stable handles with more than one board
+on a bench — the native USB-Serial/JTAG port renumbers across a hardware
+reset, and a plain CP2102 module often has no unique serial string at all.
+Prefer `/dev/serial/by-id/` (MAC-derived on the native ports) or
+`/dev/serial/by-path/` (physical-port-derived, when `by-id` collapses two
+boards to the same name).
+
+### Host link: `HOST_LINK_USB_JTAG` (default) vs `HOST_LINK_UART0`
+
+The C6/H2/S3 default to their native USB-Serial/JTAG controller — already a
+CDC-ACM device, non-blocking read/write against a driver-managed ring buffer,
+needs no managed components. Classic ESP32 has neither USB-Serial/JTAG nor
+USB-OTG, so `HOST_LINK_UART0` (through its CP2102/CH340 bridge) is both its
+only option and its forced default; `BOARD=ESP32 HOST_LINK=HOST_LINK_USB_JTAG`
+is a hard build error naming the missing peripheral.
+
+`HOST_LINK_UART0` is also buildable on the C6/H2/S3
+(`make HOST_LINK=HOST_LINK_UART0`) — the cheapest way to exercise the second
+host link, since those boards keep their native port free as an out-of-band
+channel while the protocol runs on the bridge.
+
+Both host links share the same non-negotiable contract: `host_link_write()`
+must never block. A full TX ring drops the frame rather than waiting, because
+`protocol_poll()` emits replies from inside its own drain loop and a blocking
+write there would starve the 100ms watchdog refresh.
+
+**Baudrate is real on exactly one configuration.** `host_link_set_baudrate()`
+is a no-op on USB-Serial/JTAG (no physical line rate to retune, same as every
+CDC target elsewhere in this tree) but a genuine `uart_set_baudrate()` call on
+`HOST_LINK_UART0` — the one ESP32 configuration, and the only configuration in
+this whole tree besides USART1/Serial1, where `persistence_test.py`'s
+negative-control step (silence expected at the wrong baudrate) is actually
+expected to *pass* rather than "legitimately fail for want of a physical line
+rate."
+
+### Console: `CONSOLE=0` (default) vs `CONSOLE=1`
+
+The ESP-IDF console — boot log, `ESP_LOG*`, panic dumps — comes out UART0 to
+the DevKits' second USB connector (the bridge), a cable nothing in normal
+operation reads. It is **off by default**
+(`CONFIG_ESP_CONSOLE_NONE` + `CONFIG_BOOTLOADER_LOG_LEVEL_NONE`), and is a
+bring-up tool rather than a running-configuration fixture: turn it on
+(`make CONSOLE=1`) when there's a boot or a watchdog stall to look at, then
+reflash the default build before putting the board back on the bench.
+`CONFIG_ESP_CONSOLE_SECONDARY_NONE` stays on in **both** builds regardless —
+without it, log output mirrors onto the native port by default on any chip
+with USB-Serial/JTAG, contaminating the binary protocol link even when the
+primary console is off.
+
+`CONSOLE=1` conflicts with `HOST_LINK_UART0` (UART0 can't be both the
+protocol link and the console) and is a hard build error on that combination.
+Classic ESP32 (`BOARD=ESP32`) can never take a console at all, for the same
+reason — its GPIO2 LED is the only boot/liveness indicator it has.
+
+### Wiring
+
+Every map avoids strapping pins, the USB D+/D- pair, the console UART, and
+(where applicable) the addressable RGB LED. `NRF_SPI_HZ` is 10MHz — the
+nRF24L01+'s rated ceiling — on every board; the achieved clock is read back
+with `spi_device_get_actual_freq()` and differs by board only because the SPI
+source clock does (80MHz on the C6/S3/classic ESP32, 48MHz on the H2):
+
+**ESP32-C6-DevKitC-1** — one contiguous J3 block, `SPI2_HOST`, 10000 kHz achieved:
+
+| nRF24 | GPIO | Header |
+|---|---|---|
+| IRQ | 23 | J3-5 |
+| CE | 22 | J3-6 |
+| CSN | 21 | J3-7 |
+| MISO | 20 | J3-8 |
+| SCK | 19 | J3-9 |
+| MOSI | 18 | J3-10 |
+
+**ESP32-H2-DevKitM-1** — mixed headers, `SPI2_HOST`, 9600 kHz achieved (the
+only board that doesn't land at 10000 — 48MHz doesn't divide there):
+
+| nRF24 | GPIO | Header |
+|---|---|---|
+| MISO | 0 | J1-3 (FSPIQ) |
+| SCK | 4 | J1-9 (FSPICLK) |
+| MOSI | 5 | J1-10 (FSPID) |
+| CSN | 10 | J3-4 |
+| CE | 11 | J3-5 |
+| IRQ | 12 | J3-7 |
+
+**ESP32-S3-DevKitC-1(-N8R8)** — one contiguous J1 block (the chip's default
+FSPI IOMUX group), `SPI2_HOST`, 10000 kHz achieved:
+
+| nRF24 | GPIO | Header |
+|---|---|---|
+| IRQ | 9 | J1-15 (FSPIHD) |
+| CE | 14 | J1-20 (FSPIWP) |
+| CSN | 10 | J1-16 (FSPICS0) |
+| MISO | 13 | J1-19 (FSPIQ) |
+| SCK | 12 | J1-18 (FSPICLK) |
+| MOSI | 11 | J1-17 (FSPID) |
+
+On the -N8R8 variant, octal PSRAM claims GPIO35-37 — unused by this map, and
+left disabled in `sdkconfig.defaults.esp32s3` regardless, since the largest
+buffer this firmware needs is a 32-byte radio payload. ESP32-S3 strapping
+pins are GPIO0, **GPIO3**, GPIO45 and GPIO46 — all four avoided, though GPIO3
+is easy to miss (some documentation lists only the other three).
+
+**NodeMCU-32S / HiLetgo ESP-WROOM-32** (classic ESP32-D0WD) — one header
+edge on both the 30- and 38-pin variants, `SPI3_HOST` (VSPI — `SPI2_HOST`
+here is HSPI, whose IOMUX includes GPIO12, the flash-voltage strapping pin),
+10000 kHz achieved:
+
+| nRF24 | GPIO | Note |
+|---|---|---|
+| MOSI | 23 | VSPI IOMUX |
+| CE | 22 | |
+| CSN | 21 | |
+| MISO | 19 | VSPI IOMUX |
+| SCK | 18 | VSPI IOMUX |
+| IRQ | 17 | |
+| LED | 2 | onboard, real implementation (see below) |
+
+**Do not carry this map to an ESP32-WROVER board** — GPIO16/17 are consumed
+by PSRAM there, and IRQ would need to move.
+
+### Status LED
+
+Every board except classic ESP32 has `led_on()`/`led_off()` as no-ops. The
+DevKits' only LED is an addressable RGB one sitting on a strapping pin that
+needs RMT to drive — not worth it when the console is a strictly better boot
+indicator and available on the same boards. The WROOM-32 boards have neither
+an RGB LED nor a console (UART0 is their protocol link), so GPIO2 gets the
+real implementation `nrf24l01p.c` already pulses around every radio
+operation on the STM32 targets — their only sign of life.
+
+### NVS instead of a CRC'd flash record
+
+Every other target in this tree persists settings as a hand-rolled
+`[magic][len][payload][crc16]` record in a reserved flash page. This target
+uses ESP-IDF's NVS key-value store instead (namespace `p906`, key
+`settings`, one blob) — NVS already provides its own integrity checking and
+wear-levelling, so the hand-rolled record would be a CRC inside a CRC. The
+observable behaviour `persistence_test.py` actually checks is unchanged:
+`store_load()` returns 0 for absent-or-corrupt, and a `persisted_settings_t`
+round-trips byte-for-byte. `store_save(NULL, 0)` (the `CMD_RESET` invalidate
+path) erases the NVS key rather than writing an empty blob.
+
+### Watchdog: ESP-IDF's Task Watchdog, not a hardware IWDG
+
+`esp_task_wdt_reconfigure()` (not `_init()` — the TWDT is already running at
+boot, watching idle tasks at the Kconfig default) with `timeout_ms = 3500`,
+`idle_core_mask = 0` and, load-bearing, **`trigger_panic = true`** — without
+it the TWDT prints a warning and keeps running, which is worse than no
+watchdog at all, since nothing else in this codebase would notice. The
+3500ms figure lives in `platform_esp32.c`, not `sdkconfig.defaults`: Kconfig's
+own `CONFIG_ESP_TASK_WDT_TIMEOUT_S` is integer seconds only (1-60), so 3.5s
+isn't expressible there.
+
+Two things about the TWDT that are not true of a hardware IWDG: it is
+interrupt-driven and task-scoped, so it covers a stalled protocol loop but
+not a stall with interrupts disabled (ESP-IDF's separate Interrupt Watchdog,
+on by default, covers that case instead — two mechanisms, not one); and on
+the DevKits, a TWDT panic prints a full backtrace to the console (when
+`CONSOLE=1`) before `esp_restart()`, which is real time inside the
+reset-to-reset interval, not measurement noise:
+
+| Board | reset-to-reset | Notes |
+|---|---|---|
+| ESP32-C6 | 4.199s | `CONSOLE=1`, includes console panic-dump time |
+| ESP32-H2 | 4.207s | `CONSOLE=1`, same |
+| ESP32-S3 | 3.837s (`CONSOLE=1`) / 3.601s (`CONSOLE=0`) | both bracket 3500ms cleanly |
+| classic ESP32 | 3.657s | no console build exists for this board at all |
+
+All four are measured reset-to-reset (marker-frame to marker-frame), never
+marker-to-tty-disconnect — the disconnect method over-reads by USB teardown
+time, which is what put the Teensy 3.x figures elsewhere in this file wrong
+by the better part of a second.
+
 ## Building
 
-All four targets build with plain `make` against the system
+All four ARM targets build with plain `make` against the system
 `arm-none-eabi-gcc` (14.2) — no package manager, no board manifest, no
 downloaded toolchain. Teensyduino ships its own older gcc, but 14.2 builds
-the PJRC cores unmodified.
+the PJRC cores unmodified. The ESP32 target is the one exception in this
+tree — see "ESP32 target" above for its SDK requirement.
 
 ```sh
 sudo apt-get install gcc-arm-none-eabi   # arm-none-eabi-gcc 14.2, if not already installed
@@ -402,6 +633,14 @@ make clean && make HOST_LINK=HOST_LINK_SERIAL1
 ```
 
 ## Flashing
+
+### ESP32 (C6 / H2 / S3 / classic ESP32)
+
+`make flash` (see "ESP32 target" above for `PORT`, `BOARD`, `HOST_LINK` and
+`CONSOLE`) — over the native USB-Serial/JTAG connector on the C6/H2/S3, or the
+bridge connector (the only one there is) on classic ESP32. No separate
+flashing tool: the Makefile shells out to `idf.py flash`, which drives
+`esptool.py` itself.
 
 ### Teensy 4.0 / 4.1 / 3.5 / 3.6
 

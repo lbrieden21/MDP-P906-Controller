@@ -1,0 +1,39 @@
+menu "Adapter host link"
+
+choice HOST_LINK
+    prompt "Host link"
+    default HOST_LINK_USB_JTAG
+    help
+        Which peripheral carries the binary adapter protocol to the host.
+
+        Do not set this by hand: the Makefile owns it. `make HOST_LINK=...`
+        picks the sdkconfig fragment, rejects the impossible combinations with
+        a readable message, and gives each choice its own build directory and
+        sdkconfig. Editing it in menuconfig instead changes only the current
+        configuration and leaves the build id disagreeing with the build.
+
+        This is a Kconfig choice rather than a plain CMake -D variable because
+        main/CMakeLists.txt has to select the matching ESP-IDF driver component
+        in REQUIRES, and IDF resolves component requirements in a separate
+        CMake process that does not inherit -D cache variables. Kconfig symbols
+        are forwarded to that pass; cache variables are not.
+
+    config HOST_LINK_USB_JTAG
+        bool "Native USB-Serial/JTAG"
+        depends on SOC_USB_SERIAL_JTAG_SUPPORTED
+        help
+            The on-die USB-Serial/JTAG controller, already a CDC-ACM device.
+            Default wherever it exists (C6, H2, S3). Not offered on classic
+            ESP32, which has no native USB of any kind -- so that chip falls
+            through to UART0 below without needing to be special-cased here.
+
+    config HOST_LINK_UART0
+        bool "UART0"
+        help
+            The protocol on UART0, out through the board's USB-to-UART bridge.
+            The only option on classic ESP32 (ESP-WROOM-32). Mutually exclusive
+            with the ESP-IDF console, which also wants UART0.
+
+endchoice
+
+endmenu

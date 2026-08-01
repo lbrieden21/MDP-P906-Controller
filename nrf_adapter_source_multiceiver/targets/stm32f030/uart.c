@@ -9,7 +9,7 @@
  * original's DMA + idle-line detection -- simpler bare-metal, no DMA driver
  * needed.
  *
- * TX is interrupt-driven (TXE), not blocking, so uart_write() hands off a
+ * TX is interrupt-driven (TXE), not blocking, so host_link_write() hands off a
  * frame in bounded time instead of stalling the main loop for the whole UART
  * frame time (tens of us per byte) on a path that is timing-sensitive against
  * 50Hz Type-8 polling.
@@ -17,7 +17,7 @@
  * USART1 sits at NVIC priority 1 against EXTI2_3's 3. That relationship used
  * to be load-bearing: protocol_service_radio_irq() ran inside the EXTI handler
  * (nrf_rx_done/nrf_tx_done are called from nrf24l01p_irq()), so
- * uart_write()'s spin-wait-for-ring-space depended on the UART ISR being able
+ * host_link_write()'s spin-wait-for-ring-space depended on the UART ISR being able
  * to preempt it. The radio is now serviced from the main loop (gpio.c), which
  * means nothing spin-waits from interrupt context and the ordering is merely
  * harmless. It is kept as-is rather than reset to the default.
@@ -50,13 +50,13 @@ void uart_init(uint32_t baudrate) {
     NVIC_EnableIRQ(USART1_IRQn);
 }
 
-void uart_set_baudrate(uint32_t baudrate) {
+void host_link_set_baudrate(uint32_t baudrate) {
     USART1->CR1 &= ~USART_CR1_UE;
     uart_apply_brr(baudrate);
     USART1->CR1 |= USART_CR1_UE;
 }
 
-void uart_write(const uint8_t *data, size_t len) {
+void host_link_write(const uint8_t *data, size_t len) {
     for (size_t i = 0; i < len; i++) {
         uint16_t next;
         while ((next = (uint16_t)((tx_head + 1) % TX_RING_SIZE)) == tx_tail) {}
@@ -66,7 +66,7 @@ void uart_write(const uint8_t *data, size_t len) {
     USART1->CR1 |= USART_CR1_TXEIE;
 }
 
-int uart_read_byte(uint8_t *out) {
+int host_link_read_byte(uint8_t *out) {
     if (rx_head == rx_tail) {
         return 0;
     }

@@ -1,0 +1,18 @@
+# Host-link overlay, applied on top of sdkconfig.defaults by
+# `make HOST_LINK=HOST_LINK_UART0`.
+#
+# Puts the binary protocol on UART0, out through the board's USB-to-UART
+# bridge. This is the only option on classic ESP32 (ESP-WROOM-32), which has no
+# native USB of any kind, and it is buildable on the C6/H2/S3 as a way to
+# exercise host_link_uart0.c on a board that is already hardware-validated.
+#
+# Redundant but harmless on classic ESP32: HOST_LINK_USB_JTAG depends on
+# SOC_USB_SERIAL_JTAG_SUPPORTED, so on that chip the choice resolves here
+# anyway. Applied uniformly so the build id and the configuration always agree.
+#
+# Note there is no console symbol here and no console fragment to pair with:
+# UART0 cannot be both the protocol link and the ESP-IDF console, so the
+# Makefile rejects CONSOLE=1 with this host link outright. The default build
+# already has no console (Phase 3), which is what made this fragment a single
+# symbol instead of a coupled console move.
+CONFIG_HOST_LINK_UART0=y

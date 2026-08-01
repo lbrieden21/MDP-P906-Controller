@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-/* Bring-up only. uart_write()/uart_read_byte()/uart_set_baudrate() are
+/* Bring-up only. host_link_write()/host_link_read_byte()/host_link_set_baudrate() are
    declared in platform.h. */
 void uart_init(uint32_t baudrate);
 

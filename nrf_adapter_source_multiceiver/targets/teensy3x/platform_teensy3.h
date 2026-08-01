@@ -15,7 +15,7 @@
 void platform_init(void);
 
 /* Brings the host link up at the given rate. The rate is ignored on USB CDC,
-   where the host picks it -- see uart_set_baudrate() in platform.h. */
+   where the host picks it -- see host_link_set_baudrate() in platform.h. */
 void host_link_begin(uint32_t baudrate);
 
 /* True if the radio has an unserviced interrupt: either a falling edge was

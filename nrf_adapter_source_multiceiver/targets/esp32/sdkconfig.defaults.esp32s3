@@ -1,0 +1,5 @@
+# ESP32-S3-DevKitC-1-N8R8: 8MB flash, 8MB octal PSRAM.
+#
+# PSRAM is deliberately left disabled -- this firmware's largest buffer is a
+# 32-byte radio payload, and enabling octal PSRAM would consume GPIO33-37.
+CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y

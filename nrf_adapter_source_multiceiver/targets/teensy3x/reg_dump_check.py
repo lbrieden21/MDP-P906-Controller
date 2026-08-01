@@ -105,7 +105,15 @@ def check(label, got, want):
 
 
 def main():
-    s = serial.Serial(args.port, 921600, timeout=0.5)
+    # DTR/RTS low before the open -- see host_link_test.py's open_port(). This
+    # script is board-agnostic despite living under teensy3x, and the WROOM-32
+    # bring-up runs it over a USB-to-UART bridge whose control lines drive
+    # EN/IO0.
+    s = serial.Serial(baudrate=921600, timeout=0.5)
+    s.dtr = False
+    s.rts = False
+    s.port = args.port
+    s.open()
     time.sleep(0.4)
     s.reset_input_buffer()
 

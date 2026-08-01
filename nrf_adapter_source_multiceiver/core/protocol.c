@@ -30,12 +30,12 @@ static void nrf_rx_done(uint8_t pipe);
 static void uart_send_packet(uint8_t cmd, const uint8_t *data1, size_t len1,
                               const uint8_t *data2, size_t len2) {
     uint8_t hdr[4] = {0xAA, 0x66, cmd, (uint8_t)(len1 + len2)};
-    uart_write(hdr, 4);
+    host_link_write(hdr, 4);
     if (len1) {
-        uart_write(data1, len1);
+        host_link_write(data1, len1);
     }
     if (len2) {
-        uart_write(data2, len2);
+        host_link_write(data2, len2);
     }
 }
 
@@ -108,7 +108,7 @@ static void handle_command(uint8_t cmd, uint8_t *data, size_t len) {
                          (uint32_t)data[0] * 10000;
             uart_send_packet(REP_BAUDRATE_SET, NULL, 0, NULL, 0);
             delay_ms(100);
-            uart_set_baudrate(s_baudrate);
+            host_link_set_baudrate(s_baudrate);
             {
                 persisted_settings_t ps = {nrf_setting, s_baudrate};
                 store_save(&ps, sizeof(ps));
@@ -264,7 +264,7 @@ void protocol_init(void) {
         nrf_setting = ps.nrf;
         if (ps.baudrate && ps.baudrate != s_baudrate) {
             s_baudrate = ps.baudrate;
-            uart_set_baudrate(s_baudrate);
+            host_link_set_baudrate(s_baudrate);
         }
     }
     nrf_configure(&nrf_setting);
@@ -272,7 +272,7 @@ void protocol_init(void) {
 
 void protocol_poll(void) {
     uint8_t b;
-    while (uart_read_byte(&b)) {
+    while (host_link_read_byte(&b)) {
         feed_byte(b);
     }
 }

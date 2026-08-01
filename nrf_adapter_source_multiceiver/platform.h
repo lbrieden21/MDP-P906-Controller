@@ -41,12 +41,12 @@ uint32_t millis(void);
 void delay_ms(uint32_t ms);
 
 /* Host link. */
-void uart_write(const uint8_t *data, size_t len);
+void host_link_write(const uint8_t *data, size_t len);
 /* Pops one buffered RX byte. Returns 1 and fills *out if one was available, else 0. */
-int uart_read_byte(uint8_t *out);
+int host_link_read_byte(uint8_t *out);
 /* No-op on targets whose host link has no configurable line rate (USB CDC).
    CMD_SET_BAUDRATE still ACKs and still persists the value in that case. */
-void uart_set_baudrate(uint32_t baudrate);
+void host_link_set_baudrate(uint32_t baudrate);
 
 /* Settings storage: one record, payload <= 32 bytes, integrity-checked.
    Both return 1 on success, 0 on failure/absent record. A save with len==0

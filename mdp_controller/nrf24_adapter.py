@@ -20,6 +20,33 @@ def _find_port_name(hwid):
     return None
 
 
+def open_adapter_port(port, baudrate, timeout=None):
+    """Open an adapter port with DTR and RTS deasserted from the start.
+
+    On adapters behind a USB-to-UART bridge (the ESP-WROOM-32 boards, whose
+    protocol link is UART0 through a CP2102/CH340), the bridge's RTS drives EN
+    and its DTR drives IO0 -- the standard auto-reset circuit. pyserial asserts
+    both lines on a plain open, which on those boards reboots the adapter the
+    host is about to talk to. Measured on a NodeMCU-32S at 921600: a default
+    open answered 4/6 then 3/6, while setting the lines low first answered 12/12
+    across the same two settle times. Raising the settle does not help -- 1.5s
+    was no better than 0.4s -- so this is not a boot race to wait out.
+
+    Setting the lines before open() rather than after is the whole point --
+    after is already too late, the pulse has happened.
+
+    Harmless on the CDC adapters (Teensy, F103, ESP32 native USB-Serial/JTAG):
+    none of that firmware reads the control lines, and no target's write path
+    gates on DTR.
+    """
+    ser = serial.Serial(baudrate=baudrate, timeout=timeout)
+    ser.dtr = False
+    ser.rts = False
+    ser.port = port
+    ser.open()
+    return ser
+
+
 class RESPONSE:
     UNKNOWN_CMD = 0x00  # unknown command
     INVALID_CMD = 0x01  # invalid command length
@@ -166,7 +193,7 @@ class NRF24Adapter:
         if not self._port_name:
             raise Exception("NRF24-Adapter not found")
         self._counter = SpeedCounter()
-        self._serial = serial.Serial(self._port_name, baudrate, timeout=None)
+        self._serial = open_adapter_port(self._port_name, baudrate, timeout=None)
         self._ser_wr_lock = threading.Lock()
         self._reader = SerialReaderBuffered(
             self._serial, start_bit=[0xAA, 0x66], checksum=False

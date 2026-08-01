@@ -26,7 +26,7 @@ TU_DIR = $(ROOT)/Drivers/tinyusb/src
 HOST_LINK ?= HOST_LINK_USB_CDC
 
 # Explicit, not $(wildcard *.c): uart.c and usb_cdc.c both define
-# uart_write()/uart_read_byte()/uart_set_baudrate(), so a wildcard would pull
+# host_link_write()/host_link_read_byte()/host_link_set_baudrate(), so a wildcard would pull
 # in both and fail to link on duplicate symbols.
 COMMON_TARGET_SRCS = flash_store.c gpio.c main.c spi.c startup.c \
                      system_clock.c watchdog.c

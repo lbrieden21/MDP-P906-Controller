@@ -1,7 +1,7 @@
 #ifndef USB_CDC_H
 #define USB_CDC_H
 
-/* Bring-up only. uart_write()/uart_read_byte()/uart_set_baudrate() are
+/* Bring-up only. host_link_write()/host_link_read_byte()/host_link_set_baudrate() are
    declared in platform.h -- usb_cdc.c is the HOST_LINK_USB_CDC implementation
    of exactly the same three functions uart.c implements for USART1, which is
    why core/ needs no conditional. The two files are never compiled together;

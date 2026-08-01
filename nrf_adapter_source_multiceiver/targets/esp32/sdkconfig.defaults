@@ -1,0 +1,50 @@
+# Shared configuration for every ESP32 board. Per-chip overrides live in
+# sdkconfig.defaults.<idf_target>, which IDF loads automatically *in addition*
+# to this file -- but only if this plain sdkconfig.defaults also exists. Both
+# files are required; a per-target fragment on its own is silently ignored.
+#
+# Only symbols this port actually depends on are set here. Everything else is
+# left at the IDF default on purpose, so that a future SDK bump shows up as a
+# real diff rather than being masked by a wall of pinned values.
+
+# No console by default. The console (boot log, ESP_LOG*, panic dumps) needs a
+# second USB cable to the bridge connector, and nothing in normal operation
+# reads it -- so it is a bring-up tool, not a fixture. `make CONSOLE=1` adds
+# sdkconfig.console, which puts it back on UART0 exactly as it was.
+#
+# The ESP-WROOM-32 boards cannot have one at all: no native USB, so UART0 is
+# their protocol link. Demoting the console to an option is what lets them share
+# this target directory instead of being special-cased.
+CONFIG_ESP_CONSOLE_NONE=y
+CONFIG_BOOTLOADER_LOG_LEVEL_NONE=y
+
+# Load-bearing, not hardening, and NOT implied by ESP_CONSOLE_NONE above: the
+# ESP_CONSOLE_SECONDARY choice depends only on SOC_USB_SERIAL_JTAG_SUPPORTED,
+# not on the primary console, so it is still offered with the primary at None --
+# and its IDF default is ESP_CONSOLE_SECONDARY_USB_SERIAL_JTAG, which mirrors
+# all log output onto the native port, i.e. straight into the binary protocol
+# link. Verified on hardware: with this symbol set, 20 back-to-back ESP_LOGI
+# calls put zero bytes on the native port. It stays here, in the shared file, so
+# that it holds for CONSOLE=0 and CONSOLE=1 alike.
+CONFIG_ESP_CONSOLE_SECONDARY_NONE=y
+
+# 1ms tick. The default 100Hz would make main.c's vTaskDelay(1) a 10ms floor
+# per loop iteration, and would round nrf24l01p.c's delay_ms(21) power-up
+# settle up to 30ms.
+CONFIG_FREERTOS_HZ=1000
+
+# The Task Watchdog must exist at startup so watchdog_init() can call
+# esp_task_wdt_reconfigure() on it -- see platform_esp32.c. This is already the
+# IDF default; it is pinned because the code depends on it.
+CONFIG_ESP_TASK_WDT_INIT=y
+
+# NOT the default (IDF ships n). Without it a TWDT timeout prints a warning and
+# continues -- a watchdog that never resets, which is worse than none.
+CONFIG_ESP_TASK_WDT_PANIC=y
+
+# -O2, matching the ARM targets.
+CONFIG_COMPILER_OPTIMIZATION_PERF=y
+
+# Deliberately NOT set here: CONFIG_ESP_TASK_WDT_TIMEOUT_S. It is integer
+# seconds (range 1-60), so the 3.5s this firmware uses is not expressible in
+# Kconfig at all -- watchdog_init() sets it at runtime instead.

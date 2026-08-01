@@ -39,11 +39,11 @@ void host_link_begin(uint32_t baudrate) {
     HOST_PORT.begin(baudrate);
 }
 
-extern "C" void uart_write(const uint8_t *data, size_t len) {
+extern "C" void host_link_write(const uint8_t *data, size_t len) {
     HOST_PORT.write(data, len);
 }
 
-extern "C" int uart_read_byte(uint8_t *out) {
+extern "C" int host_link_read_byte(uint8_t *out) {
     int c = HOST_PORT.read();
     if (c < 0) {
         return 0;
@@ -52,7 +52,7 @@ extern "C" int uart_read_byte(uint8_t *out) {
     return 1;
 }
 
-extern "C" void uart_set_baudrate(uint32_t baudrate) {
+extern "C" void host_link_set_baudrate(uint32_t baudrate) {
 #if defined(HOST_LINK_SERIAL1)
     HOST_PORT.begin(baudrate);
 #else

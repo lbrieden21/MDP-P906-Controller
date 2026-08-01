@@ -97,7 +97,18 @@ def check(label, got, want):
 
 
 def open_port(baud):
-    s = serial.Serial(PORT, baud, timeout=0.2)
+    # DTR and RTS must be low BEFORE the open, not after -- after is too late,
+    # the pulse has already happened. On a board whose protocol link runs
+    # through a USB-to-UART bridge (the ESP-WROOM-32), those lines drive EN and
+    # IO0, so a default open reboots the adapter intermittently: 4/6 and 3/6
+    # replies measured, against 12/12 with the lines low first. Raising the
+    # settle below does not help. Harmless on every CDC target, none of which
+    # reads the control lines.
+    s = serial.Serial(baudrate=baud, timeout=0.2)
+    s.dtr = False
+    s.rts = False
+    s.port = PORT
+    s.open()
     time.sleep(0.4)
     s.reset_input_buffer()
     return s

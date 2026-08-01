@@ -10,7 +10,7 @@
  * the same three platform.h host-link functions and nothing else; core/ cannot
  * tell the two apart.
  *
- * The one real behavioural difference from uart.c is in uart_write(): on
+ * The one real behavioural difference from uart.c is in host_link_write(): on
  * USART1 the TX ring always drains, because the wire is always clocking. On
  * CDC the host may simply stop reading, at which point the FIFO fills and
  * stays full. See the deadline discussion there.
@@ -99,7 +99,7 @@ void USB_LP_CAN1_RX0_IRQHandler(void) {
 
 /* ---------------------------------------------------------------- platform.h */
 
-void uart_write(const uint8_t *data, size_t len) {
+void host_link_write(const uint8_t *data, size_t len) {
     /* Nothing is enumerated yet: there is no host to receive this, and
        buffering it would only mean delivering stale telemetry to whoever
        connects later. Drop it. */
@@ -110,11 +110,11 @@ void uart_write(const uint8_t *data, size_t len) {
     /* All-or-nothing, and never blocking. Both halves of that are load-bearing.
      *
      * Never blocking: protocol_poll() (core/protocol.c) is an unbounded drain --
-     * `while (uart_read_byte(&b)) feed_byte(b);` -- and feed_byte() calls back
-     * into uart_write() for each dispatched command. An earlier version of this
+     * `while (host_link_read_byte(&b)) feed_byte(b);` -- and feed_byte() calls back
+     * into host_link_write() for each dispatched command. An earlier version of this
      * function waited for FIFO space under a 20ms deadline and pumped
      * tud_task() while waiting. That pump is also what refills the CDC *RX*
-     * FIFO, so with a host that writes without reading, uart_read_byte() never
+     * FIFO, so with a host that writes without reading, host_link_read_byte() never
      * ran dry, protocol_poll() never returned, and main()'s watchdog refresh
      * was starved until the IWDG fired at ~3.2s. Measured on hardware: the
      * board rebooted mid-flood. uart.c cannot hit this because its TX ring
@@ -141,7 +141,7 @@ void uart_write(const uint8_t *data, size_t len) {
     tud_cdc_write_flush();
 }
 
-int uart_read_byte(uint8_t *out) {
+int host_link_read_byte(uint8_t *out) {
     if (!tud_cdc_available()) {
         return 0;
     }
@@ -155,7 +155,7 @@ int uart_read_byte(uint8_t *out) {
     return 1;
 }
 
-void uart_set_baudrate(uint32_t baudrate) {
+void host_link_set_baudrate(uint32_t baudrate) {
     /* USB CDC has no line rate of its own -- the host names one and it means
        nothing on this side. platform.h sanctions the no-op; CMD_SET_BAUDRATE
        still ACKs and protocol.c still persists the value, so the saved

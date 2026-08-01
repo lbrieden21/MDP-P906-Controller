@@ -88,9 +88,11 @@ sudo apt-get install gcc-arm-none-eabi
 make          # -> build/MDP_Adapter_Multiceiver.{elf,hex,bin}
 ```
 
-The same firmware also supports an STM32 Blue Pill and four Teensy boards
-(3.5, 3.6, 4.0, 4.1) if you'd rather build your own adapter than modify this
-module — see [nrf_adapter_source_multiceiver/README.md](nrf_adapter_source_multiceiver/README.md)
+The same firmware also supports an STM32 Blue Pill, four Teensy boards
+(3.5, 3.6, 4.0, 4.1), and four ESP32 boards (ESP32-C6, ESP32-H2, ESP32-S3,
+and classic ESP32/ESP-WROOM-32) if you'd rather build your own adapter than
+modify this module — see
+[nrf_adapter_source_multiceiver/README.md](nrf_adapter_source_multiceiver/README.md)
 for the full board list and per-target build/flash instructions.
 
 Flash it over SWD with an ST-LINK V2 — wire `SWCLK`/`SWDIO`/`GND`/`3V3` from the ST-LINK to the module's test points as shown below. The `BOOT0`/`3V3` short and serial bootloader from the old method are **not** used here.

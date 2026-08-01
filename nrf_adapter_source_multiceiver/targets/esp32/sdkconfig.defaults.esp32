@@ -1,0 +1,9 @@
+# NodeMCU-32S / HiLetgo ESP-WROOM-32 (ESP32-D0WD): 4MB flash.
+#
+# VERIFY THIS AGAINST THE ACTUAL MODULE. Some WROOM-32 variants ship 8MB or
+# 16MB, and a wrong value looks exactly like the C6's Phase 0 finding: every
+# boot logs
+#   spi_flash: Detected size(Nk) larger than the size in the binary image
+#   header(4096k). Using the size in the binary image header.
+# `esptool.py -p <port> flash_id` reports what is actually fitted.
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y

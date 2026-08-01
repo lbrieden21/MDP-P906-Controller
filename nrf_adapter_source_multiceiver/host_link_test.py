@@ -73,7 +73,18 @@ DEFAULT_BAUD = 921600
 
 
 def open_port(baud=DEFAULT_BAUD):
-    s = serial.Serial(PORT, baud, timeout=0.2)
+    # DTR and RTS must be low BEFORE the open, not after -- after is too late,
+    # the pulse has already happened. On a board whose protocol link runs
+    # through a USB-to-UART bridge (the ESP-WROOM-32), those lines drive EN and
+    # IO0, so a default open reboots the adapter intermittently: 4/6 and 3/6
+    # replies measured, against 12/12 with the lines low first. Raising the
+    # settle below does not help. Harmless on every CDC target, none of which
+    # reads the control lines.
+    s = serial.Serial(baudrate=baud, timeout=0.2)
+    s.dtr = False
+    s.rts = False
+    s.port = PORT
+    s.open()
     time.sleep(0.4)
     s.reset_input_buffer()
     return s
@@ -101,7 +112,7 @@ send(s, CMD_SET_BAUDRATE, bytes([11, 52, 0]))  # 11*10000 + 52*100 + 0 = 115200
 cmd, data = recv(s)
 check("reply", REP_NAMES.get(cmd), "REP_BAUDRATE_SET")
 # protocol.c applies the new rate 100ms after sending the ACK, so the host has
-# to follow it across. On CDC targets uart_set_baudrate() is a documented
+# to follow it across. On CDC targets host_link_set_baudrate() is a documented
 # no-op and pyserial's rate is ignored, so reopening is correct on every
 # target -- but it is only *observable* on the USART ones. Leaving the host at
 # the old rate silently orphans the link on those, which is what the original

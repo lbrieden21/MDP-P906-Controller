@@ -1,0 +1,5 @@
+# ESP32-C6-DevKitC-1-N8: 8MB flash. Without this the image header declares 2MB
+# and every boot logs
+#   spi_flash: Detected size(8192k) larger than the size in the binary image
+#   header(2048k). Using the size in the binary image header.
+CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y

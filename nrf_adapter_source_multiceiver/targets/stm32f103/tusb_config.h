@@ -29,7 +29,7 @@
 #define CFG_TUD_MIDI            0
 #define CFG_TUD_VENDOR          0
 
-/* TX is the direction under pressure: uart_write() drops whatever does not fit
+/* TX is the direction under pressure: host_link_write() drops whatever does not fit
    within its deadline (usb_cdc.c), so the deeper FIFO buys real headroom when
    the host pauses. RX only ever holds host commands, which are short and
    drained every loop iteration. */

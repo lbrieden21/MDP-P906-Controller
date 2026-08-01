@@ -1,0 +1,26 @@
+# Console overlay, applied on top of sdkconfig.defaults by `make CONSOLE=1`.
+#
+# The console is a bring-up tool, not part of the running configuration: it
+# needs a second USB cable to the board's USB-to-UART bridge connector, and no
+# host tooling ever reads it. Turn it on when there is a question to answer --
+# bring-up step 1 (does it boot?) and step 7 (did the watchdog panic?) are the
+# two that need it -- then reflash the default build for the bench.
+#
+# This file must exist even when it is unused: IDF raises
+#   FATAL_ERROR "SDKCONFIG_DEFAULTS '<x>' does not exist."
+# for any entry named in SDKCONFIG_DEFAULTS, so the Makefile switches the list
+# rather than conditionally producing the fragment.
+#
+# A per-board override would go in sdkconfig.console.<idf_target>, which IDF
+# probes automatically alongside this file. None is needed today.
+#
+# CONFIG_ESP_CONSOLE_SECONDARY_NONE is deliberately NOT re-stated here: it
+# belongs to both configurations and lives in sdkconfig.defaults.
+
+# Console on UART0, which on all three DevKits is wired to the USB-to-UART
+# bridge connector -- the *other* USB port from the one carrying the protocol.
+CONFIG_ESP_CONSOLE_UART_DEFAULT=y
+
+# Second-stage bootloader log, silenced in the default build. The ROM's own
+# banner is above this and cannot be suppressed by configuration.
+CONFIG_BOOTLOADER_LOG_LEVEL_INFO=y
