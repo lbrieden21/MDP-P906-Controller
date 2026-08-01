@@ -9,12 +9,14 @@ register_realtime_value_callback() rather than synchronous get_status().
 The temporary driver used for the Teensy 4.1 bring-up was removed after that
 phase; this is the same idea made re-runnable for the remaining boards.
 
-Devices, adapter port and radio config all come from gui_source/settings.json,
-so point that at the adapter under test first (and put it back afterwards --
-it is gitignored, so git will not remind you).
+Devices and radio config come from gui_source/settings.json, which is the fixed
+bench configuration and is not edited to run this. The serial port is the only
+thing that varies per board under test, so it is a --port argument here exactly
+as it is on host_link_test.py and pipe_test.py; the override is applied to the
+in-memory setting and never written back.
 
 Usage:
-    venv/bin/python gui_source/bench_gui_run.py [seconds]
+    venv/bin/python gui_source/bench_gui_run.py [seconds] [--port /dev/ttyUSB0]
 
 Writes gui_source/mdp.log at TRACE level for tools/noack_report.py.
 """
@@ -25,18 +27,58 @@ import time
 # Must be set before QApplication is constructed at mdp_gui import time.
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
+def _take_port_arg(argv):
+    """Pull --port/--port= out of argv, returning the value or None.
+
+    Removing it matters: app_context scans sys.argv for "--debug", and the
+    duration below is read positionally, so a stray option would be parsed as
+    one of those.
+    """
+    port = None
+    rest = []
+    i = 1
+    while i < len(argv):
+        arg = argv[i]
+        if arg == "--port":
+            if i + 1 >= len(argv):
+                sys.exit("--port needs a value, e.g. --port /dev/ttyUSB0")
+            port = argv[i + 1]
+            i += 2
+            continue
+        if arg.startswith("--port="):
+            port = arg.split("=", 1)[1]
+            i += 1
+            continue
+        rest.append(arg)
+        i += 1
+    argv[1:] = rest
+    return port
+
+
+PORT = _take_port_arg(sys.argv)
+
 # app_context reads "--debug" out of sys.argv at import to decide whether to
 # add the TRACE-level mdp.log sink, so it has to be present before mdp_gui is
 # imported. noack_report.py has nothing to parse without it.
 if "--debug" not in sys.argv:
     sys.argv.append("--debug")
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 DURATION = float(sys.argv[1]) if len(sys.argv) > 1 and sys.argv[1][0].isdigit() else 60.0
 
 from PyQt5 import QtCore  # noqa: E402
+
+# Imported ahead of mdp_gui so the override is in place before
+# ConnectionManager._build_bus() reads it. settings_model load()s and save()s
+# the file once at import, both before this point -- settings.json is on disk
+# unchanged, and only this process's copy carries the override.
+from settings_model import setting  # noqa: E402
+
+if PORT:
+    setting.adapter.comport = PORT
 
 import mdp_gui  # noqa: E402
 
@@ -48,6 +90,8 @@ state = {"linked": [], "t0": None, "rc": 0}
 
 
 def start():
+    print(f"adapter port {setting.adapter.comport}"
+          f"{' (--port override)' if PORT else ' (settings.json)'}")
     print(f"linking {len(window.panels)} panel(s) at {window.data_fps}Hz")
     for panel in window.panels:
         try:

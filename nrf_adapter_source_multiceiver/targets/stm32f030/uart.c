@@ -9,15 +9,18 @@
  * original's DMA + idle-line detection -- simpler bare-metal, no DMA driver
  * needed.
  *
- * TX is interrupt-driven (TXE), not blocking: uart_send_packet() in
- * protocol.c can run from inside the nRF24 EXTI ISR (nrf_rx_done/
- * nrf_tx_done are called from nrf24l01p_irq()), and a blocking polled TX
- * there would add UART-frame-time latency (tens of us) to every nRF24 IRQ,
- * right on the path the refactor plan calls out as timing-sensitive (50Hz
- * Type-8 polling). USART1 is NVIC priority 1, higher than EXTI2_3's
- * priority 3, so USART1's TXE/RXNE ISR can always preempt and drain these
- * rings even while EXTI2_3's handler is still running -- that's what makes
- * uart_write()'s spin-wait-for-ring-space safe to call from there.
+ * TX is interrupt-driven (TXE), not blocking, so uart_write() hands off a
+ * frame in bounded time instead of stalling the main loop for the whole UART
+ * frame time (tens of us per byte) on a path that is timing-sensitive against
+ * 50Hz Type-8 polling.
+ *
+ * USART1 sits at NVIC priority 1 against EXTI2_3's 3. That relationship used
+ * to be load-bearing: protocol_service_radio_irq() ran inside the EXTI handler
+ * (nrf_rx_done/nrf_tx_done are called from nrf24l01p_irq()), so
+ * uart_write()'s spin-wait-for-ring-space depended on the UART ISR being able
+ * to preempt it. The radio is now serviced from the main loop (gpio.c), which
+ * means nothing spin-waits from interrupt context and the ordering is merely
+ * harmless. It is kept as-is rather than reset to the default.
  */
 
 #define RX_RING_SIZE 256

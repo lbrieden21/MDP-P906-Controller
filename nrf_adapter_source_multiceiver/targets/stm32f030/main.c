@@ -35,6 +35,13 @@ int main(void) {
 
     uint32_t last_wdg_tick = millis();
     while (1) {
+        /* Radio first: a received payload is sitting in the RX FIFO, whereas
+           host bytes are already buffered by uart.c's RX ring and can wait a
+           few microseconds. */
+        if (radio_irq_pending()) {
+            protocol_service_radio_irq();
+        }
+
         protocol_poll();
         if (millis() - last_wdg_tick >= 100) {
             last_wdg_tick = millis();

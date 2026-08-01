@@ -543,6 +543,28 @@ adapters the no-acks are overwhelmingly P906 (`..E2`) traffic and the L1060 (`..
 is nearly clean, so that residue is a bench/device characteristic, not adapter
 behaviour.
 
+> **Retested 2026-08-01 — both no-ack figures above are bench artifacts.** Same
+> Teensy 4.1, firmware rebuilt from the current tree (21824 bytes) and reflashed,
+> only one adapter on the bench: **7373 / 7271 / 7027 radio sends over three runs
+> with 6 / 3 / 9 no-acks — 0.08% / 0.04% / 0.13%**, and 9024/8976 samples on the
+> best run (149 per device per second). The F030 re-measured the same day gives
+> 0.08–0.11% against its 4.61% here. The *ranking* in this table survives; the
+> absolute rates do not, and neither does the "~2% is par" reading they invite.
+> Nothing in the firmware explains the change, so the cause is the bench or the
+> method — most plausibly an unparked idle adapter during the original run, which
+> is a known ~18% effect, though that was not isolated at the time and is not
+> being claimed here.
+>
+> The rest of the checklist was re-run at the same time and passed: `host_link_test.py`
+> ALL PASS, `pipe_test.py` clean both ways, watchdog 3.37–3.51s over four clean
+> cycles against the 3.5s `WT=6` design figure. Steps that do not apply to this
+> board: the boot blink (no LED — pin 13 is LPSPI4 SCK) and `nrf_regdump.gdb`
+> (no SWD). Two method notes for next time: the watchdog measurement carries USB
+> re-enumeration latency, so it resolves ~100ms rather than the STM32's ~1ms, and
+> **the "confirm the build size returns to its previous value" check does not work
+> on this target** — the stall-test and production builds are both 21824 bytes.
+> Verify the revert by disassembling `build/app/main.o` instead.
+
 #### The TX-FIFO overflow, run down
 
 Single-device runs initially showed 8–14 `REP_NRF_FIFO_OVERFLOW` per 20 s on the

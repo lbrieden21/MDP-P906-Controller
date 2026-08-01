@@ -1,6 +1,5 @@
 #include "gpio.h"
 #include "platform.h"
-#include "protocol.h"
 
 /*
  * Reproduces nrf_adapter_source/Core/Src/gpio.c + spi.c/usart.c MspInit pin
@@ -83,13 +82,31 @@ void led_off(void) {
     gpio_set(LED_GPIO_Port, LED_Pin);
 }
 
-/* Lives here rather than in core/ because both the vector-table slot and the
-   EXTI pending-bit handling are STM32-specific. Radio work still runs inside
-   the ISR on this target -- see uart.c on why that is safe here (USART1 at
-   NVIC priority 1 preempts EXTI2_3 at 3). */
+/* ---------------------------------------------------------------- radio IRQ */
+
+/* No radio work happens in interrupt context: the ISR clears the EXTI pending
+   bit and latches the edge, and main()'s loop calls
+   protocol_service_radio_irq(). The handler lives here rather than in core/
+   because both the vector-table slot and the pending-bit handling are
+   STM32-specific. EXTI2_3_IRQn is shared across lines 2 and 3 on this part;
+   only line 2 is enabled. */
+static volatile bool radio_irq_flag = false;
+
 void EXTI2_3_IRQHandler(void) {
     if (EXTI->PR & (1U << 2)) {
         EXTI->PR = (1U << 2); /* write-1-to-clear */
-        protocol_service_radio_irq();
+        radio_irq_flag = true;
     }
+}
+
+/* The level recheck is not belt-and-braces. Reading then clearing the flag is
+   not atomic, so an edge landing between the two is lost; and EXTI is
+   edge-triggered while the nRF24 holds IRQ low until its STATUS bits are
+   cleared, so back-to-back events produce only one edge. Both holes close the
+   same way -- a missed edge still leaves the pin low, so the next call picks
+   it up. */
+bool radio_irq_pending(void) {
+    bool edge = radio_irq_flag;
+    radio_irq_flag = false;
+    return edge || (NRF_IRQ_GPIO_Port->IDR & NRF_IRQ_Pin) == 0;
 }

@@ -40,6 +40,27 @@ void host_link_begin(uint32_t baudrate) {
 
 extern "C" void uart_write(const uint8_t *data, size_t len) {
     HOST_PORT.write(data, len);
+#if !defined(HOST_LINK_SERIAL1)
+    /* Required, not an optimisation, and it more than doubles throughput on
+       this target. Teensy 3.x's usb_serial_write() only hands a packet to the
+       USB hardware once it reaches CDC_TX_SIZE (64B); a partial packet instead
+       arms usb_cdc_transmit_flush_timer = TRANSMIT_FLUSH_TIMEOUT, i.e. 5ms
+       (Drivers/teensy3/usb_serial.c:229-234). Every reply this firmware sends
+       is well under 64B, so without send_now() every single one waits out that
+       timer -- and since the host will not issue the next request until the
+       reply lands, the whole link runs at the flush timer's cadence.
+
+       Measured on a Teensy 3.5, 60s two-device GUI run: 3385 radio sends and
+       ~50 samples/s per device without, 7219 and ~147 with. That gap is the
+       "~65 req/s on Teensy 3.x, no cause isolated" anomaly recorded in
+       plans/nrf_adapter_new_targets_port_plan.md, and this closes it.
+
+       Neither sibling target needs this. The Teensy 4.x core has no equivalent
+       per-write gate, and the F103's TinyUSB path already calls
+       tud_cdc_write_flush() for the same reason. Serial1 is excluded because
+       send_now() is USB-only. */
+    HOST_PORT.send_now();
+#endif
 }
 
 extern "C" int uart_read_byte(uint8_t *out) {
@@ -243,59 +264,42 @@ extern "C" void delay_ms(uint32_t ms) {
  * unlock->configure so the window cannot be missed by a preempting ISR.
  *
  * TOVALH:TOVALL is meant to be 3.5s, matching the Teensy 4.x target's WDOG1
- * timeout, refreshed on the same 100ms cadence from main.cpp's loop(). In
- * practice this had to be found empirically rather than from the reference
+ * timeout, refreshed on the same 100ms cadence from main.cpp's loop(). Both
+ * board constants had to be found empirically rather than from the reference
  * manual's clock math -- see below.
  *
- * CLKSRC is left clear (0). This was not derived from a clean clock-source
- * model; it was measured directly with a stall test (main.cpp's loop
- * replaced with a marker frame + `while(1){}`, no refresh, timed from the
- * host receiving the marker to ttyACM0 dropping):
+ * CLKSRC is left clear (0). That is not derived from a clean clock-source
+ * model either; it was measured. With CLKSRC set, TOVALL=3500 fired in well
+ * under 100ms in one bench build yet showed a very consistent ~2.3s reset
+ * period in another -- two measurements of the "same" setting disagreeing by
+ * orders of magnitude, which is not a bit cleanly selecting a fixed clock the
+ * way the reference manual's LPO-vs-bus-clock description implies. Something
+ * about the 256-bus-cycle unlock->configure window appears sensitive to the
+ * surrounding code, not just to this bit. Clear, it is stable and repeatable.
  *
- *   - CLKSRC set (1), TOVALL=3500: fires in well under 100ms in one bench
- *     build, but was independently measured (in a different bench build,
- *     during normal *refreshed* operation, via ttyACM0 add/remove timing) at
- *     a very consistent ~2.3s reset period. Those two measurements of the
- *     "same" setting disagree by orders of magnitude, which means this bit
- *     is not cleanly selecting a fixed, well-behaved clock the way the
- *     reference manual's LPO-vs-bus-clock description implies -- something
- *     about the 256-bus-cycle unlock->configure window (see below) appears
- *     sensitive to the surrounding code, not just to this bit.
- *   - CLKSRC clear (0), TOVALL=3500: fires reliably and reproducibly (three
- *     stall trials within 2ms of each other) at ~16.54s -- nothing near the
- *     1kHz-LPO-implies-3.5s math, but at least stable and repeatable in this
- *     exact source layout.
+ * How the timeout is measured matters, and the obvious method is wrong:
+ * timing from a marker frame to the ttyACM port *disconnecting* also counts
+ * the USB teardown that follows the reset, inflating every reading by
+ * ~0.8-1.0s. Stall instead at a fixed millis() with an explicit
+ * watchdog_refresh() immediately before the hang, and time the *period
+ * between answering windows*. One full reset-to-reset cycle counts every
+ * stage exactly once, so enumeration latency cancels rather than
+ * accumulating, and period - stall_at = T_wdt directly.
  *
- * A second stall-test data point (TOVALL=740 -> measured 2.734s, four trials
- * within 3ms of each other) fits the first (TOVALL=3500 -> 16.539s) to a
- * clean two-point model: measured = TOVAL/rate - offset, solving to rate =~
- * 200.0 counts/sec and offset =~ 0.97s (the boot blink plus protocol_init
- * overhead that elapses, unmeasured, between watchdog_init() and the point
- * the stall test's marker frame -- and so the external timer -- starts).
- * 200 counts/sec is a clean enough number that this is probably a real clock
- * rate on this silicon, just not the one the reference manual's CLKSRC
- * description predicts. TOVALL=893 solves that model for a 3.5s result and
- * was reverified with the same stall test: four trials at 3.498-3.501s
- * (mean 3.499s). If this file's timing-sensitive surroundings change
- * materially (this function's body, or what runs before it in setup()),
- * re-measure rather than trust this comment's numbers.
+ * On that method both chips clock the watchdog at ~197-200 counts/sec with
+ * only a ~19ms fixed overhead, i.e. T_wdt =~ TOVALL/rate:
  *
- * The 3.6 (MK66FX1M0) needs a different TOVALL for the same ~3.5s result --
- * confirmed on real hardware, not assumed from "same family" reasoning.
- * TOVALL=893 (the 3.5's value) measures 5.34s on a 3.6 (four trials
- * 5.342-5.344s). A three-point stall-test calibration on the 3.6 itself
- * (TOVALL=200 -> 1.831s, 893 -> 5.343s, 1786 -> 9.867s, each the tight
- * cluster of four trials with the always-anomalous first post-flash trial
- * discarded) fits a clean model at rate =~ 197.4 counts/sec, offset =~
- * 0.82s -- solving for TOVALL=529, reverified directly: four trials at
- * 3.493-3.499s (mean 3.496s). The rate is close to the 3.5's (~197 vs ~200,
- * within normal LPO part-to-part tolerance); the two boards still need
- * separate constants because "close" isn't "equal" against a hard timing
- * target. This test used an explicit watchdog_refresh() immediately before
- * the marker frame (see the temporary stall harness this constant was
- * derived with), so its offset isn't directly comparable to the 3.5's
- * boot-blink-inclusive offset above -- re-derive per board, don't interpolate
- * across them.
+ *   - 3.5 (MK64FX512), TOVALL=698: 3.490-3.492s over four trials (mean
+ *     3.491s), discarding the always-anomalous first post-flash trial.
+ *   - 3.6 (MK66FX1M0), TOVALL=688: 3.502-3.509s over five trials (mean
+ *     3.505s).
+ *
+ * The two constants land close together because the two rates do, but they
+ * are still measured per board rather than shared: "close" is not "equal"
+ * against a hard timing target, and F_CPU differs between the boards. If this
+ * file's timing-sensitive surroundings change materially (this function's
+ * body, or what runs before it in setup()), re-measure rather than trust
+ * these numbers.
  */
 extern "C" void watchdog_init(void) {
     noInterrupts();
@@ -306,9 +310,9 @@ extern "C" void watchdog_init(void) {
 
     WDOG_TOVALH = 0;
 #if defined(ARDUINO_TEENSY36)
-    WDOG_TOVALL = 529; /* empirically calibrated for the 3.6 -- see the comment above */
+    WDOG_TOVALL = 688; /* empirically calibrated for the 3.6 -- see the comment above */
 #else
-    WDOG_TOVALL = 893; /* empirically calibrated for the 3.5 -- see the comment above */
+    WDOG_TOVALL = 698; /* empirically calibrated for the 3.5 -- see the comment above */
 #endif
     WDOG_STCTRLH = WDOG_STCTRLH_WDOGEN | WDOG_STCTRLH_ALLOWUPDATE |
                    WDOG_STCTRLH_WAITEN | WDOG_STCTRLH_STOPEN;

@@ -5,12 +5,15 @@
 
 /*
  * USART1, 8N1, IT-driven ring buffers. TX is interrupt-driven rather than
- * blocking because uart_send_packet() in protocol.c can run from inside the
- * nRF24 EXTI ISR, and a blocking polled TX there would add UART-frame-time
- * latency to every nRF24 IRQ. USART1 is NVIC priority 1, higher than EXTI2's
- * priority 3, so USART1's TXE/RXNE ISR can always preempt and drain these
- * rings even while EXTI2's handler is still running -- that's what makes
- * uart_write()'s spin-wait-for-ring-space safe to call from there.
+ * blocking so uart_write() hands off a frame in bounded time instead of
+ * stalling the main loop for the whole UART frame time.
+ *
+ * USART1 sits at NVIC priority 1 against EXTI2's 3. That relationship used to
+ * be load-bearing: protocol_service_radio_irq() ran inside the EXTI handler,
+ * so uart_write()'s spin-wait-for-ring-space depended on the UART ISR being
+ * able to preempt it. The radio is now serviced from the main loop (gpio.c),
+ * which means nothing spin-waits from interrupt context and the ordering is
+ * merely harmless. It is kept as-is rather than reset to the default.
  *
  * This USART generation has SR/DR and no ICR at all -- clearing an error
  * flag is a read of SR followed by a read of DR.

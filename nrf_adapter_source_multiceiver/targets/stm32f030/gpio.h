@@ -5,6 +5,8 @@
    platform.h boundary -- core/ sees only nrf_csn_low() and friends, which
    gpio.c implements in terms of these. */
 
+#include <stdbool.h>
+
 #include "stm32f0xx.h"
 
 #define GPIO_PIN_0 (1U << 0)
@@ -29,6 +31,14 @@
 /* SPI1: PA5 SCK, PA6 MISO, PA7 MOSI (AF0). USART1: PA9 TX, PA10 RX (AF1). */
 
 void gpio_init(void);
+
+/* True if the radio has an unserviced interrupt: either a falling edge was
+   latched by the EXTI handler, or IRQ is still asserted (it stays low until
+   the STATUS flags are cleared, so back-to-back events produce only one
+   edge). Consumes the latched edge. Target-private on purpose -- it is not
+   part of platform.h's contract, same as the Teensy targets. */
+bool radio_irq_pending(void);
+
 static inline void gpio_set(GPIO_TypeDef *port, uint32_t pin_mask) {
     port->BSRR = pin_mask;
 }

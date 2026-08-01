@@ -106,14 +106,22 @@ Drivers/CMSIS        Copied verbatim from nrf_adapter_source/Drivers/CMSIS
                      folder — this is the whole point of "no HAL"). STM32
                      targets only; STM32F1xx device headers added alongside
                      the existing STM32F0xx ones for the Blue Pill.
-Drivers/teensy4      PJRC cores/teensy4, copied verbatim — same treatment
-                     CMSIS gets. teensy4x/ only.
-Drivers/teensy3      PJRC cores/teensy3, copied verbatim, same snapshot as
-                     teensy4/ so its SPI library stays in sync. teensy3x/
-                     only.
-Drivers/teensy_libs  PJRC's SPI library, likewise verbatim. Shared by both
-                     Teensy targets (renamed from teensy4_libs/ when the
-                     Teensy 3.x port started reusing it).
+Drivers/teensy4      PJRC cores/teensy4 from Teensyduino 1.59, copied
+                     verbatim — same treatment CMSIS gets. teensy4x/ only.
+Drivers/teensy3      PJRC cores/teensy3, copied verbatim, same Teensyduino
+                     1.59 snapshot as teensy4/ so its SPI library stays in
+                     sync. teensy3x/ only.
+Drivers/teensy_libs  PJRC's SPI library, likewise verbatim (Teensyduino
+                     1.59). Shared by both Teensy targets (renamed from
+                     teensy4_libs/ when the Teensy 3.x port started reusing
+                     it).
+Drivers/tinyusb      TinyUSB 0.21.0 (upstream tag 0.21.0, commit dae3f9a3),
+                     copied verbatim — the device-side subset only: tusb.c,
+                     common/, device/, osal/ (osal.h + osal_none.h),
+                     class/cdc/ (cdc.h, cdc_device.*) and the stm32_fsdev
+                     port (device files only, no hcd_). stm32f103/ CDC build
+                     only. Compiled with -std=gnu11 and -isystem: TinyUSB
+                     uses GNU C (bare `asm`), which -std=c11 rejects.
 ```
 
 A new target adds a `targets/<name>/` directory implementing the same
@@ -122,20 +130,56 @@ a target cannot change the code any existing target compiles.
 
 ## Design notes / deviations from the shipped firmware
 
+- **Radio servicing is deferred to the main loop on every target.** The EXTI
+  or pin ISR only clears the pending bit and latches a flag; the main loop
+  calls `protocol_service_radio_irq()` before `protocol_poll()`, since a
+  received payload is sitting in the RX FIFO while host bytes are already
+  buffered. Servicing is gated on the IRQ pin *level* as well as the latched
+  edge: reading-then-clearing the flag is not atomic, and the nRF24 holds IRQ
+  low until STATUS is cleared, so a lost or coalesced edge still leaves the
+  pin low and the next call picks it up. One model covers every
+  configuration, so nothing in `core/` or any target reasons about being
+  called from interrupt context.
 - **UART**: interrupt-driven RX and TX ring buffers instead of DMA +
-  idle-line detection. Simpler, no DMA driver needed. TX had to stay
-  non-blocking (TXE-interrupt-drained, not polled): `uart_send_packet()` can
-  run from inside the nRF24 EXTI ISR (`nrf_rx_done`/`nrf_tx_done` are called
-  from `nrf24l01p_irq()`), and a blocking TX there would add UART-frame-time
-  latency to every nRF24 IRQ — directly on the timing-sensitive 50Hz Type-8
-  polling path. USART1 is NVIC priority 1,
-  higher than EXTI2_3's priority 3, so USART1's ISR can always preempt and
-  drain the TX ring even while EXTI2_3's handler is still executing.
+  idle-line detection. Simpler, no DMA driver needed. TX is TXE-interrupt-
+  drained rather than polled, so `uart_write()` hands off a frame in bounded
+  time instead of stalling the main loop for the whole UART frame time.
+  USART1 sits at NVIC priority 1 against EXTI's 3. That relationship used to
+  be load-bearing — it is what made a spin-wait inside the radio ISR safe —
+  and is now merely harmless, kept rather than reset to the default.
 - **Settings persistence**: a single reserved flash page (magic + payload +
   CRC16, erase+rewrite on `NRF_SAVE`) instead of the shipped firmware's
   MiniFlashDB wear-leveling KV store. Save is a low-frequency, host-triggered
   operation (settings dialog), so page-erase endurance was never a real
   constraint here.
+- **Watchdog timeout: the reference is ~3.3s, and no target hits it exactly.**
+  The figure every target aims at is the shipped firmware's IWDG — `/32`,
+  reload 4095, ~3.28s nominal. Each family then misses it differently, for
+  hardware reasons rather than inattention, so the spread is not a sign that
+  some targets were treated more carefully than others:
+  - **STM32 (F030 / F103)** — IWDG runs off the uncalibrated LSI, so the real
+    timeout lands near 3.15–3.19s, implying an LSI around 41–42kHz against a
+    40kHz nominal and a 30–60kHz spec. There is no knob: it varies per chip
+    and moves with temperature and supply.
+  - **Teensy 4.x** — WDOG1's timeout granularity is a flat 0.5s, so the only
+    settings near the reference are 3.0s and 3.5s. `WT=6` picks 3.5s.
+  - **Teensy 3.x** — Kinetis WDOG has ~5ms granularity and could hit any of
+    these. It is calibrated to 3.5s to match the 4.x rather than to the 3.3s
+    reference — a rounding artifact inherited from a different chip's
+    granularity, kept because it is measured and verified rather than because
+    3.5s means anything.
+
+  What the timeout actually has to satisfy is: comfortably longer than the
+  100ms refresh cadence plus the worst-case loop stall, and short enough to
+  recover quickly. Every target sits between 3.15s and 3.51s — a window with
+  an order of magnitude of headroom on both sides. Treat that spread as
+  closed; it is not worth bench time.
+
+  Separately, **reset-to-responsive is not the same quantity as the timeout**.
+  On USB CDC targets the board re-enumerates before it can answer again, which
+  adds roughly 0.6s on the Teensy 4.x. That latency is not part of the
+  watchdog and must not be measured into it — see `platform_teensy3.cpp`'s
+  comment for the measurement trap this creates.
 - **IWDG**: same prescaler/reload as shipped (`/32`, reload 4095, ~3.3s
   timeout on LSI), refreshed every 100ms from the main loop, same as before.
   `watchdog_init()` must issue the **start** key (`KR=0xCCCC`) before
@@ -166,12 +210,34 @@ a target cannot change the code any existing target compiles.
 
 Drop-in for the STM32F030 target in every way except the host link: same
 peripheral selection (SPI1, USART1, same pins bar the LED), so an existing
-nRF24 harness plugs straight in. USART1 at 921600 through an external
-USB-UART bridge is the **only** host link — the Blue Pill's onboard USB port
-is wired to the F103's USB-FS device peripheral, which would need a vendored
-USB device stack plus a CDC glue layer for no real benefit over reusing the
-validated USART1 path. `platform.h` already accommodates a CDC variant behind
-a `HOST_LINK` flag if this is ever wanted as a follow-on.
+nRF24 harness plugs straight in. Two host links, selected by `HOST_LINK`:
+
+- **`HOST_LINK_USB_CDC` (default)** — native USB CDC on the Blue Pill's
+  onboard USB port, via a vendored TinyUSB device stack (`Drivers/tinyusb`)
+  and `usb_cdc.c`/`usb_descriptors.c`. No external bridge needed. Enumerates
+  as `cafe:4001`, with the 96-bit factory UID as the USB serial number so
+  boards are distinguishable in `/dev/serial/by-id`. The host must be given
+  an explicit `--port`: `nrf24_adapter.py` autodetects only the CP210x
+  bridge, so this build is driven the same way the Teensy targets are.
+- **`HOST_LINK_USART1`** — USART1 at 921600 through an external USB-UART
+  bridge, on PA9/PA10. The original path, and the only one on this chip with
+  a real line rate, so it stays the reference for anything baudrate-related.
+
+**Switching `HOST_LINK` requires `make clean` first** — it changes both the
+source list and a `-D` that reaches already-built objects.
+
+Two CDC behaviours that are by design, not faults:
+
+- `uart_set_baudrate()` is a no-op — USB CDC has no line rate of its own.
+  `CMD_SET_BAUDRATE` still ACKs and the value is still persisted, so the
+  settings record is identical to the USART1 build's; only the physical rate
+  stops responding.
+- `uart_write()` drops a whole frame rather than blocking when the CDC TX
+  FIFO is full, which only happens if the host has stopped reading. It must
+  not wait, and in particular must not pump `tud_task()` while waiting:
+  `protocol_poll()` drains until `uart_read_byte()` runs dry, and `tud_task()`
+  is also what refills the RX FIFO, so pumping from inside `uart_write()`
+  feeds the loop that is calling it and starves the watchdog refresh.
 
 - **Wiring** (`targets/stm32f103/gpio.h`): identical to the F030 target
   except the LED, which moves to the onboard **PC13** (active-low,
@@ -180,11 +246,6 @@ a `HOST_LINK` flag if this is ever wanted as a follow-on.
 - **SPI runs at 9MHz** (`BR_1`, /8 off the 72MHz PCLK2), under the
   nRF24L01+'s 10MHz ceiling. The F030's 12MHz is above spec and was not
   carried over — the same call already made for the Teensy targets.
-- **The radio is serviced in the ISR.** USART1 sits at NVIC priority 1
-  against EXTI2's priority 3, so the UART ISR can always preempt and drain
-  the TX ring from inside the radio handler; that is what lets this target
-  service the radio straight out of `EXTI2_IRQn` rather than deferring it to
-  the main loop.
 - **No bootloader.** These boards flash only over SWD (see Flashing below),
   unlike the original dongle module's firmware, which ships a USART/DFU
   bootloader — this target has no equivalent fallback.
@@ -216,16 +277,6 @@ under `build/fw`, and `make` has no way to know they're stale otherwise.
   cosmetic activity indication. There is no boot blink on this target, and so
   no delay between `protocol_init()` and the first poll; nothing depends on
   one.
-- **Radio IRQ runs in thread context, not the ISR.** Servicing the radio from
-  the ISR would mean blocking SPI *and* `uart_write` inside it, which is only
-  safe where the UART interrupt can preempt and drain the TX ring — there is
-  no such NVIC priority relationship here. Instead the ISR only latches the
-  edge and `loop()` calls `protocol_service_radio_irq()`; at 600MHz
-  against a 20ms Type-8 poll period the deferral costs microseconds, and
-  `uart_write` is never called from interrupt context at all.
-  Servicing is gated on the IRQ pin *level* as well as the latched edge — the
-  nRF24 holds IRQ low until STATUS is cleared, so a second event arriving
-  before servicing produces no new falling edge.
 - **Host link**: USB CDC (`Serial`) by default; `-DHOST_LINK_SERIAL1` swaps in
   `Serial1` at 921600 for exact parity with the shipped adapter. Both sit
   behind the same three `platform.h` functions, and nothing in `core/` is
@@ -242,7 +293,8 @@ under `build/fw`, and `make` has no way to know they're stale otherwise.
   `WDT_T4` — that is a separate library needing vendoring, while `imxrt.h` (in
   the vendored core already) declares every register, and the core itself never
   touches WDOG1. Same approach as the STM32 target's `watchdog.c`. `WT=6` gives
-  (6+1) × 0.5s = **3.5s**, the nearest step to the STM32's ~3.3s IWDG timeout,
+  (6+1) × 0.5s = **3.5s**, the nearest step to the ~3.3s reference (see the
+  watchdog-timeout note under Design notes for why no target hits it exactly),
   refreshed on the same 100ms cadence from `loop()`. Note `SRS` and `WDA` are
   active-low "do not assert now" controls and must be written 1, or enabling
   the watchdog resets the part immediately.
@@ -268,8 +320,17 @@ transaction bracketing, byte-at-a-time SPI, and deferred-to-`loop()` IRQ
 handling unchanged. **Switching `BOARD` requires `make clean` first**, same
 reason as the 4.x target.
 
-Two genuine differences from `teensy4x/`:
+Three genuine differences from `teensy4x/`:
 
+- **`uart_write()` must call `HOST_PORT.send_now()`, and this is load-bearing.**
+  `usb_serial_write()` only hands a packet to the USB hardware once it fills
+  `CDC_TX_SIZE` (64B); a partial packet instead arms a 5ms flush timer
+  (`Drivers/teensy3/usb_serial.c:229-234`). Every reply this firmware sends is
+  well under 64B, and the host will not issue the next request until the reply
+  lands, so without `send_now()` the entire link runs at that timer's cadence —
+  measured, it more than halves throughput. The 4.x core has no equivalent
+  per-write gate and needs nothing; the F103's TinyUSB path calls
+  `tud_cdc_write_flush()` for the same reason.
 - **The status LED works here.** Kinetis SPI0 can move its SCK off pin 13 —
   `SPI.setSCK(14)` before `SPI.begin()` — freeing pin 13 for the onboard LED,
   so `led_on()`/`led_off()` are real `digitalWriteFast()` calls and the
@@ -281,9 +342,16 @@ Two genuine differences from `teensy4x/`:
   means re-unlocking it (PJRC's `ResetHandler` already unlocked it once,
   before `setup()` ever runs), and that unlock only holds the register window
   open for **256 bus cycles** — interrupts are disabled across
-  unlock→configure in `platform_teensy3.cpp` so nothing can miss it. Timeout
-  is 3500 against the 1kHz LPO clock source, 3.5s — matching the 4.x target's
-  WDOG1 timeout, same 100ms refresh cadence from `loop()`.
+  unlock→configure in `platform_teensy3.cpp` so nothing can miss it. The
+  timeout is 3.5s — matching the 4.x target's WDOG1 timeout rather than the
+  ~3.3s reference it rounds off (see the watchdog-timeout note under Design
+  notes), same 100ms refresh cadence from `loop()` — but neither `CLKSRC` nor
+  `TOVALL` follows
+  the reference manual's clock model on this silicon: `CLKSRC` is left clear
+  and `TOVALL` is calibrated per board by stall test (698 on the 3.5, 688 on
+  the 3.6, both landing within ±10ms of 3.5s). See that file's comment for the
+  method, including the measurement trap that makes the obvious approach
+  over-read by nearly a second.
 
 - **Wiring** (`targets/teensy3x/pins.h`): SPI0 on its fixed pins — MOSI 11,
   MISO 12 — with SCK moved to 14 as above — plus CSN 10, CE 9, IRQ 2. Same
@@ -311,7 +379,8 @@ the PJRC cores unmodified.
 sudo apt-get install gcc-arm-none-eabi   # arm-none-eabi-gcc 14.2, if not already installed
 
 cd targets/stm32f030 && make                    # -> build/MDP_Adapter_Multiceiver.{elf,hex,bin}
-cd targets/stm32f103 && make                    # -> build/MDP_Adapter_Multiceiver.{elf,hex,bin}
+cd targets/stm32f103 && make                    # -> build/MDP_Adapter_Multiceiver.{elf,hex,bin}, USB CDC
+cd targets/stm32f103 && make HOST_LINK=HOST_LINK_USART1   # same dir, USART1 + external bridge
 cd targets/teensy4x  && make                    # -> build/MDP_Adapter_Multiceiver.{elf,hex}, TEENSY41
 cd targets/teensy4x  && make BOARD=TEENSY40      # same dir, TEENSY40
 cd targets/teensy3x  && make                    # -> build/MDP_Adapter_Multiceiver.{elf,hex}, TEENSY35
@@ -322,7 +391,8 @@ make clean                                       # any target
 **Switching `BOARD` on `teensy4x`/`teensy3x` requires `make clean` first** —
 the define only reaches the framework objects under `build/fw`, and `make`
 has no way to know they're stale otherwise. The same applies to switching
-`HOST_LINK` on either Teensy target.
+`HOST_LINK` on either Teensy target, and on `stm32f103`, where it also
+changes which source files are compiled.
 
 To build a Teensy target against `Serial1` instead of USB CDC:
 
@@ -385,3 +455,43 @@ If the target's read/write protection is set, `st-flash` will refuse to
 write — run `st-flash erase` first (mass-erases and drops RDP back to
 level 0), or `openocd ... -c "stm32f0x unlock 0; reset halt"` (`stm32f1x` on
 the Blue Pill) with OpenOCD.
+
+On the F103's CDC build, `st-flash reset`, `CMD_REBOOT` and a watchdog reset
+all re-enumerate the port on their own — `usb_cdc.c` pulses D+ low at init to
+fake the detach the F103 cannot signal itself. No replug needed. A debugger
+halt (`nrf_regdump.gdb`) does drop the tty for the duration; a reset
+afterwards brings it back.
+
+## Refreshing a vendored tree
+
+`Drivers/` holds verbatim third-party copies. Refresh for a specific
+core-level bug, not on a schedule — the whole point of vendoring is that the
+build does not move under you.
+
+**PJRC cores (`Drivers/teensy3`, `teensy4`, `teensy_libs`)** — currently
+Teensyduino **1.59**, per `-DTEENSYDUINO=159` in both target Makefiles and
+both `Drivers/*/Makefile`s. Download the release from pjrc.com (no account),
+diff `cores/teensy3`, `cores/teensy4` and `libraries/SPI` against `Drivers/`,
+and **treat anything resembling a local modification as a finding** — these
+are verbatim copies, so a diff hunk that is not upstream's means someone
+patched the tree. Copy over, bump `-DARDUINO=`/`-DTEENSYDUINO=` in both
+target Makefiles, rebuild every configuration, re-run the per-board
+checklist. `teensy_loader_cli` is the only part of the distribution needed
+day to day, and builds standalone from PJRC's GitHub.
+
+**Watch the Kinetis watchdog constants on any Teensy 3.x refresh.**
+`WDOG_TOVALL` in `targets/teensy3x/platform_teensy3.cpp` is `893` on the 3.5
+and `529` on the 3.6. Neither came from the reference manual — both were
+calibrated by multi-point stall testing on the specific chip, and the file's
+own comment warns to re-measure if its timing-sensitive surroundings change
+materially. A core refresh or a compiler change is exactly that. Checklist
+step 7 is what catches it, and a silently mis-timed watchdog is the one
+failure nothing else in the checklist would surface.
+
+**TinyUSB (`Drivers/tinyusb`)** — currently **0.21.0**. Device-side subset
+only; `hcd_stm32_fsdev.c` and the ch32/at32 headers are deliberately absent.
+It is built with `-std=gnu11` rather than the target's `-std=c11`, because
+`fsdev_common.c` uses a bare `asm("NOP")` that `__STRICT_ANSI__` rejects — if
+a refresh appears to need a source edit to compile, check the standard first.
+Upstream ships an `stm32f103_bluepill` board, so an F103 regression there is
+worth reporting rather than patching around.
