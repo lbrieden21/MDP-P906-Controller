@@ -478,6 +478,57 @@ protocol link and the console) and is a hard build error on that combination.
 Classic ESP32 (`BOARD=ESP32`) can never take a console at all, for the same
 reason — its GPIO2 LED is the only boot/liveness indicator it has.
 
+### WiFi host link (`HOST_LINK_WIFI`)
+
+A third host link, alongside the two wired ones above: the protocol runs over a TCP socket
+instead of USB-Serial/JTAG or UART0, so the adapter can sit on the bench with nothing but
+power and the GUI drives it over IP. Nothing about the radio side changes — same binary
+protocol, same multiceiver pipe routing, same unmodified `core/`.
+
+| `BOARD` | WiFi | Notes |
+|---|---|---|
+| `ESP32C6` | WiFi 6 (2.4GHz) | |
+| `ESP32S3` | WiFi 4 | |
+| `ESP32` (WROOM-32) | WiFi 4 | wired link is UART0, same as `HOST_LINK_UART0` above |
+| `ESP32H2` | **none** | 802.15.4 + BLE only — excluded by `depends on SOC_WIFI_SUPPORTED`, not a hand-written special case |
+
+```sh
+make BOARD=ESP32C6 HOST_LINK=HOST_LINK_WIFI      # or ESP32S3 / ESP32
+make flash PORT=...                              # over the wired link, same as any other build
+```
+
+**The wired link keeps working on a WiFi build — both links are served concurrently.** This
+is what makes provisioning possible in the first place: the wired link has to work in order to
+set credentials before WiFi exists at all. Whichever link most recently delivered a byte from
+the host becomes the active one; a TCP client connecting makes WiFi active, a disconnect hands
+it back to the wired link immediately. One TCP client at a time — a new connection replaces
+the old one rather than being refused, so a crashed or force-quit GUI doesn't lock the adapter
+out.
+
+**Provisioning** happens over the wired link, with `wifi_provision.py` (same directory as
+`host_link_test.py`):
+
+```sh
+venv/bin/python wifi_provision.py --port /dev/ttyACM0 --ssid MyNetwork --password hunter2
+venv/bin/python wifi_provision.py --port /dev/ttyACM0 --status   # SSID, DHCP address, RSSI
+venv/bin/python wifi_provision.py --port /dev/ttyACM0 --clear    # erase stored credentials
+```
+
+Credentials live in their own NVS key, independent of the radio settings record — `CMD_RESET`
+(which invalidates the radio settings) does not touch them, and they survive a reboot or power
+cycle on their own. Once connected, the GUI reaches the adapter at `tcp://<ip>:9000` (port is
+Kconfig-settable, `HOST_LINK_WIFI_PORT`); on the host side this is the connection dialog's
+transport setting — see `../readme_EN.md`.
+
+**No access control.** Anything on the LAN that can reach the port can drive the power supply
+— the same trust model the USB link already has, just extended over IP instead of requiring
+physical access to the cable. Treat the network the adapter is provisioned onto accordingly.
+
+`CONSOLE=1` combines freely with `HOST_LINK_WIFI` on the C6/S3 (their native port is free
+either way); on classic ESP32 it's a hard build error, for the same reason `CONSOLE=1` already
+conflicts with `HOST_LINK_UART0` above — UART0 can't be the console and a host link (wired or
+the wired half of a WiFi build) at once.
+
 ### Wiring
 
 Every map avoids strapping pins, the USB D+/D- pair, the console UART, and

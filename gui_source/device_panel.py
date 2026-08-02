@@ -117,6 +117,7 @@ class DevicePanelBase(QtWidgets.QWidget):
             blink=self.settings.blink,
             led_color=(color_rgb[0], color_rgb[1], color_rgb[2]),
             m01_channel=int(self.settings.m01ch[3]),
+            com_timeout=bus.com_timeout,
             debug=DEBUG,
         )
         try:

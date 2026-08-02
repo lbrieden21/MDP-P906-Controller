@@ -30,6 +30,7 @@
 #include "pins.h"
 #include "platform_esp32.h"
 #include "platform.h"
+#include "wifi_sta.h"
 
 /* ---------------------------------------------------------------------- SPI */
 
@@ -374,4 +375,10 @@ void platform_init(void) {
 
     ESP_ERROR_CHECK(gpio_install_isr_service(ESP_INTR_FLAG_IRAM));
     ESP_ERROR_CHECK(gpio_isr_handler_add(NRF_IRQ_PIN, radio_isr, NULL));
+
+    /* No-op unless CONFIG_HOST_LINK_WIFI is set -- see wifi_sta.c. Last, so
+       the radio and the settings store are both already up if it needs
+       either (NVS for stored credentials, and wifi_status()/wifi_creds_save()
+       become reachable from protocol.c the moment this returns). */
+    wifi_sta_init();
 }

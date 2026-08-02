@@ -50,6 +50,15 @@ endif
 # to exercise it: those boards are already hardware-validated and keep their
 # native port free as an out-of-band channel while the protocol runs on the
 # bridge.
+#
+# HOST_LINK_WIFI is a third, orthogonal thing: it does NOT choose the wired
+# implementation above (that still resolves per board exactly as it does
+# today -- USB-Serial/JTAG on C6/S3, UART0 on classic ESP32, automatically,
+# because HOST_LINK_USB_JTAG's Kconfig `depends on SOC_USB_SERIAL_JTAG_SUPPORTED`
+# is false there). It only turns on CONFIG_HOST_LINK_WIFI, which brings up a
+# WiFi station and a TCP host link that runs *alongside* whichever wired link
+# was already selected -- see host_link_mux.c and the plan doc's "Firmware:
+# a host-link mux" section. Not offered on the H2, which has no WiFi at all.
 ifeq ($(BOARD),ESP32)
 HOST_LINK ?= HOST_LINK_UART0
 else
@@ -66,8 +75,17 @@ HOST_LINK_FRAGMENT =
 else ifeq ($(HOST_LINK),HOST_LINK_UART0)
 HOST_LINK_ID = -uart0
 HOST_LINK_FRAGMENT = ;sdkconfig.uart0
+else ifeq ($(HOST_LINK),HOST_LINK_WIFI)
+ifeq ($(BOARD),ESP32H2)
+$(error BOARD=ESP32H2 cannot use HOST_LINK_WIFI -- the H2 has no WiFi at all, \
+802.15.4 + BLE only (see the board table in the plan doc). Use \
+HOST_LINK_USB_JTAG or HOST_LINK_UART0)
+endif
+HOST_LINK_ID = -wifi
+HOST_LINK_FRAGMENT = ;sdkconfig.wifi
 else
-$(error Unknown HOST_LINK '$(HOST_LINK)' -- use HOST_LINK_USB_JTAG or HOST_LINK_UART0)
+$(error Unknown HOST_LINK '$(HOST_LINK)' -- use HOST_LINK_USB_JTAG, HOST_LINK_UART0 \
+or HOST_LINK_WIFI)
 endif
 
 # Which connector `make flash` uses depends on the board:
@@ -115,8 +133,15 @@ protocol link and the ESP-IDF console. On classic ESP32 there is no second \
 port to move either onto; on the C6/H2/S3 build the console with the default \
 HOST_LINK_USB_JTAG instead)
 endif
-CONFIG_ID = $(IDF_TARGET)-console
-SDKCONFIG_DEFAULTS = sdkconfig.defaults;sdkconfig.console
+ifeq ($(HOST_LINK)-$(BOARD),HOST_LINK_WIFI-ESP32)
+$(error CONSOLE=1 conflicts with BOARD=ESP32 HOST_LINK_WIFI -- on classic \
+ESP32 the wired link of a WiFi build is UART0 (no USB-Serial/JTAG exists on \
+that chip), and UART0 cannot be both the protocol link and the ESP-IDF \
+console. CONSOLE=1 with HOST_LINK_WIFI is fine on the C6/S3, where the wired \
+link stays USB-Serial/JTAG)
+endif
+CONFIG_ID = $(IDF_TARGET)-console$(HOST_LINK_ID)
+SDKCONFIG_DEFAULTS = sdkconfig.defaults;sdkconfig.console$(HOST_LINK_FRAGMENT)
 else ifeq ($(CONSOLE),0)
 CONFIG_ID = $(IDF_TARGET)$(HOST_LINK_ID)
 SDKCONFIG_DEFAULTS = sdkconfig.defaults$(HOST_LINK_FRAGMENT)
@@ -179,14 +204,17 @@ menuconfig:
 clean:
 	rm -rf build/$(CONFIG_ID) sdkconfig.$(CONFIG_ID).old
 
-# Removes every configuration. Needed whenever sdkconfig.defaults or
-# sdkconfig.console changes, since IDF will not re-read them for symbols an
+# Removes every configuration. Needed whenever sdkconfig.defaults, sdkconfig.console
+# or sdkconfig.wifi changes, since IDF will not re-read them for symbols an
 # existing generated sdkconfig already carries.
 distclean:
 	rm -rf build sdkconfig.esp32 sdkconfig.esp32c6 sdkconfig.esp32h2 \
 	       sdkconfig.esp32s3 sdkconfig.esp32-uart0 sdkconfig.esp32c6-uart0 \
 	       sdkconfig.esp32h2-uart0 sdkconfig.esp32s3-uart0 \
 	       sdkconfig.esp32c6-console sdkconfig.esp32h2-console \
-	       sdkconfig.esp32s3-console sdkconfig.esp32*.old
+	       sdkconfig.esp32s3-console \
+	       sdkconfig.esp32-wifi sdkconfig.esp32c6-wifi sdkconfig.esp32s3-wifi \
+	       sdkconfig.esp32c6-console-wifi sdkconfig.esp32s3-console-wifi \
+	       sdkconfig.esp32*.old
 
 .PHONY: all flash monitor size menuconfig clean distclean

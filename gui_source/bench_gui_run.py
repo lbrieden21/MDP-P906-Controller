@@ -10,13 +10,15 @@ The temporary driver used for the Teensy 4.1 bring-up was removed after that
 phase; this is the same idea made re-runnable for the remaining boards.
 
 Devices and radio config come from gui_source/settings.json, which is the fixed
-bench configuration and is not edited to run this. The serial port is the only
-thing that varies per board under test, so it is a --port argument here exactly
-as it is on host_link_test.py and pipe_test.py; the override is applied to the
-in-memory setting and never written back.
+bench configuration and is not edited to run this. The adapter transport is the
+only thing that varies per board under test, so it is a --port (serial) or
+--host (ESP32 WiFi host link, tcp:// port taken from settings.json) argument
+here exactly as it is on host_link_test.py and pipe_test.py; the override is
+applied to the in-memory setting and never written back.
 
 Usage:
     venv/bin/python gui_source/bench_gui_run.py [seconds] [--port /dev/ttyUSB0]
+    venv/bin/python gui_source/bench_gui_run.py [seconds] [--host 192.168.2.106]
 
 Writes gui_source/mdp.log at TRACE level for tools/noack_report.py.
 """
@@ -59,7 +61,36 @@ def _take_port_arg(argv):
     return port
 
 
+def _take_host_arg(argv):
+    """Pull --host/--host= out of argv, returning the value or None.
+
+    Same rationale as _take_port_arg: --host selects the ESP32 WiFi host
+    link instead of a serial port, so it has to be gone before the duration
+    positional and app_context's "--debug" scan see argv.
+    """
+    host = None
+    rest = []
+    i = 1
+    while i < len(argv):
+        arg = argv[i]
+        if arg == "--host":
+            if i + 1 >= len(argv):
+                sys.exit("--host needs a value, e.g. --host 192.168.2.106")
+            host = argv[i + 1]
+            i += 2
+            continue
+        if arg.startswith("--host="):
+            host = arg.split("=", 1)[1]
+            i += 1
+            continue
+        rest.append(arg)
+        i += 1
+    argv[1:] = rest
+    return host
+
+
 PORT = _take_port_arg(sys.argv)
+HOST = _take_host_arg(sys.argv)
 
 # app_context reads "--debug" out of sys.argv at import to decide whether to
 # add the TRACE-level mdp.log sink, so it has to be present before mdp_gui is
@@ -79,6 +110,10 @@ from settings_model import setting  # noqa: E402
 
 if PORT:
     setting.adapter.comport = PORT
+    setting.adapter.transport = "serial"
+if HOST:
+    setting.adapter.host = HOST
+    setting.adapter.transport = "tcp"
 
 import mdp_gui  # noqa: E402
 
@@ -90,8 +125,12 @@ state = {"linked": [], "t0": None, "rc": 0}
 
 
 def start():
-    print(f"adapter port {setting.adapter.comport}"
-          f"{' (--port override)' if PORT else ' (settings.json)'}")
+    if setting.adapter.transport == "tcp":
+        print(f"adapter tcp://{setting.adapter.host}:{setting.adapter.tcp_port}"
+              f"{' (--host override)' if HOST else ' (settings.json)'}")
+    else:
+        print(f"adapter port {setting.adapter.comport}"
+              f"{' (--port override)' if PORT else ' (settings.json)'}")
     print(f"linking {len(window.panels)} panel(s) at {window.data_fps}Hz")
     for panel in window.panels:
         try:

@@ -43,12 +43,23 @@ endif()
 # so requiring it there is legal and empty. Verified by build size: naming both
 # leaves every configuration's image byte-identical to naming only the one it
 # uses.
+#
+# esp_wifi/esp_netif/esp_event/lwip join this list for the same reason and are
+# equally unconditional -- CONFIG_HOST_LINK_WIFI does not exist yet during the
+# early requirements pass either. Verified the same way (Phase 0 of the plan
+# doc): `make BOARD=ESP32C6 size` produced a byte-identical non-WiFi image
+# before and after adding these four, even though project_description.json
+# confirmed all of them (plus wifi_provisioning, pulled in transitively) were
+# genuinely part of the build graph.
 set(HOST_LINK_REQUIRES esp_driver_usb_serial_jtag esp_driver_uart)
 
 idf_component_register(
     SRCS
         "main.c"
         "platform_esp32.c"
+        "host_link_mux.c"
+        "host_link_wifi.c"
+        "wifi_sta.c"
         "${HOST_LINK_SRC}"
         "../../../core/protocol.c"
         "../../../core/nrf24l01p.c"
@@ -63,6 +74,10 @@ idf_component_register(
         esp_timer
         nvs_flash
         esp_system
+        esp_wifi
+        esp_netif
+        esp_event
+        lwip
 )
 
 # Matches the -Wall -Wextra every other target's Makefile gives core/ and the

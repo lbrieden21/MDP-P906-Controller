@@ -1,2 +1,3 @@
 build/
 pipe_test.py
+.env

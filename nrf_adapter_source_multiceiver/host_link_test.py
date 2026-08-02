@@ -6,6 +6,7 @@ enumerates as -- USART1-via-bridge on the STM32 targets, USB CDC on the
 Teensy targets. Deliberately avoids anything that needs the radio wired up.
 """
 import argparse
+import socket
 import sys
 import time
 
@@ -14,7 +15,8 @@ import serial
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument(
     "--port", required=True,
-    help="serial port, e.g. /dev/ttyACM0 (Teensy) or /dev/ttyUSB0 (STM32 dongle)",
+    help="serial port, e.g. /dev/ttyACM0 (Teensy) or /dev/ttyUSB0 (STM32 dongle); "
+         "or tcp://<host>:<port> for the ESP32 WiFi host link",
 )
 args = parser.parse_args()
 PORT = args.port
@@ -72,7 +74,45 @@ def check(label, got, want):
 DEFAULT_BAUD = 921600
 
 
+class _TcpPort:
+    """Duck-types the pyserial subset this script uses (write/read/close/
+    reset_input_buffer), so open_port() can hand back a socket instead of a
+    Serial without the rest of the script caring. baud is accepted and
+    ignored -- host_link_wifi.c has no line rate, exactly like USB CDC (see
+    host_link_wired_set_baudrate() on that link)."""
+
+    def __init__(self, host, port, timeout):
+        self._sock = socket.create_connection((host, port), timeout=5.0)
+        self._sock.settimeout(timeout)
+        self._sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+
+    def write(self, data):
+        self._sock.sendall(data)
+
+    def flush(self):
+        pass
+
+    def read(self, n=1):
+        try:
+            return self._sock.recv(n)
+        except (socket.timeout, TimeoutError):
+            return b""
+
+    def close(self):
+        self._sock.close()
+
+    def reset_input_buffer(self):
+        # Not needed over TCP: this is only ever called right after connect,
+        # and a fresh connection has nothing buffered yet -- unlike the
+        # serial case, there is no DTR/RTS reset pulse to flush the debris of.
+        pass
+
+
 def open_port(baud=DEFAULT_BAUD):
+    if PORT.startswith("tcp://"):
+        host, _, port_str = PORT[len("tcp://"):].partition(":")
+        return _TcpPort(host, int(port_str), timeout=0.2)
+
     # DTR and RTS must be low BEFORE the open, not after -- after is too late,
     # the pulse has already happened. On a board whose protocol link runs
     # through a USB-to-UART bridge (the ESP-WROOM-32), those lines drive EN and
@@ -85,9 +125,65 @@ def open_port(baud=DEFAULT_BAUD):
     s.rts = False
     s.port = PORT
     s.open()
-    time.sleep(0.4)
-    s.reset_input_buffer()
+    # Drain boot noise (ROM banner, then the boot-time REP_NRF_INIT) until the
+    # line goes quiet, rather than a fixed sleep -- a fixed 0.4s sleep was
+    # measured racing REP_NRF_INIT's arrival, which lands at exactly 0.4s on
+    # the C6, and losing that race hands the first real reply's slot to the
+    # boot announcement instead. A single empty read is not enough of a
+    # "quiet" signal: on the WROOM-32, the ROM banner (printed at 74880 baud,
+    # read here at 921600 and so seen as garbage bytes) leaves a ~0.2-0.4s
+    # silent gap before REP_NRF_INIT itself arrives, so bailing on the first
+    # empty read stops draining mid-gap and hands REP_NRF_INIT's slot to
+    # whatever real command follows. Require 0.6s of continuous silence
+    # instead, bounded to a 3s deadline overall.
+    deadline = time.time() + 3.0
+    quiet_since = None
+    while time.time() < deadline:
+        if s.read(256):
+            quiet_since = None
+        else:
+            quiet_since = quiet_since or time.time()
+            if time.time() - quiet_since >= 0.6:
+                break
     return s
+
+
+def reconnect_after_reset(timeout=10.0):
+    """Reopens the port after a CMD_REBOOT/CMD_RESET. A wired reboot is fast
+    and consistent, so the fixed 4s sleep the wired path has always used is
+    left alone. WiFi is neither: association (plus an occasional WPA3-SAE
+    comeback-timer retry, measured ~4.6s total on the bench AP) makes a fixed
+    sleep flaky, so the TCP case polls instead.
+
+    A bare TCP connect() is not enough of a check: esp_restart() does not
+    happen instantly on receipt of CMD_REBOOT, so a connect attempt made
+    right away can land in the *old*, soon-to-die process's accept queue and
+    "succeed" against a connection that is about to vanish (measured: connect
+    returns in <20ms, then a CMD_NRF_QUERY sent on it times out because the
+    real reboot happens underneath it). Each attempt therefore has to prove
+    the link is live with an actual round trip, matching how the production
+    GUI reconnect already treats a bare connect as insufficient -- it waits
+    for an ECHO, not just a socket state (see the plan's "Host side: the
+    timeout budget" section)."""
+    if not PORT.startswith("tcp://"):
+        time.sleep(4.0)
+        return open_port()
+
+    deadline = time.time() + timeout
+    last_err = None
+    while time.time() < deadline:
+        try:
+            candidate = open_port()
+            send(candidate, CMD_ECHO)
+            cmd, _ = recv(candidate, timeout=1.0)
+            if cmd == 0xFF:  # REP_ECHO
+                return candidate
+            candidate.close()
+            last_err = RuntimeError(f"no live ECHO reply (got {cmd!r})")
+        except OSError as e:
+            last_err = e
+        time.sleep(0.3)
+    raise last_err
 
 
 s = open_port()
@@ -143,8 +239,7 @@ check("reply", REP_NAMES.get(cmd), "REP_NRF_SET_SAVED")
 print("6. CMD_REBOOT, then re-query -> settings survived the power cycle")
 send(s, CMD_REBOOT)
 s.close()
-time.sleep(4.0)
-s = open_port()
+s = reconnect_after_reset()
 send(s, CMD_NRF_QUERY)
 cmd, data = recv(s)
 check("reply", REP_NAMES.get(cmd), "REP_NRF_SET_QUERY")
@@ -163,8 +258,7 @@ send(s, CMD_RESET)
 cmd, data = recv(s)
 check("reply", REP_NAMES.get(cmd), "REP_RESET_DONE")
 s.close()
-time.sleep(4.0)
-s = open_port()
+s = reconnect_after_reset()
 send(s, CMD_NRF_QUERY)
 cmd, data = recv(s)
 check("defaults restored", data.hex() if data else None, default.hex())

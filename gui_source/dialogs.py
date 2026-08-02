@@ -123,6 +123,12 @@ class MDPSettings(QtWidgets.QDialog, FramelessWindow):
 
     def initValues(self):
         dev = self._current_device()
+        self.ui.comboBoxTransport.setCurrentIndex(
+            1 if setting.adapter.transport == "tcp" else 0
+        )
+        self.ui.lineEditHost.setText(setting.adapter.host)
+        self.ui.spinBoxTcpPort.setValue(setting.adapter.tcp_port)
+        self._update_transport_enabled()
         self.ui.spinBoxBaud.setValue(setting.adapter.baudrate)
         self.ui.lineEditAddr1.setText(setting.adapter.address.split(":")[0])
         self.ui.lineEditAddr2.setText(setting.adapter.address.split(":")[1])
@@ -146,6 +152,17 @@ class MDPSettings(QtWidgets.QDialog, FramelessWindow):
         self.ui.btnColorIndicator.setStyleSheet(
             f"background-color: #{dev.color.lstrip('#')}"
         )
+
+    def _update_transport_enabled(self):
+        is_tcp = self.ui.comboBoxTransport.currentIndex() == 1
+        self.ui.comboBoxPort.setEnabled(not is_tcp)
+        self.ui.spinBoxBaud.setEnabled(not is_tcp)
+        self.ui.lineEditHost.setEnabled(is_tcp)
+        self.ui.spinBoxTcpPort.setEnabled(is_tcp)
+
+    @QtCore.pyqtSlot(int)
+    def on_comboBoxTransport_currentIndexChanged(self, index):
+        self._update_transport_enabled()
 
     def refreshPorts(self):
         self.ui.comboBoxPort.clear()
@@ -210,6 +227,11 @@ class MDPSettings(QtWidgets.QDialog, FramelessWindow):
         self.ui.btnColorIndicator.setStyleSheet(f"background-color: #{hex6}")
 
     def save_adapter_settings(self):
+        setting.adapter.transport = (
+            "tcp" if self.ui.comboBoxTransport.currentIndex() == 1 else "serial"
+        )
+        setting.adapter.host = self.ui.lineEditHost.text()
+        setting.adapter.tcp_port = int(self.ui.spinBoxTcpPort.value())
         setting.adapter.baudrate = int(self.ui.spinBoxBaud.value())
         setting.adapter.address = ":".join(
             [

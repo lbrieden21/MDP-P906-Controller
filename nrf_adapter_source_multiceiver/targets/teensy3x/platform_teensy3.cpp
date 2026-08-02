@@ -237,6 +237,22 @@ extern "C" int store_save(const void *payload, size_t len) {
     return 1;
 }
 
+/* No WiFi on this target. platform.h documents 0 as "this command does not
+   apply to me" -- protocol.c answers REP_CMD_FAILED. */
+extern "C" int wifi_creds_save(const char *ssid, const char *pass) {
+    (void)ssid;
+    (void)pass;
+    return 0;
+}
+
+extern "C" int wifi_status(uint8_t *state, uint8_t ip[4], int8_t *rssi, char ssid[33]) {
+    (void)state;
+    (void)ip;
+    (void)rssi;
+    (void)ssid;
+    return 0;
+}
+
 /* ------------------------------------------------------------ misc platform */
 
 extern "C" void delay_ms(uint32_t ms) {

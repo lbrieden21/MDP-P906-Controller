@@ -39,7 +39,7 @@
 
 static uint32_t rx_byte_count;
 
-void host_link_begin(uint32_t baudrate) {
+void host_link_wired_begin(uint32_t baudrate) {
     uart_config_t cfg = {
         .baud_rate = (int)baudrate,
         .data_bits = UART_DATA_8_BITS,
@@ -72,7 +72,7 @@ void host_link_begin(uint32_t baudrate) {
  * partially emitting one -- which uart_tx_chars(), the obvious non-blocking
  * alternative, would do.
  */
-void host_link_write(const uint8_t *data, size_t len) {
+void host_link_wired_write(const uint8_t *data, size_t len) {
     size_t free_bytes = 0;
     if (uart_get_tx_buffer_free_size(UART_NUM_0, &free_bytes) != ESP_OK) {
         return;
@@ -83,7 +83,7 @@ void host_link_write(const uint8_t *data, size_t len) {
     (void)uart_write_bytes(UART_NUM_0, data, len);
 }
 
-int host_link_read_byte(uint8_t *out) {
+int host_link_wired_read_byte(uint8_t *out) {
     /* ticks_to_wait = 0: same non-blocking contract as the USB-Serial/JTAG
        link, since protocol_poll() drains until this runs dry. */
     if (uart_read_bytes(UART_NUM_0, out, 1, 0) == 1) {
@@ -93,7 +93,7 @@ int host_link_read_byte(uint8_t *out) {
     return 0;
 }
 
-uint32_t host_rx_byte_count(void) {
+uint32_t wired_rx_byte_count(void) {
     return rx_byte_count;
 }
 
@@ -106,7 +106,7 @@ uint32_t host_rx_byte_count(void) {
  * FIFO. Reprogramming the divisor while a byte is still in the shift register
  * corrupts it, and that byte is the ACK the host is waiting on.
  */
-void host_link_set_baudrate(uint32_t baudrate) {
+void host_link_wired_set_baudrate(uint32_t baudrate) {
     (void)uart_wait_tx_done(UART_NUM_0, pdMS_TO_TICKS(TX_DRAIN_TIMEOUT_MS));
     (void)uart_set_baudrate(UART_NUM_0, baudrate);
 }

@@ -10,6 +10,7 @@ import serial.tools.list_ports
 from loguru import logger
 
 from mdp_controller.serial_reader import SerialReaderBuffered
+from mdp_controller.tcp_port import open_tcp_adapter_port
 
 
 def _find_port_name(hwid):
@@ -21,7 +22,12 @@ def _find_port_name(hwid):
 
 
 def open_adapter_port(port, baudrate, timeout=None):
-    """Open an adapter port with DTR and RTS deasserted from the start.
+    """Open an adapter port, dispatching on a `tcp://host:port` prefix for
+    the ESP32 WiFi host link, or a serial device path otherwise.
+
+    ## Serial
+
+    Opened with DTR and RTS deasserted from the start.
 
     On adapters behind a USB-to-UART bridge (the ESP-WROOM-32 boards, whose
     protocol link is UART0 through a CP2102/CH340), the bridge's RTS drives EN
@@ -39,6 +45,8 @@ def open_adapter_port(port, baudrate, timeout=None):
     none of that firmware reads the control lines, and no target's write path
     gates on DTR.
     """
+    if port and port.startswith("tcp://"):
+        return open_tcp_adapter_port(port)
     ser = serial.Serial(baudrate=baudrate, timeout=timeout)
     ser.dtr = False
     ser.rts = False

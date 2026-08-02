@@ -13,19 +13,19 @@
     <x>0</x>
     <y>0</y>
     <width>340</width>
-    <height>584</height>
+    <height>654</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
     <width>340</width>
-    <height>584</height>
+    <height>654</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
     <width>340</width>
-    <height>584</height>
+    <height>654</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -80,6 +80,171 @@
       <number>6</number>
      </property>
     </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_wifiTransport" stretch="2,3">
+     <item>
+      <widget class="QLabel" name="label_wifiTransport">
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>28</height>
+        </size>
+       </property>
+       <property name="font">
+        <font>
+         <family>Sarasa Fixed SC SemiBold</family>
+        </font>
+       </property>
+       <property name="text">
+        <string>连接方式</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+       <property name="margin">
+        <number>6</number>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="comboBoxTransport">
+       <property name="font">
+        <font>
+         <family>Sarasa Fixed SC SemiBold</family>
+        </font>
+       </property>
+       <item>
+        <property name="text">
+         <string>USB / 串口</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>WiFi (TCP)</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_wifiHostPort" stretch="2,3">
+     <item>
+      <widget class="QLabel" name="label_wifiHostPort">
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>28</height>
+        </size>
+       </property>
+       <property name="font">
+        <font>
+         <family>Sarasa Fixed SC SemiBold</family>
+        </font>
+       </property>
+       <property name="text">
+        <string>主机地址</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+       <property name="margin">
+        <number>6</number>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QFrame" name="frame_wifiHostPort">
+       <property name="frameShape">
+        <enum>QFrame::NoFrame</enum>
+       </property>
+       <property name="frameShadow">
+        <enum>QFrame::Plain</enum>
+       </property>
+       <layout class="QHBoxLayout" name="horizontalLayout_wifiHostPortInner" stretch="3,0,2">
+        <property name="spacing">
+         <number>4</number>
+        </property>
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+        <item>
+         <widget class="QLineEdit" name="lineEditHost">
+          <property name="font">
+           <font>
+            <family>Sarasa Fixed SC SemiBold</family>
+           </font>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+          <property name="placeholderText">
+           <string>192.168.1.100</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="label_wifiPortColon">
+          <property name="maximumSize">
+           <size>
+            <width>10</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="font">
+           <font>
+            <family>Sarasa Fixed SC SemiBold</family>
+           </font>
+          </property>
+          <property name="text">
+           <string>:</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QDoubleSpinBox" name="spinBoxTcpPort">
+          <property name="font">
+           <font>
+            <family>Sarasa Fixed SC SemiBold</family>
+           </font>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+          </property>
+          <property name="decimals">
+           <number>0</number>
+          </property>
+          <property name="minimum">
+           <double>1.000000000000000</double>
+          </property>
+          <property name="maximum">
+           <double>65535.000000000000000</double>
+          </property>
+          <property name="singleStep">
+           <double>1.000000000000000</double>
+          </property>
+          <property name="value">
+           <double>9000.000000000000000</double>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </item>
+    </layout>
    </item>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_33" stretch="2,3">

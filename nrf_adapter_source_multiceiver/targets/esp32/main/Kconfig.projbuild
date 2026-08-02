@@ -36,4 +36,24 @@ choice HOST_LINK
 
 endchoice
 
+config HOST_LINK_WIFI
+    bool "WiFi host link"
+    default n
+    depends on SOC_WIFI_SUPPORTED
+    help
+        Serves the protocol over TCP as well as whichever wired link the
+        HOST_LINK choice above selected -- both stay live concurrently, since
+        the wired link is how a WiFi build gets provisioned with credentials
+        in the first place. Not offered on the H2, which has no WiFi at all
+        (802.15.4 + BLE only).
+
+        Do not set this by hand: `make HOST_LINK=HOST_LINK_WIFI` picks the
+        sdkconfig fragment and gives this configuration its own build
+        directory and sdkconfig, same as the HOST_LINK choice above.
+
+config HOST_LINK_WIFI_PORT
+    int "WiFi host link TCP port"
+    default 9000
+    depends on HOST_LINK_WIFI
+
 endmenu

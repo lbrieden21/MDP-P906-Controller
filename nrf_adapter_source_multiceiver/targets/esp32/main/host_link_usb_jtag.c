@@ -27,9 +27,9 @@
 
 static uint32_t rx_byte_count;
 
-void host_link_begin(uint32_t baudrate) {
+void host_link_wired_begin(uint32_t baudrate) {
     /* Ignored: USB CDC has no line rate of its own, the host picks one. The
-       value is still persisted and still ACKed -- see host_link_set_baudrate(). */
+       value is still persisted and still ACKed -- see host_link_wired_set_baudrate(). */
     (void)baudrate;
 
     usb_serial_jtag_driver_config_t cfg = {
@@ -46,15 +46,15 @@ void host_link_begin(uint32_t baudrate) {
  * protocol_poll() drains until host_link_read_byte() runs dry and emits replies
  * from inside that loop, so a blocking write would starve the watchdog refresh
  * whenever the host stopped reading. A full TX ring drops the frame instead --
- * the same trade the F103's usb_cdc.c makes, for the same reason. host_link_write()
+ * the same trade the F103's usb_cdc.c makes, for the same reason. host_link_wired_write()
  * must not wait, must not pump any driver task, and must not partially emit a
  * frame. host_link_uart0.c preserves the same contract by a different means.
  */
-void host_link_write(const uint8_t *data, size_t len) {
+void host_link_wired_write(const uint8_t *data, size_t len) {
     (void)usb_serial_jtag_write_bytes(data, len, 0);
 }
 
-int host_link_read_byte(uint8_t *out) {
+int host_link_wired_read_byte(uint8_t *out) {
     if (usb_serial_jtag_read_bytes(out, 1, 0) == 1) {
         rx_byte_count++;
         return 1;
@@ -62,11 +62,11 @@ int host_link_read_byte(uint8_t *out) {
     return 0;
 }
 
-uint32_t host_rx_byte_count(void) {
+uint32_t wired_rx_byte_count(void) {
     return rx_byte_count;
 }
 
-void host_link_set_baudrate(uint32_t baudrate) {
+void host_link_wired_set_baudrate(uint32_t baudrate) {
     /* No line rate to set. CMD_SET_BAUDRATE still ACKs and still persists the
        value (protocol.c), so the settings record stays portable across every
        target -- identical to the Teensy and F103 CDC builds. This is why

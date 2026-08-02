@@ -22,13 +22,17 @@ Usage:
     python persistence_test.py --port /dev/ttyUSB0 --phase restore
 """
 import argparse
+import socket
 import sys
 import time
 
 import serial
 
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument("--port", required=True, help="serial port, e.g. /dev/ttyUSB0")
+parser.add_argument(
+    "--port", required=True,
+    help="serial port, e.g. /dev/ttyUSB0; or tcp://<host>:<port> for the ESP32 WiFi host link",
+)
 parser.add_argument("--phase", required=True, choices=("arm", "verify", "restore"))
 args = parser.parse_args()
 PORT = args.port
@@ -96,7 +100,46 @@ def check(label, got, want):
         fails.append(label)
 
 
+class _TcpPort:
+    """Duck-types the pyserial subset this script uses (write/read/close/
+    reset_input_buffer), so open_port() can hand back a socket instead of a
+    Serial without the rest of the script caring. baud is accepted and
+    ignored -- host_link_wifi.c has no line rate, exactly like USB CDC.
+    That also means the DEFAULT_BAUD/TEST_BAUD distinction this script tests
+    is a no-op over TCP: verify's negative control (step 3) "legitimately
+    fails" here for the same reason host_link_test.py's does on USB-Serial/
+    JTAG (see that script) -- both connect at whatever baud is asked and get
+    an answer regardless."""
+
+    def __init__(self, host, port, timeout):
+        self._sock = socket.create_connection((host, port), timeout=5.0)
+        self._sock.settimeout(timeout)
+        self._sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+
+    def write(self, data):
+        self._sock.sendall(data)
+
+    def flush(self):
+        pass
+
+    def read(self, n=1):
+        try:
+            return self._sock.recv(n)
+        except (socket.timeout, TimeoutError):
+            return b""
+
+    def close(self):
+        self._sock.close()
+
+    def reset_input_buffer(self):
+        pass  # fresh connection each time; nothing to flush
+
+
 def open_port(baud):
+    if PORT.startswith("tcp://"):
+        host, _, port_str = PORT[len("tcp://"):].partition(":")
+        return _TcpPort(host, int(port_str), timeout=0.2)
+
     # DTR and RTS must be low BEFORE the open, not after -- after is too late,
     # the pulse has already happened. On a board whose protocol link runs
     # through a USB-to-UART bridge (the ESP-WROOM-32), those lines drive EN and
@@ -109,8 +152,26 @@ def open_port(baud):
     s.rts = False
     s.port = PORT
     s.open()
-    time.sleep(0.4)
-    s.reset_input_buffer()
+    # Drain boot noise (ROM banner, then the boot-time REP_NRF_INIT) until the
+    # line goes quiet, rather than a fixed sleep -- a fixed 0.4s sleep was
+    # measured racing REP_NRF_INIT's arrival, which lands at exactly 0.4s on
+    # the C6, and losing that race hands the first real reply's slot to the
+    # boot announcement instead. A single empty read is not enough of a
+    # "quiet" signal: on the WROOM-32, the ROM banner (printed at 74880 baud,
+    # read here at 921600 and so seen as garbage bytes) leaves a ~0.2-0.4s
+    # silent gap before REP_NRF_INIT itself arrives, so bailing on the first
+    # empty read stops draining mid-gap and hands REP_NRF_INIT's slot to
+    # whatever real command follows. Require 0.6s of continuous silence
+    # instead, bounded to a 3s deadline overall.
+    deadline = time.time() + 3.0
+    quiet_since = None
+    while time.time() < deadline:
+        if s.read(256):
+            quiet_since = None
+        else:
+            quiet_since = quiet_since or time.time()
+            if time.time() - quiet_since >= 0.6:
+                break
     return s
 
 

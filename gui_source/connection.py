@@ -25,8 +25,12 @@ class ConnectionManager(QtCore.QObject):
         return self.bus is not None
 
     def _build_bus(self) -> MDPBus:
+        if setting.adapter.transport == "tcp":
+            port = f"tcp://{setting.adapter.host}:{int(setting.adapter.tcp_port)}"
+        else:
+            port = setting.adapter.comport
         return MDPBus(
-            port=setting.adapter.comport,
+            port=port,
             baudrate=setting.adapter.baudrate,
             address=setting.adapter.address,
             freq=int(setting.adapter.freq),

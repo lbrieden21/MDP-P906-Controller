@@ -124,6 +124,12 @@ class AdapterSettings:
         self.address = "AA:BB:CC:DD:EE"
         self.freq = 2521
         self.txpower = "4dBm"
+        # "serial" (default, zero-friction) or "tcp" for the ESP32 WiFi host
+        # link -- see plans/nrf_adapter_esp32_wifi_link_plan.md, "Decisions
+        # made" #3 (manual IP entry, no mDNS).
+        self.transport = "serial"
+        self.host = ""
+        self.tcp_port = 9000
 
 
 class UiSettings:

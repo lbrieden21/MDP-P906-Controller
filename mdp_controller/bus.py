@@ -60,6 +60,14 @@ class MDPBus:
         self._address = _hex_to_bytes(address)
         self._freq = freq
         self._debug = debug
+        # WiFi adds a network connect in front of the adapter's 1s ECHO
+        # cadence, on top of a few ms of per-request jitter -- see
+        # plans/nrf_adapter_esp32_wifi_link_plan.md, "Host side: the timeout
+        # budget". Both the connect wait and every device's default
+        # com_timeout are widened for a tcp:// port; a serial port keeps the
+        # tighter wired-link budgets unchanged.
+        self._is_tcp = bool(port) and port.startswith("tcp://")
+        self.com_timeout = 0.08 if self._is_tcp else 0.04
 
         self._lock = threading.RLock()
         self._pipe_owners: Dict[int, Optional[object]] = {}
@@ -72,7 +80,7 @@ class MDPBus:
         self._adp = NRF24Adapter(port=port, baudrate=baudrate, debug=debug)
         self._adp.nrf_register_recv_callback(self._on_recv)
 
-        if not self._adp.wait_connected():
+        if not self._adp.wait_connected(timeout=4.0 if self._is_tcp else 2.0):
             self._adp.close()
             raise Exception("NRF24-Adapter wait connection timeout")
 

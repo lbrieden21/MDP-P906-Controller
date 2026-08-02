@@ -134,6 +134,17 @@ The GUI can drive more than one device at a time. Open **Connection Settings**, 
 
 This is implemented using the adapter's nRF24L01+ hardware RX pipes to tell devices apart, so it requires the [multiceiver adapter firmware](#modification-method) and is capped at **5 devices per adapter** (pipes 1-5; pipe 0 is reserved for the adapter's own transmit ACKs).
 
+#### Connecting over WiFi (ESP32 adapters)
+
+An ESP32-C6, ESP32-S3 or classic ESP32 (WROOM-32) adapter built with `HOST_LINK_WIFI` (see
+[nrf_adapter_source_multiceiver/README.md](nrf_adapter_source_multiceiver/README.md)) can be
+driven over the LAN instead of USB, once it's been provisioned with WiFi credentials over its
+wired link. In **Connection Settings**, set **Connection Type** to **WiFi (TCP)** and enter the
+adapter's **Host Address** (its DHCP-assigned IP) and port (9000 by default) instead of picking
+a serial port/baud rate. The USB/serial fields are disabled while WiFi is selected, and vice
+versa. Anything else about the GUI — multi-device support, panels, LINK/UNLINK — works exactly
+the same regardless of which transport the adapter is reached over.
+
 #### L1060 Electronic Load Auxiliary Tools
 
 The L1060 panel has a Preset tab plus three automated-run tabs, each usable in any of the load's CC/CV/CR/CP modes:

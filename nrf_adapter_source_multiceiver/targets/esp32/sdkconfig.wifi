@@ -1,0 +1,16 @@
+# WiFi host-link overlay, applied on top of sdkconfig.defaults (and whichever
+# wired-link fragment applies) by `make HOST_LINK=HOST_LINK_WIFI`.
+#
+# This does NOT touch the HOST_LINK_USB_JTAG/HOST_LINK_UART0 choice -- the
+# wired link of a WiFi build is whatever that choice already resolves to per
+# board (USB-Serial/JTAG on the C6/S3, UART0 on classic ESP32, which has no
+# USB-Serial/JTAG to choose in the first place). Both links stay live
+# concurrently; see host_link_mux.c.
+CONFIG_HOST_LINK_WIFI=y
+
+# Phase 0 measured a WiFi-linked image at ~866-878KB, a ~658KB delta over the
+# non-WiFi baseline -- that clears the default single-app 1MB factory
+# partition but with only ~17% margin, before wifi_sta.c/host_link_wifi.c/NVS
+# credential code existed. Required, not insurance. Valid on every board in
+# this target, including the WROOM-32's 4MB flash.
+CONFIG_PARTITION_TABLE_SINGLE_APP_LARGE=y

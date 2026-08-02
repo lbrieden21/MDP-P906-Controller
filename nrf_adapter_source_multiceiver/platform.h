@@ -48,6 +48,20 @@ int host_link_read_byte(uint8_t *out);
    CMD_SET_BAUDRATE still ACKs and still persists the value in that case. */
 void host_link_set_baudrate(uint32_t baudrate);
 
+/* WiFi credentials, ESP32 WiFi builds only. 0 = unsupported or failed, which
+   is how a target says "this command does not apply to me" -- protocol.c
+   answers REP_CMD_FAILED for it. Every non-WiFi target, and every non-ESP32
+   target, stubs both to return 0.
+   wifi_creds_save(): ssid/pass NULL clears the stored credentials rather than
+   setting them. Applies live in addition to persisting, so a provisioning
+   command connects without a reboot.
+   wifi_status(): fills state (0 disconnected, 1 connecting, 2 connected),
+   ip (dotted-quad, low octet first), rssi (dBm) and ssid (NUL-terminated,
+   up to 32 chars + terminator). ip/rssi/ssid are only meaningful when
+   connected; returns 0 only for "unsupported", not for "not yet connected". */
+int wifi_creds_save(const char *ssid, const char *pass);
+int wifi_status(uint8_t *state, uint8_t ip[4], int8_t *rssi, char ssid[33]);
+
 /* Settings storage: one record, payload <= 32 bytes, integrity-checked.
    Both return 1 on success, 0 on failure/absent record. A save with len==0
    invalidates the stored record (CMD_RESET). */

@@ -199,6 +199,71 @@ static void handle_command(uint8_t cmd, uint8_t *data, size_t len) {
             break;
         }
 
+        case CMD_WIFI_SET: {
+            /* ssid_len(1) | ssid | pass_len(1) | pass -- ssid up to 32 bytes,
+               pass up to 64, and the framer's own 128-byte buffer is the only
+               other limit in play. */
+            if (len < 2) {
+                uart_send_packet(REP_INVALID_CMD, NULL, 0, NULL, 0);
+                break;
+            }
+            uint8_t ssid_len = data[0];
+            if (ssid_len > 32 || (size_t)(1 + ssid_len + 1) > len) {
+                uart_send_packet(REP_INVALID_CMD, NULL, 0, NULL, 0);
+                break;
+            }
+            uint8_t pass_len = data[1 + ssid_len];
+            if (pass_len > 64 || (size_t)(1 + ssid_len + 1 + pass_len) != len) {
+                uart_send_packet(REP_INVALID_CMD, NULL, 0, NULL, 0);
+                break;
+            }
+            char ssid[33];
+            char pass[65];
+            for (uint8_t i = 0; i < ssid_len; i++) {
+                ssid[i] = (char)data[1 + i];
+            }
+            ssid[ssid_len] = '\0';
+            const uint8_t *pass_src = data + 1 + ssid_len + 1;
+            for (uint8_t i = 0; i < pass_len; i++) {
+                pass[i] = (char)pass_src[i];
+            }
+            pass[pass_len] = '\0';
+            if (wifi_creds_save(ssid, pass)) {
+                uart_send_packet(REP_WIFI_SET, NULL, 0, NULL, 0);
+            } else {
+                uart_send_packet(REP_CMD_FAILED, NULL, 0, NULL, 0);
+            }
+            break;
+        }
+
+        case CMD_WIFI_QUERY: {
+            uint8_t state;
+            uint8_t ip[4];
+            int8_t rssi;
+            char ssid[33];
+            if (!wifi_status(&state, ip, &rssi, ssid)) {
+                uart_send_packet(REP_CMD_FAILED, NULL, 0, NULL, 0);
+                break;
+            }
+            uint8_t ssid_len = 0;
+            while (ssid_len < 32 && ssid[ssid_len]) {
+                ssid_len++;
+            }
+            uint8_t out[7] = {state,          ip[0], ip[1], ip[2],
+                               ip[3], (uint8_t)rssi, ssid_len};
+            uart_send_packet(REP_WIFI_STATUS, out, sizeof(out),
+                             (const uint8_t *)ssid, ssid_len);
+            break;
+        }
+
+        case CMD_WIFI_CLEAR:
+            if (wifi_creds_save(NULL, NULL)) {
+                uart_send_packet(REP_WIFI_SET, NULL, 0, NULL, 0);
+            } else {
+                uart_send_packet(REP_CMD_FAILED, NULL, 0, NULL, 0);
+            }
+            break;
+
         case CMD_ECHO:
             uart_send_packet(REP_ECHO, NULL, 0, NULL, 0);
             break;
