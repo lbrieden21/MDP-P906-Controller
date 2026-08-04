@@ -22,12 +22,14 @@
  * This just calls the existing set_tx_address/set_rx_address register
  * writes directly, nothing else.
  *
- * Also new (WiFi host link, ESP32 targets): CMD_WIFI_SET / CMD_WIFI_QUERY /
- * CMD_WIFI_CLEAR, so a WiFi-capable adapter can be provisioned over the wired
- * link before it can be reached over IP. platform.h's wifi_creds_save() /
- * wifi_status() hooks answer REP_CMD_FAILED on every target that does not
- * implement them, so these three commands exist on every target but only do
- * anything on an ESP32 WiFi build.
+ * Also new (network host links, WiFi and Ethernet): CMD_NET_CREDS_SET /
+ * CMD_NET_QUERY / CMD_NET_CREDS_CLEAR / CMD_NET_IP_SET, so a network-capable
+ * adapter can be provisioned over the wired link before it can be reached
+ * over IP. platform.h's net_creds_save() / net_ip_config_save() / net_status()
+ * hooks answer REP_CMD_FAILED on every target that does not implement them,
+ * so these four commands exist on every target but only do anything on a
+ * WiFi or Ethernet build. (Named CMD_WIFI_* through the WiFi-only era; full
+ * cutover to CMD_NET_* when Ethernet needed the same commands.)
  */
 
 enum {
@@ -40,9 +42,10 @@ enum {
     CMD_NRF_QUERY = 0x22,
     CMD_NRF_OPEN_PIPE = 0x23,
     CMD_NRF_SET_TX_TARGET = 0x24,
-    CMD_WIFI_SET = 0x30,
-    CMD_WIFI_QUERY = 0x31,
-    CMD_WIFI_CLEAR = 0x32,
+    CMD_NET_CREDS_SET = 0x30,
+    CMD_NET_QUERY = 0x31,
+    CMD_NET_CREDS_CLEAR = 0x32,
+    CMD_NET_IP_SET = 0x33,
     CMD_ECHO = 0xFF,
 };
 
@@ -65,8 +68,8 @@ enum {
     REP_NRF_PIPE_OPENED = 0x23,
     REP_NRF_TX_TARGET_SET = 0x24,
 
-    REP_WIFI_SET = 0x30,   /* answers CMD_WIFI_SET and CMD_WIFI_CLEAR alike */
-    REP_WIFI_STATUS = 0x31,
+    REP_NET_ACK = 0x30,    /* answers CMD_NET_CREDS_SET, CMD_NET_CREDS_CLEAR and CMD_NET_IP_SET alike */
+    REP_NET_STATUS = 0x31,
 
     REP_ECHO = 0xFF,
 };

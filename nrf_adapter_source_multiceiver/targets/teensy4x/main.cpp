@@ -10,6 +10,7 @@
 
 #include <Arduino.h>
 
+#include "host_link_eth.h"
 #include "platform_teensy4.h"
 
 extern "C" {
@@ -43,6 +44,10 @@ void loop() {
     if (radio_irq_pending()) {
         protocol_service_radio_irq();
     }
+
+    /* Ethernet.loop() + accept() + link state, whether or not this build has
+       Ethernet -- a no-op passthrough without HOST_LINK_ETH (host_link_eth.cpp). */
+    host_link_eth_poll();
 
     protocol_poll();
 

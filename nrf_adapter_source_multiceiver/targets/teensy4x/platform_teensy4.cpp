@@ -14,6 +14,7 @@
 #include <Arduino.h>
 #include <SPI.h>
 
+#include "net_eth.h"
 #include "pins.h"
 #include "platform_teensy4.h"
 
@@ -24,9 +25,12 @@ extern "C" {
 /* ---------------------------------------------------------------- host link */
 
 /* -DHOST_LINK_USB_CDC (default) or -DHOST_LINK_SERIAL1, set by the Makefile.
-   Both sit behind the same three platform.h functions, so switching is a
-   compile-time flag rather than a rewrite, and nothing in core/ is conditional
-   on it. */
+   Both sit behind the same three host_link_wired_* functions, so switching is
+   a compile-time flag rather than a rewrite, and nothing in core/ is
+   conditional on it. Renamed from host_link_{begin,write,read_byte,
+   set_baudrate} when host_link_mux.cpp arrived to own the platform.h names --
+   bodies unchanged, exactly as targets/esp32/main/host_link_usb_jtag.c and
+   host_link_uart0.c were treated. */
 #if defined(HOST_LINK_SERIAL1)
 #define HOST_PORT Serial1
 #elif defined(HOST_LINK_USB_CDC)
@@ -35,15 +39,15 @@ extern "C" {
 #error "Define HOST_LINK_USB_CDC or HOST_LINK_SERIAL1"
 #endif
 
-void host_link_begin(uint32_t baudrate) {
+void host_link_wired_begin(uint32_t baudrate) {
     HOST_PORT.begin(baudrate);
 }
 
-extern "C" void host_link_write(const uint8_t *data, size_t len) {
+void host_link_wired_write(const uint8_t *data, size_t len) {
     HOST_PORT.write(data, len);
 }
 
-extern "C" int host_link_read_byte(uint8_t *out) {
+int host_link_wired_read_byte(uint8_t *out) {
     int c = HOST_PORT.read();
     if (c < 0) {
         return 0;
@@ -52,7 +56,7 @@ extern "C" int host_link_read_byte(uint8_t *out) {
     return 1;
 }
 
-extern "C" void host_link_set_baudrate(uint32_t baudrate) {
+void host_link_wired_set_baudrate(uint32_t baudrate) {
 #if defined(HOST_LINK_SERIAL1)
     HOST_PORT.begin(baudrate);
 #else
@@ -156,7 +160,9 @@ typedef struct {
     uint16_t crc;
 } store_record_t;
 
-static uint16_t crc16_ccitt(const uint8_t *data, size_t len) {
+/* Declared in platform_teensy4.h -- net_eth.cpp shares this definition
+   rather than carrying a second copy. */
+uint16_t crc16_ccitt(const uint8_t *data, size_t len) {
     uint16_t crc = 0xFFFF;
     for (size_t i = 0; i < len; i++) {
         crc ^= (uint16_t)data[i] << 8;
@@ -210,22 +216,6 @@ extern "C" int store_save(const void *payload, size_t len) {
         }
     }
     return 1;
-}
-
-/* No WiFi on this target. platform.h documents 0 as "this command does not
-   apply to me" -- protocol.c answers REP_CMD_FAILED. */
-extern "C" int wifi_creds_save(const char *ssid, const char *pass) {
-    (void)ssid;
-    (void)pass;
-    return 0;
-}
-
-extern "C" int wifi_status(uint8_t *state, uint8_t ip[4], int8_t *rssi, char ssid[33]) {
-    (void)state;
-    (void)ip;
-    (void)rssi;
-    (void)ssid;
-    return 0;
 }
 
 /* ------------------------------------------------------------ misc platform */
@@ -282,4 +272,9 @@ void platform_init(void) {
     SPI.begin();
 
     attachInterrupt(digitalPinToInterrupt(NRF_IRQ_PIN), radio_isr, FALLING);
+
+    /* No-op unless HOST_LINK_ETH is set -- see net_eth.cpp. Last, so the
+       radio and the settings store are both already up if it needs either,
+       matching platform_esp32.c's placement of wifi_sta_init(). */
+    net_eth_begin();
 }

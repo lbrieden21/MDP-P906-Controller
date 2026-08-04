@@ -1,15 +1,16 @@
 /*
  * WiFi station bring-up, reconnect and credential storage. Owns the
- * platform.h wifi_creds_save()/wifi_status() hooks for the ESP32 target.
+ * platform.h net_creds_save()/net_ip_config_save()/net_status() hooks for
+ * the ESP32 target.
  *
  * Gated on CONFIG_HOST_LINK_WIFI internally rather than by CMakeLists SRCS,
- * so every ESP32 build links this file and gets a real wifi_creds_save()/
- * wifi_status() either way -- a non-WiFi build just gets the stub at the
- * bottom, on the same footing as the four non-ESP32 targets' stubs.
+ * so every ESP32 build links this file and gets a real net_creds_save()/
+ * net_status() either way -- a non-WiFi build just gets the stub at the
+ * bottom, on the same footing as the non-ESP32 targets' stubs.
  * CONFIG_HOST_LINK_WIFI is what keeps the 2.4GHz radio off in every build
- * that doesn't ask for it (decision 6 in the plan doc): wifi_sta_init() is a
- * no-op there, so nothing calls esp_wifi_start() and the coexistence
- * question this feature raises simply does not arise for that build.
+ * that doesn't ask for it: wifi_sta_init() is a no-op there, so nothing
+ * calls esp_wifi_start() and the coexistence question WiFi raises simply
+ * does not arise for that build.
  *
  * Credentials get their own NVS key ("wifi" in the "p906" namespace),
  * deliberately not folded into the persisted_settings_t blob protocol.c
@@ -17,8 +18,8 @@
  * radio setting on every board already in the field (store_load() checks the
  * stored blob size for exact equality). esp_wifi_set_storage(WIFI_STORAGE_RAM)
  * keeps IDF's own WiFi-credential NVS copy out of the picture entirely, so
- * this key is the only place credentials live and CMD_WIFI_CLEAR has exactly
- * one thing to erase.
+ * this key is the only place credentials live and CMD_NET_CREDS_CLEAR has
+ * exactly one thing to erase.
  */
 
 #include "sdkconfig.h"
@@ -48,7 +49,7 @@ typedef struct {
     char pass[65];
 } wifi_creds_t;
 
-/* REP_WIFI_STATUS's state byte -- see core/protocol.h. Updated only from the
+/* REP_NET_STATUS's state byte -- see core/protocol.h. Updated only from the
    default event-loop task (event_handler() below), read from protocol_poll()
    on the main loop task; a plain byte read/write needs no lock, same as
    radio_irq_flag in platform_esp32.c. */
@@ -65,7 +66,7 @@ static bool s_have_creds;
    since nothing arrives to trigger schedule_reconnect(). ESP-IDF's own
    station example (examples/wifi/getting_started/station) only ever calls
    esp_wifi_connect() from inside the WIFI_EVENT_STA_START handler for this
-   reason. The live CMD_WIFI_SET path never hits this race -- STA has already
+   reason. The live CMD_NET_CREDS_SET path never hits this race -- STA has already
    been running for the whole session by the time a user provisions -- which
    is why only the boot-time reconnect was ever seen to hang. */
 static bool s_sta_started;
@@ -213,9 +214,9 @@ void wifi_sta_init(void) {
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_start());
 
-    /* Phase 0 measured no consistent latency win from WIFI_PS_NONE, but it is
-       a one-line, zero-cost setting IDF's own docs still recommend for a
-       latency-sensitive link -- see the plan doc's Phase 0 section. */
+    /* Bench measurement found no consistent latency win from WIFI_PS_NONE,
+       but it is a one-line, zero-cost setting IDF's own docs still
+       recommend for a latency-sensitive link. */
     ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_NONE));
 
     s_reconnect_timer = xTimerCreate("wifi_reconnect", pdMS_TO_TICKS(RECONNECT_BASE_MS),
@@ -230,7 +231,7 @@ void wifi_sta_init(void) {
     }
 }
 
-int wifi_creds_save(const char *ssid, const char *pass) {
+int net_creds_save(const char *ssid, const char *pass) {
     if (ssid == NULL) {
         s_have_creds = false;
         s_state = STA_DISCONNECTED;
@@ -249,11 +250,29 @@ int wifi_creds_save(const char *ssid, const char *pass) {
     return 1;
 }
 
-int wifi_status(uint8_t *state, uint8_t ip[4], int8_t *rssi, char ssid[33]) {
-    *state = s_state;
-    ip[0] = ip[1] = ip[2] = ip[3] = 0;
-    *rssi = 0;
-    ssid[0] = '\0';
+/* Static IP is Teensy-Ethernet-only for now -- the ESP32 always reports
+   mode = DHCP from net_status() below. Adding esp_netif static-IP support
+   here is a few lines but is scope creep against an Ethernet feature. */
+int net_ip_config_save(const net_ip_config_t *cfg) {
+    (void)cfg;
+    return 0;
+}
+
+static void addr_to_bytes(uint32_t addr, uint8_t out[4]) {
+    out[0] = (uint8_t)(addr & 0xFF);
+    out[1] = (uint8_t)((addr >> 8) & 0xFF);
+    out[2] = (uint8_t)((addr >> 16) & 0xFF);
+    out[3] = (uint8_t)((addr >> 24) & 0xFF);
+}
+
+int net_status(net_status_t *out) {
+    out->state = s_state;
+    out->mode = 0; /* DHCP -- see net_ip_config_save() above */
+    memset(out->ip, 0, sizeof(out->ip));
+    memset(out->mask, 0, sizeof(out->mask));
+    memset(out->gw, 0, sizeof(out->gw));
+    out->rssi = 0;
+    out->ssid[0] = '\0';
 
     if (s_state != STA_CONNECTED) {
         return 1;
@@ -261,18 +280,16 @@ int wifi_status(uint8_t *state, uint8_t ip[4], int8_t *rssi, char ssid[33]) {
 
     wifi_ap_record_t ap_info;
     if (esp_wifi_sta_get_ap_info(&ap_info) == ESP_OK) {
-        *rssi = (int8_t)ap_info.rssi;
-        memcpy(ssid, ap_info.ssid, sizeof(ap_info.ssid)); /* uint8_t ssid[33], NUL-terminated by IDF */
-        ssid[32] = '\0';
+        out->rssi = (int8_t)ap_info.rssi;
+        memcpy(out->ssid, ap_info.ssid, sizeof(ap_info.ssid)); /* uint8_t ssid[33], NUL-terminated by IDF */
+        out->ssid[32] = '\0';
     }
 
     esp_netif_ip_info_t ip_info;
     if (esp_netif_get_ip_info(s_netif, &ip_info) == ESP_OK) {
-        uint32_t addr = ip_info.ip.addr;
-        ip[0] = (uint8_t)(addr & 0xFF);
-        ip[1] = (uint8_t)((addr >> 8) & 0xFF);
-        ip[2] = (uint8_t)((addr >> 16) & 0xFF);
-        ip[3] = (uint8_t)((addr >> 24) & 0xFF);
+        addr_to_bytes(ip_info.ip.addr, out->ip);
+        addr_to_bytes(ip_info.netmask.addr, out->mask);
+        addr_to_bytes(ip_info.gw.addr, out->gw);
     }
     return 1;
 }
@@ -284,17 +301,19 @@ int wifi_status(uint8_t *state, uint8_t ip[4], int8_t *rssi, char ssid[33]) {
 
 void wifi_sta_init(void) {}
 
-int wifi_creds_save(const char *ssid, const char *pass) {
+int net_creds_save(const char *ssid, const char *pass) {
     (void)ssid;
     (void)pass;
     return 0;
 }
 
-int wifi_status(uint8_t *state, uint8_t ip[4], int8_t *rssi, char ssid[33]) {
-    (void)state;
-    (void)ip;
-    (void)rssi;
-    (void)ssid;
+int net_ip_config_save(const net_ip_config_t *cfg) {
+    (void)cfg;
+    return 0;
+}
+
+int net_status(net_status_t *out) {
+    (void)out;
     return 0;
 }
 

@@ -145,6 +145,10 @@ a serial port/baud rate. The USB/serial fields are disabled while WiFi is select
 versa. Anything else about the GUI — multi-device support, panels, LINK/UNLINK — works exactly
 the same regardless of which transport the adapter is reached over.
 
+The same **Connection Type: WiFi (TCP)** setting also reaches a Teensy 4.1 adapter built with
+`ETH=1` (see the same README's Teensy 4.x section) — there's no separate "Ethernet" transport
+option, since both are just a TCP socket to the adapter's IP on port 9000.
+
 #### L1060 Electronic Load Auxiliary Tools
 
 The L1060 panel has a Preset tab plus three automated-run tabs, each usable in any of the load's CC/CV/CR/CP modes:

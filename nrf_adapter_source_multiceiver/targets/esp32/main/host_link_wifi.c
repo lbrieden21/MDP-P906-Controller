@@ -1,9 +1,8 @@
 /*
  * Host link over WiFi: a TCP server that runs *alongside* whichever wired
  * link the board selected (host_link_usb_jtag.c or host_link_uart0.c), never
- * instead of it -- see the plan doc's "Firmware: the TCP server" section.
- * host_link_mux.c is the only caller; it decides which link is active and
- * routes host_link_write()/host_link_read_byte() accordingly.
+ * instead of it. host_link_mux.c is the only caller; it decides which link
+ * is active and routes host_link_write()/host_link_read_byte() accordingly.
  *
  * Compiled into every ESP32 build, like wifi_sta.c: the #else stub below is
  * what lets host_link_mux.c call every function here unconditionally, with
@@ -146,9 +145,9 @@ static void rx_task(void *arg) {
     }
 }
 
-/* Blocked in xStreamBufferReceive(portMAX_DELAY), draining to send() -- see
-   the plan doc's "Two FreeRTOS tasks" note. lwIP permits send() and recv()
-   on one fd from two tasks, so this and rx_task never contend. */
+/* Blocked in xStreamBufferReceive(portMAX_DELAY), draining to send(). lwIP
+   permits send() and recv() on one fd from two tasks, so this and rx_task
+   never contend. */
 static void tx_task(void *arg) {
     (void)arg;
     uint8_t buf[HOST_RING_BYTES];

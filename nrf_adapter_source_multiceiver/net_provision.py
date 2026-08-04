@@ -1,17 +1,20 @@
-"""WiFi credential provisioning for the ESP32 WiFi host link, over the wired
-serial link -- target-neutral in the sense that every target answers these
-commands (CMD_WIFI_SET / CMD_WIFI_QUERY / CMD_WIFI_CLEAR, see core/protocol.h),
-but only an ESP32 WiFi build (`make HOST_LINK=HOST_LINK_WIFI`) does anything
-with them. Every other target's platform.h hooks stub to 0, which this script
-sees as REP_CMD_FAILED.
+"""Network credential provisioning for WiFi and Ethernet host links, over the
+wired serial link -- target-neutral in the sense that every target answers
+these commands (CMD_NET_CREDS_SET / CMD_NET_QUERY / CMD_NET_CREDS_CLEAR /
+CMD_NET_IP_SET, see core/protocol.h), but only a WiFi or Ethernet build does
+anything with them. Every other target's platform.h hooks stub to 0, which
+this script sees as REP_CMD_FAILED.
 
 Follows host_link_test.py / persistence_test.py's argparse style and shares
 their framing helpers and DTR/RTS-low-before-open workaround.
 
 Usage:
-    python wifi_provision.py --port /dev/ttyACM0 --ssid MyNetwork --password hunter2
-    python wifi_provision.py --port /dev/ttyACM0 --status
-    python wifi_provision.py --port /dev/ttyACM0 --clear
+    python net_provision.py --port /dev/ttyACM0 --ssid MyNetwork --password hunter2
+    python net_provision.py --port /dev/ttyACM0 --status
+    python net_provision.py --port /dev/ttyACM0 --clear
+    python net_provision.py --port /dev/ttyACM0 --dhcp
+    python net_provision.py --port /dev/ttyACM0 --static 192.168.1.50 \\
+        --mask 255.255.255.0 --gateway 192.168.1.1
 """
 import argparse
 import sys
@@ -25,29 +28,59 @@ parser.add_argument("--ssid", help="network SSID to provision (up to 32 bytes)")
 parser.add_argument("--password", help="network password to provision (up to 64 bytes)")
 parser.add_argument("--status", action="store_true", help="query and print connection status")
 parser.add_argument("--clear", action="store_true", help="clear stored credentials")
+parser.add_argument("--dhcp", action="store_true",
+                     help="switch to DHCP addressing (Ethernet targets only)")
+parser.add_argument("--static", metavar="IP",
+                     help="static IP address to provision, with --mask/--gateway "
+                          "(Ethernet targets only)")
+parser.add_argument("--mask", metavar="MASK", help="static subnet mask, with --static")
+parser.add_argument("--gateway", metavar="GW", help="static gateway, with --static")
 args = parser.parse_args()
 PORT = args.port
 
-actions = [bool(args.ssid or args.password), args.status, args.clear]
+static_group = [args.static, args.mask, args.gateway]
+actions = [bool(args.ssid or args.password), args.status, args.clear, args.dhcp, any(static_group)]
 if sum(actions) != 1:
-    parser.error("pick exactly one of: --ssid/--password, --status, --clear")
+    parser.error("pick exactly one of: --ssid/--password, --status, --clear, --dhcp, "
+                  "--static/--mask/--gateway")
 if bool(args.ssid) != bool(args.password):
     parser.error("--ssid and --password must be given together")
 if args.ssid and len(args.ssid.encode()) > 32:
     parser.error("--ssid must be at most 32 bytes")
 if args.password and len(args.password.encode()) > 64:
     parser.error("--password must be at most 64 bytes")
+if any(static_group) and not all(static_group):
+    parser.error("--static, --mask and --gateway must be given together")
 
-CMD_WIFI_SET = 0x30
-CMD_WIFI_QUERY = 0x31
-CMD_WIFI_CLEAR = 0x32
+
+def parse_ipv4(s, label):
+    parts = s.split(".")
+    try:
+        octets = [int(p) for p in parts]
+    except ValueError:
+        octets = None
+    if octets is None or len(octets) != 4 or any(o < 0 or o > 255 for o in octets):
+        parser.error(f"{label} must be a dotted-quad IPv4 address")
+    return bytes(octets)
+
+
+if args.static:
+    STATIC_IP = parse_ipv4(args.static, "--static")
+    STATIC_MASK = parse_ipv4(args.mask, "--mask")
+    STATIC_GW = parse_ipv4(args.gateway, "--gateway")
+
+CMD_NET_CREDS_SET = 0x30
+CMD_NET_QUERY = 0x31
+CMD_NET_CREDS_CLEAR = 0x32
+CMD_NET_IP_SET = 0x33
 
 REP_NAMES = {
     0x00: "REP_UNKNOWN_CMD", 0x01: "REP_INVALID_CMD", 0x02: "REP_CMD_FAILED",
-    0x30: "REP_WIFI_SET", 0x31: "REP_WIFI_STATUS",
+    0x30: "REP_NET_ACK", 0x31: "REP_NET_STATUS",
 }
 
 STATE_NAMES = {0: "disconnected", 1: "connecting", 2: "connected"}
+MODE_NAMES = {0: "DHCP", 1: "static"}
 
 DEFAULT_BAUD = 921600
 
@@ -91,7 +124,7 @@ def open_port(baud=DEFAULT_BAUD):
     # Drain boot noise (ROM banner, then the boot-time REP_NRF_INIT) until the
     # line goes quiet, rather than a fixed sleep -- a fixed 0.4s sleep was
     # measured racing REP_NRF_INIT's arrival, which lands at exactly 0.4s on
-    # the C6, and losing that race hands CMD_WIFI_SET's reply slot to the
+    # the C6, and losing that race hands CMD_NET_CREDS_SET's reply slot to the
     # boot announcement instead. A single empty read is not enough of a
     # "quiet" signal: on the WROOM-32, the ROM banner (printed at 74880 baud,
     # read here at 921600 and so seen as garbage bytes) leaves a ~0.2-0.4s
@@ -112,25 +145,37 @@ def open_port(baud=DEFAULT_BAUD):
 
 
 def parse_status(data):
-    if data is None or len(data) < 7:
+    if data is None or len(data) < 16:
         return None
     state = data[0]
-    ip = data[1:5]
-    rssi = data[5] - 256 if data[5] >= 128 else data[5]
-    ssid_len = data[6]
-    ssid = data[7:7 + ssid_len].decode(errors="replace")
-    return state, ip, rssi, ssid
+    mode = data[1]
+    ip = data[2:6]
+    mask = data[6:10]
+    gw = data[10:14]
+    rssi = data[14] - 256 if data[14] >= 128 else data[14]
+    ssid_len = data[15]
+    ssid = data[16:16 + ssid_len].decode(errors="replace")
+    return state, mode, ip, mask, gw, rssi, ssid
 
 
 def print_status(data):
     parsed = parse_status(data)
     if parsed is None:
-        print("  malformed REP_WIFI_STATUS payload:", data.hex() if data else None)
+        print("  malformed REP_NET_STATUS payload:", data.hex() if data else None)
         return
-    state, ip, rssi, ssid = parsed
+    state, mode, ip, mask, gw, rssi, ssid = parsed
     print(f"  state : {STATE_NAMES.get(state, state)}")
-    if state == 2:
-        print(f"  ip    : {ip[0]}.{ip[1]}.{ip[2]}.{ip[3]}")
+    print(f"  mode  : {MODE_NAMES.get(mode, mode)}")
+    # A static config is meaningful as soon as it's stored, link or no link --
+    # an Ethernet target with no live transport yet can never reach state
+    # "connected", so gating this on state alone would hide the very thing
+    # being verified. DHCP-leased fields, and rssi/ssid, are only meaningful
+    # once actually connected.
+    if state == 2 or mode == 1:
+        print(f"  ip      : {ip[0]}.{ip[1]}.{ip[2]}.{ip[3]}")
+        print(f"  mask    : {mask[0]}.{mask[1]}.{mask[2]}.{mask[3]}")
+        print(f"  gateway : {gw[0]}.{gw[1]}.{gw[2]}.{gw[3]}")
+    if state == 2 and ssid:
         print(f"  rssi  : {rssi} dBm")
         print(f"  ssid  : {ssid}")
 
@@ -138,24 +183,48 @@ def print_status(data):
 s = open_port()
 
 if args.status:
-    print(f"CMD_WIFI_QUERY on {PORT}")
-    send(s, CMD_WIFI_QUERY)
+    print(f"CMD_NET_QUERY on {PORT}")
+    send(s, CMD_NET_QUERY)
     cmd, data = recv(s)
     name = REP_NAMES.get(cmd, hex(cmd) if cmd is not None else "no reply")
     print(f"  reply : {name}")
     if cmd == 0x31:
         print_status(data)
     elif cmd == 0x02:
-        print("  target has no WiFi support (non-ESP32, or a non-WiFi ESP32 build)")
+        print("  target has no network support (non-WiFi, non-Ethernet build)")
     s.close()
     sys.exit(0 if cmd == 0x31 else 1)
 
 if args.clear:
-    print(f"CMD_WIFI_CLEAR on {PORT}")
-    send(s, CMD_WIFI_CLEAR)
+    print(f"CMD_NET_CREDS_CLEAR on {PORT}")
+    send(s, CMD_NET_CREDS_CLEAR)
     cmd, data = recv(s)
     name = REP_NAMES.get(cmd, hex(cmd) if cmd is not None else "no reply")
     print(f"  reply : {name}")
+    s.close()
+    sys.exit(0 if cmd == 0x30 else 1)
+
+if args.dhcp:
+    print(f"CMD_NET_IP_SET (DHCP) on {PORT}")
+    payload = bytes([0]) + bytes(12)  # mode=0; ip/mask/gw unused in DHCP mode
+    send(s, CMD_NET_IP_SET, payload)
+    cmd, data = recv(s)
+    name = REP_NAMES.get(cmd, hex(cmd) if cmd is not None else "no reply")
+    print(f"  reply : {name}")
+    if cmd == 0x02:
+        print("  target has no network support, or Ethernet not built in")
+    s.close()
+    sys.exit(0 if cmd == 0x30 else 1)
+
+if args.static:
+    print(f"CMD_NET_IP_SET (static {args.static}) on {PORT}")
+    payload = bytes([1]) + STATIC_IP + STATIC_MASK + STATIC_GW
+    send(s, CMD_NET_IP_SET, payload)
+    cmd, data = recv(s)
+    name = REP_NAMES.get(cmd, hex(cmd) if cmd is not None else "no reply")
+    print(f"  reply : {name}")
+    if cmd == 0x02:
+        print("  target has no network support, or Ethernet not built in")
     s.close()
     sys.exit(0 if cmd == 0x30 else 1)
 
@@ -164,8 +233,8 @@ ssid_b = args.ssid.encode()
 pass_b = args.password.encode()
 payload = bytes([len(ssid_b)]) + ssid_b + bytes([len(pass_b)]) + pass_b
 
-print(f"CMD_WIFI_SET on {PORT} (ssid={args.ssid!r})")
-send(s, CMD_WIFI_SET, payload)
+print(f"CMD_NET_CREDS_SET on {PORT} (ssid={args.ssid!r})")
+send(s, CMD_NET_CREDS_SET, payload)
 cmd, data = recv(s)
 name = REP_NAMES.get(cmd, hex(cmd) if cmd is not None else "no reply")
 print(f"  reply : {name}")
@@ -179,7 +248,7 @@ connected = False
 for _ in range(20):
     time.sleep(0.5)
     print(".", end="", flush=True)
-    send(s, CMD_WIFI_QUERY)
+    send(s, CMD_NET_QUERY)
     cmd, data = recv(s, timeout=2.0)
     parsed = parse_status(data) if cmd == 0x31 else None
     if parsed and parsed[0] == 2:

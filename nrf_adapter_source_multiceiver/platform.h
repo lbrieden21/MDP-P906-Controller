@@ -48,19 +48,44 @@ int host_link_read_byte(uint8_t *out);
    CMD_SET_BAUDRATE still ACKs and still persists the value in that case. */
 void host_link_set_baudrate(uint32_t baudrate);
 
-/* WiFi credentials, ESP32 WiFi builds only. 0 = unsupported or failed, which
-   is how a target says "this command does not apply to me" -- protocol.c
-   answers REP_CMD_FAILED for it. Every non-WiFi target, and every non-ESP32
-   target, stubs both to return 0.
-   wifi_creds_save(): ssid/pass NULL clears the stored credentials rather than
+/* Network credentials and IP config, WiFi and Ethernet builds only. 0 =
+   unsupported or failed, which is how a target says "this command does not
+   apply to me" -- protocol.c answers REP_CMD_FAILED for it. Every target
+   that carries neither feature stubs all three to return 0.
+   ip/mask/gw are dotted-quad, low octet first, throughout. No dns field --
+   nothing on either side of this link ever resolves a hostname: the adapter
+   only ever accepts inbound connections (never dials out), and the GUI's own
+   host-address field is resolved by the OS resolver on the PC running it,
+   with no involvement from this protocol. Storing/reporting a DNS server
+   here would be config the device stores but never reads.
+   net_creds_save(): ssid/pass NULL clears the stored credentials rather than
    setting them. Applies live in addition to persisting, so a provisioning
-   command connects without a reboot.
-   wifi_status(): fills state (0 disconnected, 1 connecting, 2 connected),
-   ip (dotted-quad, low octet first), rssi (dBm) and ssid (NUL-terminated,
-   up to 32 chars + terminator). ip/rssi/ssid are only meaningful when
-   connected; returns 0 only for "unsupported", not for "not yet connected". */
-int wifi_creds_save(const char *ssid, const char *pass);
-int wifi_status(uint8_t *state, uint8_t ip[4], int8_t *rssi, char ssid[33]);
+   command connects without a reboot. WiFi only -- an Ethernet-only target
+   stubs this to return 0.
+   net_ip_config_save(): persists a static-IP configuration (or a switch back
+   to DHCP). Teensy Ethernet only for now -- every other target, WiFi
+   included, stubs this to return 0 and reports mode = DHCP from net_status().
+   net_status(): fills state (0 disconnected, 1 connecting, 2 connected),
+   mode (0 DHCP, 1 static), ip/mask/gw, rssi (dBm; 0 on a wired link) and
+   ssid (NUL-terminated, up to 32 chars + terminator; empty on a wired link).
+   ip/mask/gw/rssi/ssid are only meaningful when connected; returns 0
+   only for "unsupported", not for "not yet connected". */
+typedef struct {
+    uint8_t mode; /* 0 DHCP, 1 static */
+    uint8_t ip[4], mask[4], gw[4];
+} net_ip_config_t;
+
+typedef struct {
+    uint8_t state; /* 0 disconnected, 1 connecting, 2 connected */
+    uint8_t mode;
+    uint8_t ip[4], mask[4], gw[4];
+    int8_t rssi;    /* dBm; 0 on wired links */
+    char ssid[33];  /* NUL-terminated; empty on wired links */
+} net_status_t;
+
+int net_creds_save(const char *ssid, const char *pass);
+int net_ip_config_save(const net_ip_config_t *cfg);
+int net_status(net_status_t *out);
 
 /* Settings storage: one record, payload <= 32 bytes, integrity-checked.
    Both return 1 on success, 0 on failure/absent record. A save with len==0

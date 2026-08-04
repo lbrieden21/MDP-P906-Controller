@@ -38,6 +38,20 @@ else
 $(error Unknown BOARD '$(BOARD)' -- use TEENSY41 or TEENSY40)
 endif
 
+# Ethernet host link. ETH=1 adds -DHOST_LINK_ETH and vendors QNEthernet
+# (Drivers/teensy_libs/QNEthernet) into the build -- see host_link_eth.cpp,
+# net_eth.cpp and the plan doc's "Firmware: build system" section.
+# Override on the command line: make BOARD=TEENSY41 ETH=1
+ETH ?= 0
+
+ifeq ($(ETH),1)
+ifneq ($(BOARD),TEENSY41)
+$(error BOARD=$(BOARD) ETH=1 -- the Teensy 4.0 has no Ethernet pads. Use BOARD=TEENSY41)
+endif
+endif
+
+QNE_DIR = $(ROOT)/Drivers/teensy_libs/QNEthernet/src
+
 MCU = -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16
 
 # ARDUINO/TEENSYDUINO version numbers are what the core's own Makefile declares;
@@ -63,6 +77,21 @@ FW_CXXFLAGS = $(COMMON) $(FW_INCS) -Wall $(CXXONLY)
 APP_CFLAGS = $(COMMON) $(APP_INCS) -Wall -Wextra -std=c11
 APP_CXXFLAGS = $(COMMON) $(APP_INCS) -Wall -Wextra $(CXXONLY) -D$(HOST_LINK)
 
+# QNEthernet is compiled like the vendored framework -- PJRC's/lwIP's own
+# warning settings via -isystem, not our -Wextra. QNETHERNET_DO_LOOP_IN_YIELD=0
+# keeps it off yield(), which delay_ms() (called from nrf24l01p.c's
+# transaction paths) would otherwise pull the Ethernet stack into.
+QNE_CFLAGS = $(COMMON) $(FW_INCS) -isystem $(QNE_DIR) -Wall -DQNETHERNET_DO_LOOP_IN_YIELD=0
+QNE_CXXFLAGS = $(COMMON) $(FW_INCS) -isystem $(QNE_DIR) -Wall $(CXXONLY) -DQNETHERNET_DO_LOOP_IN_YIELD=0
+
+ifeq ($(ETH),1)
+# -isystem so QNEthernet's own headers (included from net_eth.cpp and
+# host_link_eth.cpp) don't surface warnings under the -Wextra our own code is
+# built with -- the same reason FW_DIR/SPI_DIR are -isystem above.
+APP_INCS += -isystem $(QNE_DIR)
+APP_CXXFLAGS += -DHOST_LINK_ETH
+endif
+
 LDFLAGS = $(MCU) -Os -Wl,--gc-sections,--relax -T$(FW_DIR)/$(LDSCRIPT) \
           -Wl,-Map=$(BUILD_DIR)/$(TARGET).map
 LIBS = -lm -lstdc++
@@ -82,6 +111,17 @@ OBJS = $(patsubst $(FW_DIR)/%.c,$(BUILD_DIR)/fw/%.o,$(FW_C_SRCS)) \
        $(patsubst $(FW_DIR)/%.S,$(BUILD_DIR)/fw/%.o,$(FW_S_SRCS)) \
        $(patsubst $(CORE_DIR)/%.c,$(BUILD_DIR)/core/%.o,$(CORE_SRCS)) \
        $(patsubst %.cpp,$(BUILD_DIR)/app/%.o,$(APP_SRCS))
+
+ifeq ($(ETH),1)
+# QNEthernet is not flat like FW_DIR/SPI_DIR (lwip/, qnethernet/, arch/,
+# netif/ subdirectories), so it needs find rather than wildcard. main.cpp is
+# filtered out -- it defines its own main() and would collide with the
+# core's.
+QNE_C_SRCS = $(shell find $(QNE_DIR) -name '*.c')
+QNE_CPP_SRCS = $(filter-out $(QNE_DIR)/main.cpp,$(shell find $(QNE_DIR) -name '*.cpp'))
+OBJS += $(patsubst $(QNE_DIR)/%.c,$(BUILD_DIR)/qne/%.o,$(QNE_C_SRCS)) \
+        $(patsubst $(QNE_DIR)/%.cpp,$(BUILD_DIR)/qne/%.o,$(QNE_CPP_SRCS))
+endif
 
 all: $(BUILD_DIR)/$(TARGET).elf $(BUILD_DIR)/$(TARGET).hex size
 
@@ -105,6 +145,18 @@ $(BUILD_DIR)/core/%.o: $(CORE_DIR)/%.c | $(BUILD_DIR)/core
 
 $(BUILD_DIR)/app/%.o: %.cpp | $(BUILD_DIR)/app
 	$(CXX) $(APP_CXXFLAGS) -c $< -o $@
+
+# QNEthernet mirrors its own source tree under build/qne/ rather than a flat
+# directory, so nested files with matching basenames don't clobber one
+# another -- mkdir -p in the recipe rather than an order-only prerequisite,
+# since that prerequisite would only create the top-level directory.
+$(BUILD_DIR)/qne/%.o: $(QNE_DIR)/%.c
+	@mkdir -p $(dir $@)
+	$(CC) $(QNE_CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/qne/%.o: $(QNE_DIR)/%.cpp
+	@mkdir -p $(dir $@)
+	$(CXX) $(QNE_CXXFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/$(TARGET).elf: $(OBJS)
 	$(CXX) $(OBJS) $(LDFLAGS) $(LIBS) -o $@

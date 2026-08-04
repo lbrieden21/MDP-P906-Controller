@@ -67,12 +67,10 @@ static void nrf_tx_done(uint8_t status) {
 }
 
 /* PIPE_TAG_RECV_OK: whether REP_NRF_RECV_OK carries the leading pipe-number
-   byte from the multiceiver extension. Was off by default through Phase 0.5
-   so this firmware could be validated for parity against the *unmodified*
-   nrf24_adapter.py/mdp_p906.py first (per multi_device_refactor_plan.md's
-   staged validation). Phase 1 adds bus.py, which now expects and strips the
-   pipe-tag prefix on every NRF_RECV_OK frame -- flip back to 0 only if
-   testing against pre-Phase-1 driver code. */
+   byte from the multiceiver extension. bus.py expects and strips this
+   pipe-tag prefix on every NRF_RECV_OK frame -- flip to 0 only when testing
+   against driver code that predates bus.py and expects the untagged,
+   single-pipe frame shape instead. */
 #define PIPE_TAG_RECV_OK 1
 
 static void nrf_rx_done(uint8_t pipe) {
@@ -199,7 +197,7 @@ static void handle_command(uint8_t cmd, uint8_t *data, size_t len) {
             break;
         }
 
-        case CMD_WIFI_SET: {
+        case CMD_NET_CREDS_SET: {
             /* ssid_len(1) | ssid | pass_len(1) | pass -- ssid up to 32 bytes,
                pass up to 64, and the framer's own 128-byte buffer is the only
                other limit in play. */
@@ -228,41 +226,62 @@ static void handle_command(uint8_t cmd, uint8_t *data, size_t len) {
                 pass[i] = (char)pass_src[i];
             }
             pass[pass_len] = '\0';
-            if (wifi_creds_save(ssid, pass)) {
-                uart_send_packet(REP_WIFI_SET, NULL, 0, NULL, 0);
+            if (net_creds_save(ssid, pass)) {
+                uart_send_packet(REP_NET_ACK, NULL, 0, NULL, 0);
             } else {
                 uart_send_packet(REP_CMD_FAILED, NULL, 0, NULL, 0);
             }
             break;
         }
 
-        case CMD_WIFI_QUERY: {
-            uint8_t state;
-            uint8_t ip[4];
-            int8_t rssi;
-            char ssid[33];
-            if (!wifi_status(&state, ip, &rssi, ssid)) {
+        case CMD_NET_QUERY: {
+            net_status_t ns;
+            if (!net_status(&ns)) {
                 uart_send_packet(REP_CMD_FAILED, NULL, 0, NULL, 0);
                 break;
             }
             uint8_t ssid_len = 0;
-            while (ssid_len < 32 && ssid[ssid_len]) {
+            while (ssid_len < 32 && ns.ssid[ssid_len]) {
                 ssid_len++;
             }
-            uint8_t out[7] = {state,          ip[0], ip[1], ip[2],
-                               ip[3], (uint8_t)rssi, ssid_len};
-            uart_send_packet(REP_WIFI_STATUS, out, sizeof(out),
-                             (const uint8_t *)ssid, ssid_len);
+            uint8_t out[16] = {ns.state,   ns.mode,
+                                ns.ip[0],   ns.ip[1],   ns.ip[2],   ns.ip[3],
+                                ns.mask[0], ns.mask[1], ns.mask[2], ns.mask[3],
+                                ns.gw[0],   ns.gw[1],   ns.gw[2],   ns.gw[3],
+                                (uint8_t)ns.rssi, ssid_len};
+            uart_send_packet(REP_NET_STATUS, out, sizeof(out),
+                             (const uint8_t *)ns.ssid, ssid_len);
             break;
         }
 
-        case CMD_WIFI_CLEAR:
-            if (wifi_creds_save(NULL, NULL)) {
-                uart_send_packet(REP_WIFI_SET, NULL, 0, NULL, 0);
+        case CMD_NET_CREDS_CLEAR:
+            if (net_creds_save(NULL, NULL)) {
+                uart_send_packet(REP_NET_ACK, NULL, 0, NULL, 0);
             } else {
                 uart_send_packet(REP_CMD_FAILED, NULL, 0, NULL, 0);
             }
             break;
+
+        case CMD_NET_IP_SET: {
+            /* mode(1) | ip(4) | mask(4) | gw(4) -- fixed length. */
+            if (len != 13) {
+                uart_send_packet(REP_INVALID_CMD, NULL, 0, NULL, 0);
+                break;
+            }
+            net_ip_config_t cfg;
+            cfg.mode = data[0];
+            for (int i = 0; i < 4; i++) {
+                cfg.ip[i] = data[1 + i];
+                cfg.mask[i] = data[5 + i];
+                cfg.gw[i] = data[9 + i];
+            }
+            if (net_ip_config_save(&cfg)) {
+                uart_send_packet(REP_NET_ACK, NULL, 0, NULL, 0);
+            } else {
+                uart_send_packet(REP_CMD_FAILED, NULL, 0, NULL, 0);
+            }
+            break;
+        }
 
         case CMD_ECHO:
             uart_send_packet(REP_ECHO, NULL, 0, NULL, 0);

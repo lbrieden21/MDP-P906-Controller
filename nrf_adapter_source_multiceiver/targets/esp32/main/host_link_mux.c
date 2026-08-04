@@ -4,11 +4,10 @@
  * that symbol no longer belongs to whichever wired implementation the build
  * selected. Compiled into every ESP32 build, WiFi or not.
  *
- * Routing rule (see the plan doc's "Firmware: a host-link mux" section):
- * reads poll both links every call. Writes go to whichever link most
- * recently delivered a byte to host_link_read_byte() -- a TCP client
- * connecting makes WiFi active once its first byte arrives (typically the
- * CMD_ECHO the host sends every second), and a disconnect hands control
+ * Routing rule: reads poll both links every call. Writes go to whichever
+ * link most recently delivered a byte to host_link_read_byte() -- a TCP
+ * client connecting makes WiFi active once its first byte arrives (typically
+ * the CMD_ECHO the host sends every second), and a disconnect hands control
  * straight back to the wired link rather than waiting for it to prove
  * itself with a byte of its own.
  *

@@ -187,6 +187,33 @@ def ping(s, tries=3):
     return False
 
 
+def reconnect_after_reset(baud, timeout=10.0):
+    """Reopens the port after CMD_RESET's reboot. A wired reboot is fast and
+    consistent, so the fixed 4s sleep is kept for that case. Ethernet is
+    neither: the board has to clear the boot-deaf window and re-lease DHCP
+    before the TCP server is reachable again, so the fixed sleep that is fine
+    for USB CDC left the restore phase's step 2 racing a connect against a
+    board that had not finished coming back up. Matches
+    host_link_test.py's reconnect_after_reset()."""
+    if not PORT.startswith("tcp://"):
+        time.sleep(4.0)
+        return open_port(baud)
+
+    deadline = time.time() + timeout
+    last_err = None
+    while time.time() < deadline:
+        try:
+            candidate = open_port(baud)
+            if ping(candidate):
+                return candidate
+            candidate.close()
+            last_err = RuntimeError("no live ECHO reply")
+        except OSError as e:
+            last_err = e
+        time.sleep(0.3)
+    raise last_err
+
+
 def find_board():
     """Returns the baudrate the board is currently talking at, or None."""
     for baud in (DEFAULT_BAUD, TEST_BAUD):
@@ -300,10 +327,9 @@ else:  # restore
     cmd, data = recv(s)
     check("reply", REP_NAMES.get(cmd), "REP_RESET_DONE")
     s.close()
-    time.sleep(4.0)
 
     print(f"2. board is back on the compiled-in defaults at {DEFAULT_BAUD}")
-    s = open_port(DEFAULT_BAUD)
+    s = reconnect_after_reset(DEFAULT_BAUD)
     check("echo", ping(s), True)
     send(s, CMD_NRF_QUERY)
     cmd, data = recv(s)

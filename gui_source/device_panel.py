@@ -109,7 +109,11 @@ class DevicePanelBase(QtWidgets.QWidget):
 
     def link(self, bus, pipe: int = 0, fps: float = 50, session_start_time=None):
         if not self.settings.idcode:
-            raise ValueError(self.tr("IDCODE为空, 请先完成连接设置"))
+            raise ValueError(
+                QtCore.QCoreApplication.translate(
+                    "DevicePanelBase", "IDCODE为空, 请先完成连接设置"
+                )
+            )
         color_rgb = bytes.fromhex(self.settings.color.lstrip("#"))
         api = self.api_class(
             bus,
@@ -317,13 +321,17 @@ class DevicePanelBase(QtWidgets.QWidget):
     ##########  Connected/disconnected UI  ##########
 
     def open_state_ui(self):
-        self.ui.labelLinkState.setText(self.tr("已连接"))
+        self.ui.labelLinkState.setText(
+            QtCore.QCoreApplication.translate("DevicePanelBase", "已连接")
+        )
         set_color(self.ui.labelLinkState, setting.get_color("general_green"))
         self.ui.frameOutputSetting.setEnabled(True)
         self.ui.frameSystemState.setEnabled(True)
 
     def close_state_ui(self, record_disconnect: bool = False):
-        self.ui.labelLinkState.setText(self.tr("未连接"))
+        self.ui.labelLinkState.setText(
+            QtCore.QCoreApplication.translate("DevicePanelBase", "未连接")
+        )
         set_color(self.ui.labelLinkState, None)
         self.ui.frameOutputSetting.setEnabled(False)
         self.ui.frameSystemState.setEnabled(False)

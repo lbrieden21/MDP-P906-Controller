@@ -8,8 +8,9 @@
  * exercise this file on a board that is already hardware-validated.
  *
  * UART0 cannot be both the protocol link and the ESP-IDF console, so the
- * Makefile rejects CONSOLE=1 with this host link. That conflict is the reason
- * making the console opt-in (Phase 3) had to land before this file did.
+ * Makefile rejects CONSOLE=1 with this host link -- which is why the console
+ * had to be made opt-in (CONSOLE=1, off by default) before this file could
+ * exist at all.
  *
  * This is the first configuration on this target where the link has a real line
  * rate, which makes host_link_set_baudrate() a real operation and

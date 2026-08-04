@@ -308,6 +308,46 @@ under `build/fw`, and `make` has no way to know they're stale otherwise.
   active-low "do not assert now" controls and must be written 1, or enabling
   the watchdog resets the part immediately.
 
+### Ethernet host link (`ETH=1`)
+
+A third host link, 4.1-only: the protocol runs over a TCP socket instead of USB CDC or
+Serial1, so the adapter can sit on the bench with nothing but power and a network cable and
+the GUI drives it over IP. Nothing about the radio side changes — same binary protocol, same
+multiceiver pipe routing, same unmodified `core/`. **`BOARD=TEENSY40 ETH=1` is a hard build
+error** — the 4.0 has no Ethernet pads.
+
+```sh
+make BOARD=TEENSY41 ETH=1                         # + optional HOST_LINK=HOST_LINK_SERIAL1
+teensy_loader_cli --mcu=TEENSY41 -s -w -v build/MDP_Adapter_Multiceiver.hex
+```
+
+**Wiring**: the PJRC Ethernet kit (RJ45 MagJack + DP83825I PHY) on the 6-pin ribbon header
+that ships for it — no `pins.h` entries, it is not GPIO.
+
+**The wired link keeps working on an Ethernet build — both links are served concurrently.**
+Same reasoning as the ESP32's WiFi link: with DHCP there is no other way to learn the
+adapter's address than asking it over the wired link first. Whichever link most recently
+delivered a byte from the host becomes the active one. One TCP client at a time on port 9000
+— a new connection replaces the old one rather than being refused, so a crashed or
+force-quit GUI doesn't lock the adapter out.
+
+**Addressing** is DHCP by default; a static address can be persisted instead, independent of
+the radio settings record (`CMD_RESET` does not touch it), with `net_provision.py` (same
+script and same `CMD_NET_*` commands the ESP32's WiFi link above uses for status/IP query):
+
+```sh
+venv/bin/python net_provision.py --port /dev/ttyACM0 --status
+venv/bin/python net_provision.py --port /dev/ttyACM0 --static 192.168.1.50 --mask 255.255.255.0 --gateway 192.168.1.1
+venv/bin/python net_provision.py --port /dev/ttyACM0 --dhcp
+```
+
+Once connected, the GUI reaches the adapter at `tcp://<ip>:9000` — on the host side this is
+the connection dialog's transport setting, the same one the ESP32's WiFi link uses (see
+`../readme_EN.md`).
+
+**No access control**, same trust model as the wired link and the ESP32's WiFi link: anything
+on the LAN that can reach the port can drive the power supply.
+
 ### Why this target uses PJRC's core when the STM32 one shed HAL/CubeMX
 
 The i.MX RT1062 has **no internal flash** — code runs from external QSPI. That
@@ -505,13 +545,14 @@ it back to the wired link immediately. One TCP client at a time — a new connec
 the old one rather than being refused, so a crashed or force-quit GUI doesn't lock the adapter
 out.
 
-**Provisioning** happens over the wired link, with `wifi_provision.py` (same directory as
-`host_link_test.py`):
+**Provisioning** happens over the wired link, with `net_provision.py` (same directory as
+`host_link_test.py` -- shared with the Teensy Ethernet host link, which uses the same
+CMD_NET_* commands for its own status/IP query):
 
 ```sh
-venv/bin/python wifi_provision.py --port /dev/ttyACM0 --ssid MyNetwork --password hunter2
-venv/bin/python wifi_provision.py --port /dev/ttyACM0 --status   # SSID, DHCP address, RSSI
-venv/bin/python wifi_provision.py --port /dev/ttyACM0 --clear    # erase stored credentials
+venv/bin/python net_provision.py --port /dev/ttyACM0 --ssid MyNetwork --password hunter2
+venv/bin/python net_provision.py --port /dev/ttyACM0 --status   # SSID, DHCP address, RSSI
+venv/bin/python net_provision.py --port /dev/ttyACM0 --clear    # erase stored credentials
 ```
 
 Credentials live in their own NVS key, independent of the radio settings record — `CMD_RESET`

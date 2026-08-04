@@ -71,11 +71,11 @@ void USBWakeUp_IRQHandler(void) WEAK_ALIAS;
 typedef void (*vector_entry)(void);
 
 /*
- * Vector order taken from stm32f103xb.h's IRQn_Type enum (the CMSIS device
- * header vendored in Phase 0), which is ST's own STM32F103xB interrupt
- * numbering -- WWDG at IRQ 0 through USBWakeUp at IRQ 42. Unlike the F030,
- * EXTI0-EXTI4 are each a dedicated slot here rather than shared
- * (EXTI0_1/EXTI2_3/EXTI4_15), and USART1 sits at IRQ 37.
+ * Vector order taken from stm32f103xb.h's IRQn_Type enum (the vendored CMSIS
+ * device header), which is ST's own STM32F103xB interrupt numbering -- WWDG
+ * at IRQ 0 through USBWakeUp at IRQ 42. Unlike the F030, EXTI0-EXTI4 are each
+ * a dedicated slot here rather than shared (EXTI0_1/EXTI2_3/EXTI4_15), and
+ * USART1 sits at IRQ 37.
  */
 __attribute__((section(".isr_vector"), used))
 const vector_entry vector_table[] = {

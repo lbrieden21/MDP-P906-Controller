@@ -6,8 +6,8 @@
  * else, and every platform.h entry point is wrapped in extern "C" so core/'s
  * C translation units link against it unchanged. Modelled directly on
  * platform_teensy4.cpp; see that file's comments for anything not called out
- * again here, and Phase 3 of the port plan for the two genuine differences
- * (a real LED, and a Kinetis watchdog with a hard timing window).
+ * again here. The two genuine differences from that target are a real LED
+ * and a Kinetis watchdog with a hard timing window.
  *
  * millis() and delay_ms() are the two exceptions to "implemented here" --
  * millis() is already an extern "C" symbol in the framework with exactly
@@ -237,19 +237,21 @@ extern "C" int store_save(const void *payload, size_t len) {
     return 1;
 }
 
-/* No WiFi on this target. platform.h documents 0 as "this command does not
-   apply to me" -- protocol.c answers REP_CMD_FAILED. */
-extern "C" int wifi_creds_save(const char *ssid, const char *pass) {
+/* No WiFi or Ethernet on this target. platform.h documents 0 as "this
+   command does not apply to me" -- protocol.c answers REP_CMD_FAILED. */
+extern "C" int net_creds_save(const char *ssid, const char *pass) {
     (void)ssid;
     (void)pass;
     return 0;
 }
 
-extern "C" int wifi_status(uint8_t *state, uint8_t ip[4], int8_t *rssi, char ssid[33]) {
-    (void)state;
-    (void)ip;
-    (void)rssi;
-    (void)ssid;
+extern "C" int net_ip_config_save(const net_ip_config_t *cfg) {
+    (void)cfg;
+    return 0;
+}
+
+extern "C" int net_status(net_status_t *out) {
+    (void)out;
     return 0;
 }
 

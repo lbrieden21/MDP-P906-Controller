@@ -378,7 +378,7 @@ void platform_init(void) {
 
     /* No-op unless CONFIG_HOST_LINK_WIFI is set -- see wifi_sta.c. Last, so
        the radio and the settings store are both already up if it needs
-       either (NVS for stored credentials, and wifi_status()/wifi_creds_save()
+       either (NVS for stored credentials, and net_status()/net_creds_save()
        become reachable from protocol.c the moment this returns). */
     wifi_sta_init();
 }

@@ -7,7 +7,7 @@ Captures one dump in the boot-default state, then sends CMD_NRF_SET with the
 bench radio config plus one CMD_NRF_OPEN_PIPE (pipe 1, P906's address) and
 captures a second dump. Both are checked against values hand-derived from
 core/protocol.c's nrf_configure() and core/nrf24l01p.c's open_rx_pipe() call
-order -- see the port plan's Verification section.
+order.
 
 Usage: venv/bin/python reg_dump_check.py --port /dev/ttyACM0
 """

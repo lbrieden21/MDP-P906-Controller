@@ -3,8 +3,8 @@
 
 /*
  * ESP32-private entry point for WiFi station bring-up. wifi_sta.c owns this
- * plus the platform.h wifi_creds_save()/wifi_status() hooks; nothing else in
- * the tree needs to know CONFIG_HOST_LINK_WIFI exists.
+ * plus the platform.h net_creds_save()/net_ip_config_save()/net_status()
+ * hooks; nothing else in the tree needs to know CONFIG_HOST_LINK_WIFI exists.
  */
 
 /* Brings up the WiFi station and its reconnect logic if CONFIG_HOST_LINK_WIFI
