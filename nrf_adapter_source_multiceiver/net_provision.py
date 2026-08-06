@@ -8,8 +8,16 @@ this script sees as REP_CMD_FAILED.
 Follows host_link_test.py / persistence_test.py's argparse style and shares
 their framing helpers and DTR/RTS-low-before-open workaround.
 
+--password takes no value -- it is a flag that says "prompt for the password"
+(hidden input, via getpass), not a place to put the password itself. A real
+password on the command line sits in argv (visible in `ps aux` for the
+process's life) and in shell history, so there is no flag that accepts one
+directly. --creds-file is the other option, for when typing it in each time
+isn't practical: a file with the SSID on line 1 and the password on line 2.
+
 Usage:
-    python net_provision.py --port /dev/ttyACM0 --ssid MyNetwork --password hunter2
+    python net_provision.py --port /dev/ttyACM0 --ssid MyNetwork --password
+    python net_provision.py --port /dev/ttyACM0 --creds-file wifi.txt
     python net_provision.py --port /dev/ttyACM0 --status
     python net_provision.py --port /dev/ttyACM0 --clear
     python net_provision.py --port /dev/ttyACM0 --dhcp
@@ -17,6 +25,7 @@ Usage:
         --mask 255.255.255.0 --gateway 192.168.1.1
 """
 import argparse
+import getpass
 import sys
 import time
 
@@ -25,7 +34,12 @@ import serial
 parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
 parser.add_argument("--port", required=True, help="serial port, e.g. /dev/ttyACM0")
 parser.add_argument("--ssid", help="network SSID to provision (up to 32 bytes)")
-parser.add_argument("--password", help="network password to provision (up to 64 bytes)")
+parser.add_argument("--password", action="store_true",
+                     help="prompt for the network password (hidden input) -- takes no value; "
+                          "used together with --ssid")
+parser.add_argument("--creds-file", metavar="PATH",
+                     help="file with SSID on line 1, password on line 2, instead of "
+                          "--ssid + --password")
 parser.add_argument("--status", action="store_true", help="query and print connection status")
 parser.add_argument("--clear", action="store_true", help="clear stored credentials")
 parser.add_argument("--dhcp", action="store_true",
@@ -39,18 +53,31 @@ args = parser.parse_args()
 PORT = args.port
 
 static_group = [args.static, args.mask, args.gateway]
-actions = [bool(args.ssid or args.password), args.status, args.clear, args.dhcp, any(static_group)]
+actions = [bool(args.ssid or args.password), bool(args.creds_file),
+           args.status, args.clear, args.dhcp, any(static_group)]
 if sum(actions) != 1:
-    parser.error("pick exactly one of: --ssid/--password, --status, --clear, --dhcp, "
-                  "--static/--mask/--gateway")
+    parser.error("pick exactly one of: --ssid/--password, --creds-file, --status, --clear, "
+                  "--dhcp, --static/--mask/--gateway")
 if bool(args.ssid) != bool(args.password):
     parser.error("--ssid and --password must be given together")
-if args.ssid and len(args.ssid.encode()) > 32:
-    parser.error("--ssid must be at most 32 bytes")
-if args.password and len(args.password.encode()) > 64:
-    parser.error("--password must be at most 64 bytes")
 if any(static_group) and not all(static_group):
     parser.error("--static, --mask and --gateway must be given together")
+
+ssid = password = None
+if args.creds_file:
+    with open(args.creds_file, "r") as f:
+        lines = f.read().splitlines()
+    if len(lines) < 2:
+        parser.error(f"{args.creds_file} must have the SSID on line 1 and the password on line 2")
+    ssid, password = lines[0], lines[1]
+elif args.ssid:
+    ssid = args.ssid
+    password = getpass.getpass("Password: ")
+if ssid is not None:
+    if len(ssid.encode()) > 32:
+        parser.error("SSID must be at most 32 bytes")
+    if len(password.encode()) > 64:
+        parser.error("password must be at most 64 bytes")
 
 
 def parse_ipv4(s, label):
@@ -228,12 +255,12 @@ if args.static:
     s.close()
     sys.exit(0 if cmd == 0x30 else 1)
 
-# --ssid / --password
-ssid_b = args.ssid.encode()
-pass_b = args.password.encode()
+# --ssid/--password or --creds-file
+ssid_b = ssid.encode()
+pass_b = password.encode()
 payload = bytes([len(ssid_b)]) + ssid_b + bytes([len(pass_b)]) + pass_b
 
-print(f"CMD_NET_CREDS_SET on {PORT} (ssid={args.ssid!r})")
+print(f"CMD_NET_CREDS_SET on {PORT} (ssid={ssid!r})")
 send(s, CMD_NET_CREDS_SET, payload)
 cmd, data = recv(s)
 name = REP_NAMES.get(cmd, hex(cmd) if cmd is not None else "no reply")
