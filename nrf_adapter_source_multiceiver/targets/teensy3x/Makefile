@@ -39,6 +39,16 @@ else
 $(error Unknown BOARD '$(BOARD)' -- use TEENSY35 or TEENSY36)
 endif
 
+# The vendored trees are git-ignored, not vendored into the repo -- fetch them
+# first. Checked against a file rather than the directory, since an
+# interrupted fetch can leave an empty directory behind.
+ifeq (,$(wildcard $(FW_DIR)/core_pins.h))
+$(error Drivers/teensy3 is missing -- run: python3 ../../../tools/fetch_vendor.py --target teensy3x)
+endif
+ifeq (,$(wildcard $(SPI_DIR)/SPI.h))
+$(error Drivers/teensy_libs/SPI is missing -- run: python3 ../../../tools/fetch_vendor.py --target teensy3x)
+endif
+
 MCU = -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
 
 # ARDUINO/TEENSYDUINO version numbers are what the core's own Makefile declares;

@@ -25,6 +25,21 @@ TU_DIR = $(ROOT)/Drivers/tinyusb/src
 # Override on the command line: make HOST_LINK=HOST_LINK_USART1
 HOST_LINK ?= HOST_LINK_USB_CDC
 
+# The vendored trees are git-ignored, not vendored into the repo -- fetch them
+# first. Checked against a file rather than the directory, since an
+# interrupted fetch can leave an empty directory behind.
+ifeq (,$(wildcard $(CMSIS_INC)/core_cm3.h))
+$(error Drivers/CMSIS/Include is missing -- run: python3 ../../../tools/fetch_vendor.py --target stm32f103)
+endif
+ifeq (,$(wildcard $(DEVICE_INC)/stm32f1xx.h))
+$(error Drivers/CMSIS/Device/ST/STM32F1xx is missing -- run: python3 ../../../tools/fetch_vendor.py --target stm32f103)
+endif
+ifeq ($(HOST_LINK),HOST_LINK_USB_CDC)
+ifeq (,$(wildcard $(TU_DIR)/tusb.h))
+$(error Drivers/tinyusb is missing -- run: python3 ../../../tools/fetch_vendor.py --target stm32f103)
+endif
+endif
+
 # Explicit, not $(wildcard *.c): uart.c and usb_cdc.c both define
 # host_link_write()/host_link_read_byte()/host_link_set_baudrate(), so a wildcard would pull
 # in both and fail to link on duplicate symbols.

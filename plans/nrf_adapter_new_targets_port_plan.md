@@ -21,7 +21,7 @@ Intended outcome: six build configurations, each hardware-validated on the bench
 3. **Teensy 4.0 support added** to the same scope. It needs no new vendoring and no source changes — only a `BOARD` block, same as the 3.5/3.6 split.
 4. **Ordering: STM32 first**, then the Teensy work. Within the Teensy work the 4.0 fold comes before the 3.x port, because it is Makefile-only and establishes the `BOARD ?=` pattern on silicon that is *already* hardware-validated — so the 3.x target inherits a proven pattern instead of debugging two new things at once.
 
-**Standing constraints:** no compat shims or deprecated aliases (full cutover); vendored trees under `Drivers/` stay byte-for-byte upstream; `core/` and `platform.h` are not modified; English readme only (`readme_EN.md`, never `readme.md`); `venv/bin/python` for all host-side scripts; user runs all git commits themselves.
+**Standing constraints:** no compat shims or deprecated aliases (full cutover); vendored trees under `Drivers/` stay byte-for-byte upstream — superseded by `plans/devendoring_plan.md`, which moved them out of git entirely (git-ignored, fetched at a pinned version by `tools/fetch_vendor.py`) rather than committed verbatim, see that plan for the current mechanism; `core/` and `platform.h` are not modified; English readme only (`readme_EN.md`, never `readme.md`); `venv/bin/python` for all host-side scripts; user runs all git commits themselves.
 
 **Bench radio configuration — fixed, do not change it.** Every script that talks to the devices — existing harnesses, anything modified during this work, and any new script written along the way — uses the configuration already live in `gui_source/settings.json`:
 

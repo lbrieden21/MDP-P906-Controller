@@ -40,7 +40,10 @@ for the ESP32 and know nothing about WiFi. `host_link_test.py`, `persistence_tes
    purpose is to serve a protocol over TCP. Irrelevant for bench use; it would have to be
    resolved before contributing this upstream. Recording it here is the entire mitigation —
    a `THIRD_PARTY.md` and de-vendoring `Drivers/` were both considered and deferred to
-   their own work.
+   their own work. **Done**: `plans/devendoring_plan.md` de-vendored `Drivers/` (git-ignored,
+   fetched at a pinned version by `tools/fetch_vendor.py`) and added `THIRD_PARTY.md` at the
+   repo root, which records this AGPL-3.0 obligation alongside the rest of the license
+   inventory.
 
 2. **Full cutover rename `CMD_WIFI_*` → `CMD_NET_*`, `wifi_*` hooks → `net_*`.** Ethernet
    needs exactly what `wifi_status()` already reports, and a command named "wifi" answering

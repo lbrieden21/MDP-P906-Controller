@@ -10,6 +10,16 @@ CORE_DIR = $(ROOT)/core
 CMSIS_INC = $(ROOT)/Drivers/CMSIS/Include
 DEVICE_INC = $(ROOT)/Drivers/CMSIS/Device/ST/STM32F0xx/Include
 
+# The vendored trees are git-ignored, not vendored into the repo -- fetch them
+# first. Checked against a file rather than the directory, since an
+# interrupted fetch can leave an empty directory behind.
+ifeq (,$(wildcard $(CMSIS_INC)/core_cm0.h))
+$(error Drivers/CMSIS/Include is missing -- run: python3 ../../../tools/fetch_vendor.py --target stm32f030)
+endif
+ifeq (,$(wildcard $(DEVICE_INC)/stm32f0xx.h))
+$(error Drivers/CMSIS/Device/ST/STM32F0xx is missing -- run: python3 ../../../tools/fetch_vendor.py --target stm32f030)
+endif
+
 CORE_SRCS = $(wildcard $(CORE_DIR)/*.c)
 TARGET_SRCS = $(wildcard *.c)
 OBJS = $(patsubst $(CORE_DIR)/%.c,$(BUILD_DIR)/%.o,$(CORE_SRCS)) \

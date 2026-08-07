@@ -52,6 +52,21 @@ endif
 
 QNE_DIR = $(ROOT)/Drivers/teensy_libs/QNEthernet/src
 
+# The vendored trees are git-ignored, not vendored into the repo -- fetch them
+# first. Checked against a file rather than the directory, since an
+# interrupted fetch can leave an empty directory behind.
+ifeq (,$(wildcard $(FW_DIR)/core_pins.h))
+$(error Drivers/teensy4 is missing -- run: python3 ../../../tools/fetch_vendor.py --target teensy4x)
+endif
+ifeq (,$(wildcard $(SPI_DIR)/SPI.h))
+$(error Drivers/teensy_libs/SPI is missing -- run: python3 ../../../tools/fetch_vendor.py --target teensy4x)
+endif
+ifeq ($(ETH),1)
+ifeq (,$(wildcard $(QNE_DIR)/QNEthernet.h))
+$(error Drivers/teensy_libs/QNEthernet is missing -- run: python3 ../../../tools/fetch_vendor.py --target teensy4x-eth)
+endif
+endif
+
 MCU = -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16
 
 # ARDUINO/TEENSYDUINO version numbers are what the core's own Makefile declares;

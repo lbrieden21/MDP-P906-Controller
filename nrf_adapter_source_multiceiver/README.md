@@ -119,28 +119,37 @@ host_link_test.py    Target-neutral host-protocol check (framing, dispatch,
                      settings persistence) shared by every board —
                      nothing in it depends on which is under test beyond the
                      port name.
-Drivers/CMSIS        Copied verbatim from nrf_adapter_source/Drivers/CMSIS
-                     (ST-provided register definitions only, no HAL driver
-                     folder — this is the whole point of "no HAL"). STM32
-                     targets only; STM32F1xx device headers added alongside
-                     the existing STM32F0xx ones for the Blue Pill.
-Drivers/teensy4      PJRC cores/teensy4 from Teensyduino 1.59, copied
-                     verbatim — same treatment CMSIS gets. teensy4x/ only.
-Drivers/teensy3      PJRC cores/teensy3, copied verbatim, same Teensyduino
-                     1.59 snapshot as teensy4/ so its SPI library stays in
-                     sync. teensy3x/ only.
-Drivers/teensy_libs  PJRC's SPI library, likewise verbatim (Teensyduino
-                     1.59). Shared by both Teensy targets (renamed from
-                     teensy4_libs/ when the Teensy 3.x port started reusing
-                     it).
-Drivers/tinyusb      TinyUSB 0.21.0 (upstream tag 0.21.0, commit dae3f9a3),
-                     copied verbatim — the device-side subset only: tusb.c,
-                     common/, device/, osal/ (osal.h + osal_none.h),
-                     class/cdc/ (cdc.h, cdc_device.*) and the stm32_fsdev
-                     port (device files only, no hcd_). stm32f103/ CDC build
-                     only. Compiled with -std=gnu11 and -isystem: TinyUSB
-                     uses GNU C (bare `asm`), which -std=c11 rejects.
+Drivers/             Third-party trees. **Not committed to git** — git-ignored
+                     and fetched on demand by `tools/fetch_vendor.py` at the
+                     pins recorded in `tools/vendor.json` (see "Building"
+                     below for the fetch step). Full license inventory in
+                     `THIRD_PARTY.md` at the repo root.
 ```
+
+| Tree | Upstream | Pin | License | Used by |
+|---|---|---|---|---|
+| `Drivers/CMSIS/{Include,LICENSE.txt}` | `STMicroelectronics/cmsis-core` | tag `v5.4.0` | Apache-2.0 | every STM32 target |
+| `Drivers/CMSIS/Device/ST/STM32F0xx` | `STMicroelectronics/cmsis-device-f0` | tag `v2.3.7` | Apache-2.0 | stm32f030 |
+| `Drivers/CMSIS/Device/ST/STM32F1xx` | `STMicroelectronics/cmsis-device-f1` | tag `v4.3.5` | Apache-2.0 | stm32f103 |
+| `Drivers/teensy3` | `PaulStoffregen/cores` | commit `7f107ee0` | MIT (PJRC variant, see below) | teensy3x |
+| `Drivers/teensy4` | `PaulStoffregen/cores` | commit `7f107ee0` | MIT (PJRC variant, see below) | teensy4x |
+| `Drivers/teensy_libs/SPI` | `PaulStoffregen/SPI` | commit `7c83d072` | GPL-2.0-only OR LGPL-2.1-only | teensy3x, teensy4x |
+| `Drivers/teensy_libs/QNEthernet` | `ssilverman/QNEthernet` | tag `v0.36.0` | **AGPL-3.0-or-later** | teensy4x `ETH=1` |
+| `Drivers/tinyusb` | `hathach/tinyusb` | tag `0.21.0` | MIT | stm32f103 USB CDC |
+
+The PJRC cores are **not** "Teensyduino 1.59, copied verbatim" despite
+`-DTEENSYDUINO=159` in both Teensy Makefiles — they byte-match
+`PaulStoffregen/cores` master at `7f107ee0`, post-Teensyduino-1.62. The
+define stays at 159 anyway: it is what upstream's own Makefile declares at
+that exact commit, the only two gates anywhere in either core are
+`#if TEENSYDUINO >= 159` in `IntervalTimer.h`, and a Teensy 4.x image builds
+byte-identical at 159 vs. 162. See `plans/devendoring_plan.md` for the full
+A/B.
+
+TinyUSB is vendored as an explicit per-file list, not the whole `src/` tree —
+only the device-side CDC class and the `stm32_fsdev` portable driver this
+repo actually builds. QNEthernet is vendored whole (`src/` + 6 root files)
+because it is a header-heavy lwIP-based stack, not a handful of files.
 
 A new target adds a `targets/<name>/` directory implementing the same
 `platform.h` and nothing else — `core/` never gains a conditional, so adding
@@ -343,10 +352,17 @@ the GUI drives it over IP. Nothing about the radio side changes — same binary 
 multiceiver pipe routing, same unmodified `core/`. **`BOARD=TEENSY40 ETH=1` is a hard build
 error** — the 4.0 has no Ethernet pads.
 
+`ETH=1` vendors `Drivers/teensy_libs/QNEthernet` — fetch it first if it is not
+already present (every other target needs nothing extra):
+
 ```sh
+python3 ../../../tools/fetch_vendor.py --target teensy4x-eth
 make BOARD=TEENSY41 ETH=1                         # + optional HOST_LINK=HOST_LINK_SERIAL1
 teensy_loader_cli --mcu=TEENSY41 -s -w -v build/MDP_Adapter_Multiceiver.hex
 ```
+
+QNEthernet is AGPL-3.0-or-later — a `ETH=1` image is a combined work under
+its terms. See `THIRD_PARTY.md`.
 
 **Wiring**: the PJRC Ethernet kit (RJ45 MagJack + DP83825I PHY) on the 6-pin ribbon header
 that ships for it — no `pins.h` entries, it is not GPIO.
@@ -728,12 +744,19 @@ by the better part of a second.
 
 All four ARM targets build with plain `make` against the system
 `arm-none-eabi-gcc` (14.2) — no package manager, no board manifest, no
-downloaded toolchain. Teensyduino ships its own older gcc, but 14.2 builds
-the PJRC cores unmodified. The ESP32 target is the one exception in this
-tree — see "ESP32 target" above for its SDK requirement.
+downloaded toolchain baked into the repo. Teensyduino ships its own older
+gcc, but 14.2 builds the PJRC cores unmodified. The ESP32 target is the one
+exception in this tree — see "ESP32 target" above for its SDK requirement.
+
+The one thing every ARM target *does* need first is its vendored `Drivers/`
+trees, which are git-ignored rather than committed (see the pin table under
+"Layout" above and `THIRD_PARTY.md` for what and why). `make` on its own
+names the exact fetch to run if they're missing, but the zero-friction
+default is to fetch everything once, up front:
 
 ```sh
 sudo apt-get install gcc-arm-none-eabi   # arm-none-eabi-gcc 14.2, if not already installed
+python3 ../tools/fetch_vendor.py          # fetches every vendored tree; see --target to fetch less
 
 cd targets/stm32f030 && make                    # -> build/MDP_Adapter_Multiceiver.{elf,hex,bin}
 cd targets/stm32f103 && make                    # -> build/MDP_Adapter_Multiceiver.{elf,hex,bin}, USB CDC
@@ -829,20 +852,34 @@ afterwards brings it back.
 
 ## Refreshing a vendored tree
 
-`Drivers/` holds verbatim third-party copies. Refresh for a specific
-core-level bug, not on a schedule — the whole point of vendoring is that the
-build does not move under you.
+`Drivers/` holds pinned third-party copies, fetched by `tools/fetch_vendor.py`
+at the pins recorded in `tools/vendor.json` (see "Building" above). Refresh
+for a specific core-level bug, not on a schedule — the whole point of pinning
+is that the build does not move under you.
 
-**PJRC cores (`Drivers/teensy3`, `teensy4`, `teensy_libs`)** — currently
-Teensyduino **1.59**, per `-DTEENSYDUINO=159` in both target Makefiles and
-both `Drivers/*/Makefile`s. Download the release from pjrc.com (no account),
-diff `cores/teensy3`, `cores/teensy4` and `libraries/SPI` against `Drivers/`,
-and **treat anything resembling a local modification as a finding** — these
-are verbatim copies, so a diff hunk that is not upstream's means someone
-patched the tree. Copy over, bump `-DARDUINO=`/`-DTEENSYDUINO=` in both
-target Makefiles, rebuild every configuration, re-run the per-board
-checklist. `teensy_loader_cli` is the only part of the distribution needed
-day to day, and builds standalone from PJRC's GitHub.
+**Mechanics, any tree**: bump that tree's `pin` (tag or commit) in
+`tools/vendor.json`, then
+
+```sh
+python3 ../tools/fetch_vendor.py --tree <name> --force   # re-fetch just that tree
+python3 ../tools/fetch_vendor.py --update-hashes          # re-record tree_sha256
+```
+
+then rebuild every configuration that tree feeds and re-run the per-board
+checklist. The one exception is `cores-teensy4`'s `imxrt1062_t41.ld` patch
+(see "The one local patch" in `plans/devendoring_plan.md`): the script
+asserts its `find` string occurs exactly once before applying it, so a pin
+bump that moves that line fails the fetch loudly instead of silently dropping
+the patch — do not carry the patch forward by hand without finding out why it
+stopped matching.
+
+**PJRC cores (`Drivers/teensy3`, `teensy4`, `teensy_libs/SPI`)** are pinned to
+`PaulStoffregen/cores` commit `7f107ee0` and `PaulStoffregen/SPI` commit
+`7c83d072`, not a Teensyduino release — see the pin table under "Layout".
+`-DTEENSYDUINO=159` in both target Makefiles is independent of this pin and
+does not need to move when it does; see the note there for why it stays.
+`teensy_loader_cli` is the only part of the PJRC distribution this repo still
+needs directly, and it builds standalone from PJRC's GitHub.
 
 **Watch the Kinetis watchdog constants on any Teensy 3.x refresh.**
 `WDOG_TOVALL` in `targets/teensy3x/platform_teensy3.cpp` is `893` on the 3.5
@@ -853,10 +890,16 @@ materially. A core refresh or a compiler change is exactly that. Checklist
 step 7 is what catches it, and a silently mis-timed watchdog is the one
 failure nothing else in the checklist would surface.
 
-**TinyUSB (`Drivers/tinyusb`)** — currently **0.21.0**. Device-side subset
-only; `hcd_stm32_fsdev.c` and the ch32/at32 headers are deliberately absent.
-It is built with `-std=gnu11` rather than the target's `-std=c11`, because
-`fsdev_common.c` uses a bare `asm("NOP")` that `__STRICT_ANSI__` rejects — if
-a refresh appears to need a source edit to compile, check the standard first.
-Upstream ships an `stm32f103_bluepill` board, so an F103 regression there is
-worth reporting rather than patching around.
+**TinyUSB (`Drivers/tinyusb`)** — currently **0.21.0**, vendored as an
+explicit per-file list in `tools/vendor.json` (the device-side CDC class and
+the `stm32_fsdev` portable driver only) rather than the whole `src/` tree, so
+a version bump may need that file list edited if upstream adds, removes or
+renames a file this build touches. It is built with `-std=gnu11` rather than
+the target's `-std=c11`, because `fsdev_common.c` uses a bare `asm("NOP")`
+that `__STRICT_ANSI__` rejects — if a refresh appears to need a source edit
+to compile, check the standard first. Upstream ships an `stm32f103_bluepill`
+board, so an F103 regression there is worth reporting rather than patching
+around.
+
+**QNEthernet (`Drivers/teensy_libs/QNEthernet`)** — currently **v0.36.0**,
+`teensy4x` `ETH=1` only. AGPL-3.0-or-later; see `THIRD_PARTY.md`.

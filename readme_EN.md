@@ -83,8 +83,9 @@ Build the firmware (needs `arm-none-eabi-gcc`) — for this module, that's the
 STM32F030 target specifically:
 
 ```sh
-cd nrf_adapter_source_multiceiver/targets/stm32f030
 sudo apt-get install gcc-arm-none-eabi
+python3 tools/fetch_vendor.py --target stm32f030   # fetches Drivers/CMSIS, git-ignored not committed
+cd nrf_adapter_source_multiceiver/targets/stm32f030
 make          # -> build/MDP_Adapter_Multiceiver.{elf,hex,bin}
 ```
 

@@ -1,0 +1,311 @@
+{
+  "trees": [
+    {
+      "name": "cmsis-core",
+      "description": "ARM CMSIS-Core (Cortex-M) headers shared by every STM32 target",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/STMicroelectronics/cmsis-core",
+      "pin": {
+        "type": "tag",
+        "value": "v5.4.0"
+      },
+      "archive_url": "https://github.com/STMicroelectronics/cmsis-core/archive/refs/tags/v5.4.0.tar.gz",
+      "extract": [
+        {
+          "from": "Core/Include",
+          "to": "nrf_adapter_source_multiceiver/Drivers/CMSIS/Include"
+        },
+        {
+          "from": "LICENSE.txt",
+          "to": "nrf_adapter_source_multiceiver/Drivers/CMSIS/LICENSE.txt"
+        }
+      ],
+      "exclude": [],
+      "tree_sha256": "01463c2bbcd9774b3936b269d4f3c9158e0569511b00b53a44871f5bfd2d0918"
+    },
+    {
+      "name": "cmsis-f0",
+      "description": "CMSIS device headers for STM32F0xx (stm32f030 target)",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/STMicroelectronics/cmsis-device-f0",
+      "pin": {
+        "type": "tag",
+        "value": "v2.3.7"
+      },
+      "archive_url": "https://github.com/STMicroelectronics/cmsis-device-f0/archive/refs/tags/v2.3.7.tar.gz",
+      "extract": [
+        {
+          "from": "Include",
+          "to": "nrf_adapter_source_multiceiver/Drivers/CMSIS/Device/ST/STM32F0xx/Include"
+        },
+        {
+          "from": "LICENSE.md",
+          "to": "nrf_adapter_source_multiceiver/Drivers/CMSIS/Device/ST/STM32F0xx/LICENSE.md"
+        }
+      ],
+      "exclude": [],
+      "note": "Fetches the whole upstream Include/ (18 headers) rather than the hand-pruned 3-file subset previously checked in, and upstream's full Apache-2.0 LICENSE.md rather than ST's Cube 'see Package_license' stub (LICENSE.txt). The 3 previously-kept headers (stm32f030x6.h, stm32f0xx.h, system_stm32f0xx.h) are byte-identical to upstream; only the surrounding set and the license file differ from what git has today.",
+      "tree_sha256": "547e876f3ec2e7f79b9492934040de7355885b342d0c092e6260ce1ed87c1bd1"
+    },
+    {
+      "name": "cmsis-f1",
+      "description": "CMSIS device headers for STM32F1xx (stm32f103 / Blue Pill target)",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/STMicroelectronics/cmsis-device-f1",
+      "pin": {
+        "type": "tag",
+        "value": "v4.3.5"
+      },
+      "archive_url": "https://github.com/STMicroelectronics/cmsis-device-f1/archive/refs/tags/v4.3.5.tar.gz",
+      "extract": [
+        {
+          "from": "Include",
+          "to": "nrf_adapter_source_multiceiver/Drivers/CMSIS/Device/ST/STM32F1xx/Include"
+        },
+        {
+          "from": "License.md",
+          "to": "nrf_adapter_source_multiceiver/Drivers/CMSIS/Device/ST/STM32F1xx/License.md"
+        }
+      ],
+      "exclude": [],
+      "note": "Fetches the whole upstream Include/ (16 headers) rather than the hand-pruned 3-file subset previously checked in, and upstream's full Apache-2.0 License.md rather than ST's Cube 'see Package_license' stub (LICENSE.txt). The 3 previously-kept headers (stm32f103xb.h, stm32f1xx.h, system_stm32f1xx.h) are byte-identical to upstream; only the surrounding set and the license file differ from what git has today.",
+      "tree_sha256": "71db2bdfcf296e8a9691e630b8a666332214f4ad119db003dbeef09effe97c56"
+    },
+    {
+      "name": "cores-teensy3",
+      "description": "PJRC Teensy 3.x core (Teensy 3.5/3.6)",
+      "license": "MIT",
+      "homepage": "https://github.com/PaulStoffregen/cores",
+      "pin": {
+        "type": "commit",
+        "value": "7f107ee0a309f3813ed13f0d8f615497eca2ee49"
+      },
+      "archive_url": "https://github.com/PaulStoffregen/cores/archive/7f107ee0a309f3813ed13f0d8f615497eca2ee49.tar.gz",
+      "extract": [
+        {
+          "from": "teensy3",
+          "to": "nrf_adapter_source_multiceiver/Drivers/teensy3"
+        }
+      ],
+      "exclude": [],
+      "note": "PJRC's MIT variant carries a non-standard clause 2: any build system offering a list of target devices must list similar PJRC.COM devices alongside it. Byte-identical to upstream, 0 exclusions. Despite -DTEENSYDUINO=159 in the target Makefile, this is master at 7f107ee0, post-Teensyduino-1.62 -- see plans/devendoring_plan.md for why the version number stays.",
+      "tree_sha256": "c0f1bf61be4c46d3a714a6377de39259d9be94f133e19636110e0e7e7c81e27d"
+    },
+    {
+      "name": "cores-teensy4",
+      "description": "PJRC Teensy 4.x core (Teensy 4.0/4.1)",
+      "license": "MIT",
+      "homepage": "https://github.com/PaulStoffregen/cores",
+      "pin": {
+        "type": "commit",
+        "value": "7f107ee0a309f3813ed13f0d8f615497eca2ee49"
+      },
+      "archive_url": "https://github.com/PaulStoffregen/cores/archive/7f107ee0a309f3813ed13f0d8f615497eca2ee49.tar.gz",
+      "extract": [
+        {
+          "from": "teensy4",
+          "to": "nrf_adapter_source_multiceiver/Drivers/teensy4"
+        }
+      ],
+      "exclude": [
+        "Blink.cc"
+      ],
+      "patch": [
+        {
+          "file": "nrf_adapter_source_multiceiver/Drivers/teensy4/imxrt1062_t41.ld",
+          "find": ".ARM.exidx* .ARM.extab.text* .gnu.linkonce.armexidx.*",
+          "replace": ".ARM.exidx* .ARM.extab* .gnu.linkonce.armexidx.*",
+          "why": "Without this, BOARD=TEENSY41 ETH=1 fails to link with 'relocation truncated to fit: R_ARM_PREL31' -- libgcc's unwind objects carry a plain .ARM.extab that falls through to orphan placement in ITCM, past the 31-bit encoding's range. Root-caused in plans/nrf_adapter_teensy_ethernet_link_plan.md Phase 0. No-op for every other build."
+        }
+      ],
+      "note": "PJRC's MIT variant carries a non-standard clause 2: any build system offering a list of target devices must list similar PJRC.COM devices alongside it. Identical to upstream except Blink.cc (excluded, an example file never built) and the imxrt1062_t41.ld patch above. Despite -DTEENSYDUINO=159 in the target Makefiles, this is master at 7f107ee0, post-Teensyduino-1.62 -- see plans/devendoring_plan.md for why the version number stays.",
+      "tree_sha256": "948e4ad9398ea3c6cf5ed5172cb2341e44da594855eb5d770252b64f19799d64"
+    },
+    {
+      "name": "spi",
+      "description": "PJRC's SPI master library, used by every Teensy target",
+      "license": "GPL-2.0-only OR LGPL-2.1-only",
+      "homepage": "https://github.com/PaulStoffregen/SPI",
+      "pin": {
+        "type": "commit",
+        "value": "7c83d0726746b652af37319e70cd3932c253ecae"
+      },
+      "archive_url": "https://github.com/PaulStoffregen/SPI/archive/7c83d0726746b652af37319e70cd3932c253ecae.tar.gz",
+      "extract": [
+        {
+          "from": ".",
+          "to": "nrf_adapter_source_multiceiver/Drivers/teensy_libs/SPI"
+        }
+      ],
+      "exclude": [
+        "examples/"
+      ],
+      "note": "Sourced from PaulStoffregen/SPI directly rather than the Teensyduino installer's ~26 MB .tar.zst; all 5 kept files (SPI.h, SPI.cpp, README.md, keywords.txt, library.properties) are byte-identical either way. examples/ excluded, never built.",
+      "tree_sha256": "450434c9e6c32024f5e9b190b12eafefb1d0d6c2e0ff98fca76c485fea52dbbd"
+    },
+    {
+      "name": "qnethernet",
+      "description": "QNEthernet TCP/IP stack for Teensy 4.1's native Ethernet (ETH=1 builds only)",
+      "license": "AGPL-3.0-or-later",
+      "homepage": "https://github.com/ssilverman/QNEthernet",
+      "pin": {
+        "type": "tag",
+        "value": "v0.36.0"
+      },
+      "archive_url": "https://github.com/ssilverman/QNEthernet/archive/refs/tags/v0.36.0.tar.gz",
+      "extract": [
+        {
+          "from": "src",
+          "to": "nrf_adapter_source_multiceiver/Drivers/teensy_libs/QNEthernet/src"
+        },
+        {
+          "from": "CHANGELOG.md",
+          "to": "nrf_adapter_source_multiceiver/Drivers/teensy_libs/QNEthernet/CHANGELOG.md"
+        },
+        {
+          "from": "LICENSE",
+          "to": "nrf_adapter_source_multiceiver/Drivers/teensy_libs/QNEthernet/LICENSE"
+        },
+        {
+          "from": "README.md",
+          "to": "nrf_adapter_source_multiceiver/Drivers/teensy_libs/QNEthernet/README.md"
+        },
+        {
+          "from": "library.properties",
+          "to": "nrf_adapter_source_multiceiver/Drivers/teensy_libs/QNEthernet/library.properties"
+        },
+        {
+          "from": "library.json",
+          "to": "nrf_adapter_source_multiceiver/Drivers/teensy_libs/QNEthernet/library.json"
+        },
+        {
+          "from": "keywords.txt",
+          "to": "nrf_adapter_source_multiceiver/Drivers/teensy_libs/QNEthernet/keywords.txt"
+        }
+      ],
+      "exclude": [],
+      "note": "Vendored deliberately, eyes-open -- see plans/nrf_adapter_teensy_ethernet_link_plan.md decision 1. AGPL-3.0 Section 13 applies to any ETH=1 firmware image. src/ (207 files) plus the 6 root files above are byte-identical to upstream; .gitignore and platformio.ini are not needed and excluded by omission.",
+      "tree_sha256": "78749a198dded3f1092c9b47345ae68a1621483aef835451f97409e6dc130446"
+    },
+    {
+      "name": "tinyusb",
+      "description": "TinyUSB device-side USB CDC stack, used by stm32f103's USB CDC host link",
+      "license": "MIT",
+      "homepage": "https://github.com/hathach/tinyusb",
+      "pin": {
+        "type": "tag",
+        "value": "0.21.0"
+      },
+      "archive_url": "https://github.com/hathach/tinyusb/archive/refs/tags/0.21.0.tar.gz",
+      "extract": [
+        {
+          "from": "LICENSE",
+          "to": "nrf_adapter_source_multiceiver/Drivers/tinyusb/LICENSE"
+        },
+        {
+          "from": "src/class/cdc/cdc_device.c",
+          "to": "nrf_adapter_source_multiceiver/Drivers/tinyusb/src/class/cdc/cdc_device.c"
+        },
+        {
+          "from": "src/class/cdc/cdc_device.h",
+          "to": "nrf_adapter_source_multiceiver/Drivers/tinyusb/src/class/cdc/cdc_device.h"
+        },
+        {
+          "from": "src/class/cdc/cdc.h",
+          "to": "nrf_adapter_source_multiceiver/Drivers/tinyusb/src/class/cdc/cdc.h"
+        },
+        {
+          "from": "src/common/tusb_common.h",
+          "to": "nrf_adapter_source_multiceiver/Drivers/tinyusb/src/common/tusb_common.h"
+        },
+        {
+          "from": "src/common/tusb_compiler.h",
+          "to": "nrf_adapter_source_multiceiver/Drivers/tinyusb/src/common/tusb_compiler.h"
+        },
+        {
+          "from": "src/common/tusb_debug.h",
+          "to": "nrf_adapter_source_multiceiver/Drivers/tinyusb/src/common/tusb_debug.h"
+        },
+        {
+          "from": "src/common/tusb_fifo.c",
+          "to": "nrf_adapter_source_multiceiver/Drivers/tinyusb/src/common/tusb_fifo.c"
+        },
+        {
+          "from": "src/common/tusb_fifo.h",
+          "to": "nrf_adapter_source_multiceiver/Drivers/tinyusb/src/common/tusb_fifo.h"
+        },
+        {
+          "from": "src/common/tusb_mcu.h",
+          "to": "nrf_adapter_source_multiceiver/Drivers/tinyusb/src/common/tusb_mcu.h"
+        },
+        {
+          "from": "src/common/tusb_private.h",
+          "to": "nrf_adapter_source_multiceiver/Drivers/tinyusb/src/common/tusb_private.h"
+        },
+        {
+          "from": "src/common/tusb_types.h",
+          "to": "nrf_adapter_source_multiceiver/Drivers/tinyusb/src/common/tusb_types.h"
+        },
+        {
+          "from": "src/common/tusb_verify.h",
+          "to": "nrf_adapter_source_multiceiver/Drivers/tinyusb/src/common/tusb_verify.h"
+        },
+        {
+          "from": "src/device/dcd.h",
+          "to": "nrf_adapter_source_multiceiver/Drivers/tinyusb/src/device/dcd.h"
+        },
+        {
+          "from": "src/device/usbd.c",
+          "to": "nrf_adapter_source_multiceiver/Drivers/tinyusb/src/device/usbd.c"
+        },
+        {
+          "from": "src/device/usbd.h",
+          "to": "nrf_adapter_source_multiceiver/Drivers/tinyusb/src/device/usbd.h"
+        },
+        {
+          "from": "src/device/usbd_pvt.h",
+          "to": "nrf_adapter_source_multiceiver/Drivers/tinyusb/src/device/usbd_pvt.h"
+        },
+        {
+          "from": "src/osal/osal.h",
+          "to": "nrf_adapter_source_multiceiver/Drivers/tinyusb/src/osal/osal.h"
+        },
+        {
+          "from": "src/osal/osal_none.h",
+          "to": "nrf_adapter_source_multiceiver/Drivers/tinyusb/src/osal/osal_none.h"
+        },
+        {
+          "from": "src/portable/st/stm32_fsdev/dcd_stm32_fsdev.c",
+          "to": "nrf_adapter_source_multiceiver/Drivers/tinyusb/src/portable/st/stm32_fsdev/dcd_stm32_fsdev.c"
+        },
+        {
+          "from": "src/portable/st/stm32_fsdev/fsdev_common.c",
+          "to": "nrf_adapter_source_multiceiver/Drivers/tinyusb/src/portable/st/stm32_fsdev/fsdev_common.c"
+        },
+        {
+          "from": "src/portable/st/stm32_fsdev/fsdev_common.h",
+          "to": "nrf_adapter_source_multiceiver/Drivers/tinyusb/src/portable/st/stm32_fsdev/fsdev_common.h"
+        },
+        {
+          "from": "src/portable/st/stm32_fsdev/fsdev_stm32.h",
+          "to": "nrf_adapter_source_multiceiver/Drivers/tinyusb/src/portable/st/stm32_fsdev/fsdev_stm32.h"
+        },
+        {
+          "from": "src/tusb.c",
+          "to": "nrf_adapter_source_multiceiver/Drivers/tinyusb/src/tusb.c"
+        },
+        {
+          "from": "src/tusb.h",
+          "to": "nrf_adapter_source_multiceiver/Drivers/tinyusb/src/tusb.h"
+        },
+        {
+          "from": "src/tusb_option.h",
+          "to": "nrf_adapter_source_multiceiver/Drivers/tinyusb/src/tusb_option.h"
+        }
+      ],
+      "exclude": [],
+      "note": "Upstream ships support for dozens of MCU families; only the device-side CDC class and the stm32_fsdev portable driver this repo actually builds are listed above, individually, rather than vendoring the whole src/ tree and excluding everything else. All 26 files are byte-identical to upstream.",
+      "tree_sha256": "d3b21ea7402aae0ab568c70d41c411786a3450e5bcb4e31d374e3dd3338e35a4"
+    }
+  ]
+}
