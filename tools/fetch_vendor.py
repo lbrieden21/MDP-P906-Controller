@@ -1,6 +1,6 @@
 """
 Fetches and pins the third-party source trees vendored under
-nrf_adapter_source_multiceiver/Drivers/ at the versions recorded in
+nrf_adapter_source/Drivers/ at the versions recorded in
 tools/vendor.json, so a fresh checkout builds without those ~11 MB of
 upstream code sitting in git history.
 

@@ -4,11 +4,11 @@ This repository is licensed Unlicense at the top level (`LICENSE`), but that
 grant never described everything under it. This file is the license
 inventory the top-level Unlicense doesn't provide.
 
-## `nrf_adapter_source_multiceiver/Drivers/`
+## `nrf_adapter_source/Drivers/`
 
 Not committed to git — git-ignored and fetched on demand by
 `tools/fetch_vendor.py` at the pins recorded in `tools/vendor.json`. See
-`nrf_adapter_source_multiceiver/README.md` ("Layout" and "Building") for how
+`nrf_adapter_source/README.md` ("Layout" and "Building") for how
 to fetch them and `plans/devendoring_plan.md` for why they're handled this
 way.
 
@@ -48,15 +48,6 @@ boilerplate to skip past.
 upstream ships one) to accompany redistribution; both ship as part of each
 tree's fetch (`LICENSE.txt`/`LICENSE.md` per `tools/vendor.json`).
 
-## `nrf_adapter_source/Drivers/`
-
-Out of scope for the de-vendoring project (`plans/devendoring_plan.md`) and
-still committed to git. `Drivers/CMSIS` and `Drivers/STM32F0xx_HAL_Driver`
-each ship an ST `LICENSE.txt`. This is the legacy Keil project's HAL/CMSIS
-tree; four of its libraries carry no version marker at all, so their
-provenance can't be pinned the way the multiceiver tree's can. The licensing
-story here stays incomplete.
-
 ## `gui_source/qframelesswindow/`
 
 A genuine **fork** of [`zhiyiYo/PyQt-Frameless-Window`](https://github.com/zhiyiYo/PyQt-Frameless-Window)
@@ -77,7 +68,7 @@ Not addressed by this inventory.
 ## What this file doesn't cover
 
 Git history is not discussed here. The five commits that once carried the
-`nrf_adapter_source_multiceiver/Drivers/` trees listed above were rewritten
-out of this repository's history (`plans/devendoring_plan.md`, Phase 4) —
+`nrf_adapter_source/Drivers/` trees listed above were rewritten out of this
+repository's history (`plans/devendoring_plan.md`, Phase 4) —
 by the time this file exists, there is nothing left in history for it to
 disclose.

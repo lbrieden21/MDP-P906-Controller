@@ -23,9 +23,9 @@ settings.json
 *.csv
 *.svg
 
-# vendored trees, fetched by tools/fetch_vendor.py (see nrf_adapter_source_multiceiver/README.md)
-/nrf_adapter_source_multiceiver/Drivers/CMSIS/
-/nrf_adapter_source_multiceiver/Drivers/teensy3/
-/nrf_adapter_source_multiceiver/Drivers/teensy4/
-/nrf_adapter_source_multiceiver/Drivers/teensy_libs/
-/nrf_adapter_source_multiceiver/Drivers/tinyusb/
+# vendored trees, fetched by tools/fetch_vendor.py (see nrf_adapter_source/README.md)
+/nrf_adapter_source/Drivers/CMSIS/
+/nrf_adapter_source/Drivers/teensy3/
+/nrf_adapter_source/Drivers/teensy4/
+/nrf_adapter_source/Drivers/teensy_libs/
+/nrf_adapter_source/Drivers/tinyusb/

@@ -10,12 +10,18 @@ Wireless control of the power supply without the MDP-M01 display module, support
 Prerequisite section below was the original basis for this project's adapter
 firmware, but it's no longer part of the actual hardware in use — by the time
 that stage of work started, the module wasn't readily available anymore. All
-ongoing work, including the [nrf_adapter_source_multiceiver/](nrf_adapter_source_multiceiver/)
+ongoing work, including the [nrf_adapter_source/](nrf_adapter_source/)
 bare-metal firmware, is developed and bench-tested against a bare
 STM32F030F4P6 dev board (same MCU) paired with an external USB-to-serial
 adapter for the host link. The dongle's shipped firmware is still the source
 the pin mapping and protocol were recovered from, so the Prerequisite section
 is kept for that lineage and for anyone who already has the original module.
+
+`nrf_adapter_source/` no longer holds the STM32CubeMX + HAL + Keil MDK project
+this repo originally shipped with — it was completely rewritten as a bare-metal
+(direct CMSIS register access) multi-target firmware under the same directory
+name. The original remains in this repository's git history at the `init`
+commit.
 
 ## Acknowledgements
 
@@ -55,9 +61,9 @@ A lot of time was spent optimizing the communication quality based on this proje
 
 ### Prerequisite of the Prerequisite
 
-Although the following text says that this project requires buying a module, if you already have an STM32 + NRF24L01 combo, you can port this project to your device by adapting the pin definitions. The current adapter firmware ([nrf_adapter_source_multiceiver/](nrf_adapter_source_multiceiver/)) is bare-metal (direct CMSIS register access, no CubeMX/HAL), so porting means editing the pin/clock setup directly in that source rather than regenerating from a `.ioc` file.
+Although the following text says that this project requires buying a module, if you already have an STM32 + NRF24L01 combo, you can port this project to your device by adapting the pin definitions. The current adapter firmware ([nrf_adapter_source/](nrf_adapter_source/)) is bare-metal (direct CMSIS register access, no CubeMX/HAL), so porting means editing the pin/clock setup directly in that source rather than regenerating from a `.ioc` file.
 
-I won't include the specific circuit I reverse-engineered here; you can directly refer to the pin definitions in [nrf_adapter_source_multiceiver/targets/stm32f030/gpio.h](nrf_adapter_source_multiceiver/targets/stm32f030/gpio.h).
+I won't include the specific circuit I reverse-engineered here; you can directly refer to the pin definitions in [nrf_adapter_source/targets/stm32f030/gpio.h](nrf_adapter_source/targets/stm32f030/gpio.h).
 
 ### Prerequisite
 
@@ -73,7 +79,7 @@ Fortunately, the module uses a genuine STM32F030F4P6 as the main controller, all
 
 ### Modification Method
 
-**Important:** the Python driver in this repo ([mdp_controller/bus.py](mdp_controller/bus.py)) now always uses the nRF24L01+'s hardware RX pipes to address devices (`CMD_NRF_OPEN_PIPE`, 0x23) — even for a single device. That command only exists in the bare-metal multiceiver firmware under [nrf_adapter_source_multiceiver/](nrf_adapter_source_multiceiver/); the original shipped firmware (and the old pre-built release image) doesn't support it and will no longer work with this driver. There is currently no pre-built image for the multiceiver firmware, so it has to be compiled and flashed yourself over SWD.
+**Important:** the Python driver in this repo ([mdp_controller/bus.py](mdp_controller/bus.py)) now always uses the nRF24L01+'s hardware RX pipes to address devices (`CMD_NRF_OPEN_PIPE`, 0x23) — even for a single device. That command only exists in the bare-metal multiceiver firmware under [nrf_adapter_source/](nrf_adapter_source/); the original shipped firmware (and the old pre-built release image) doesn't support it and will no longer work with this driver. There is currently no pre-built image for the multiceiver firmware, so it has to be compiled and flashed yourself over SWD.
 
 Pry open the module's case and flip it over to see the test points as shown in the image below:
 
@@ -85,7 +91,7 @@ STM32F030 target specifically:
 ```sh
 sudo apt-get install gcc-arm-none-eabi
 python3 tools/fetch_vendor.py --target stm32f030   # fetches Drivers/CMSIS, git-ignored not committed
-cd nrf_adapter_source_multiceiver/targets/stm32f030
+cd nrf_adapter_source/targets/stm32f030
 make          # -> build/MDP_Adapter_Multiceiver.{elf,hex,bin}
 ```
 
@@ -93,7 +99,7 @@ The same firmware also supports an STM32 Blue Pill, four Teensy boards
 (3.5, 3.6, 4.0, 4.1), and four ESP32 boards (ESP32-C6, ESP32-H2, ESP32-S3,
 and classic ESP32/ESP-WROOM-32) if you'd rather build your own adapter than
 modify this module — see
-[nrf_adapter_source_multiceiver/README.md](nrf_adapter_source_multiceiver/README.md)
+[nrf_adapter_source/README.md](nrf_adapter_source/README.md)
 for the full board list and per-target build/flash instructions.
 
 Flash it over SWD with an ST-LINK V2 — wire `SWCLK`/`SWDIO`/`GND`/`3V3` from the ST-LINK to the module's test points as shown below. The `BOOT0`/`3V3` short and serial bootloader from the old method are **not** used here.
@@ -115,7 +121,7 @@ If the module still has its original read/write protection set, `st-flash` will 
 
 Alternatively, [STM32 CubeProgrammer](https://www.st.com/en/development-tools/stm32cubeprog.html) can flash the same `.bin`/`.hex` over the same SWD wiring, and has its own "remove read-out protection" option in the GUI if needed.
 
-See [nrf_adapter_source_multiceiver/README.md](nrf_adapter_source_multiceiver/README.md) for full build/flash details and firmware design notes.
+See [nrf_adapter_source/README.md](nrf_adapter_source/README.md) for full build/flash details and firmware design notes.
 
 ### Control by API
 
@@ -138,7 +144,7 @@ This is implemented using the adapter's nRF24L01+ hardware RX pipes to tell devi
 #### Connecting over WiFi (ESP32 adapters)
 
 An ESP32-C6, ESP32-S3 or classic ESP32 (WROOM-32) adapter built with `HOST_LINK_WIFI` (see
-[nrf_adapter_source_multiceiver/README.md](nrf_adapter_source_multiceiver/README.md)) can be
+[nrf_adapter_source/README.md](nrf_adapter_source/README.md)) can be
 driven over the LAN instead of USB, once it's been provisioned with WiFi credentials over its
 wired link. In **Connection Settings**, set **Connection Type** to **WiFi (TCP)** and enter the
 adapter's **Host Address** (its DHCP-assigned IP) and port (9000 by default) instead of picking

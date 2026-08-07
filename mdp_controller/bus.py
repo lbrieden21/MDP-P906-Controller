@@ -22,8 +22,8 @@ from mdp_controller.nrf24_adapter import (
 # independent 5-byte RX address; pipes 2-5 only have a single configurable
 # LSB register apiece and silently share pipe 1's upper 4 bytes for
 # reception (confirmed against this repo's own firmware,
-# nrf24l01p_open_rx_pipe() in nrf_adapter_source_multiceiver/Core/Src/
-# nrf24l01p.c -- pipe==1 writes all 5 bytes, pipe>1 writes only addr[0]).
+# nrf24l01p_open_rx_pipe() in nrf_adapter_source/core/nrf24l01p.c --
+# pipe==1 writes all 5 bytes, pipe>1 writes only addr[0]).
 # A per-device *idcode*-derived address (this file's previous scheme) broke
 # exactly this: two devices' idcodes essentially never share upper bytes, so
 # only whichever device landed on pipe 1 would actually be reachable.
