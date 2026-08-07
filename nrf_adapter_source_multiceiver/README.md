@@ -44,9 +44,19 @@ and pulling in CubeMX/HAL just to get a nRF24 register layer wasn't worth
 it. Everything needed to reimplement it bare-metal was already recovered
 from the shipped source, not reverse-engineered:
 
-- **Pins** (`nrf_adapter_source/Core/Inc/main.h`): PA0 LED (active-low, open-drain),
-  PA2 nRF IRQ (EXTI2, falling edge, pull-up), PA3 CSN, PA4 CE, PA5/6/7 SPI1
-  SCK/MISO/MOSI (AF0), PA9/10 USART1 TX/RX (AF1).
+- **Pins** (`nrf_adapter_source/Core/Inc/main.h`):
+
+| Function | Pin | Notes |
+|---|---|---|
+| LED | PA0 | active-low, open-drain |
+| nRF IRQ | PA2 | EXTI2, falling edge, pull-up |
+| nRF CSN | PA3 | |
+| nRF CE | PA4 | |
+| SPI1 SCK | PA5 | AF0 |
+| SPI1 MISO | PA6 | AF0 |
+| SPI1 MOSI | PA7 | AF0 |
+| USART1 TX | PA9 | AF1 |
+| USART1 RX | PA10 | AF1 |
 - **Clock tree** (`MDP_Adapter.ioc`, `SystemClock_Config()`): HSI(8MHz)/2 →
   PLL×12 → 48MHz SYSCLK/HCLK/PCLK, 1 flash wait state, SPI1 /4 → 12MHz,
   USART1 921600 baud default.
@@ -249,9 +259,19 @@ Two CDC behaviours that are by design, not faults:
   watchdog refresh.
 
 - **Wiring** (`targets/stm32f103/gpio.h`): identical to the F030 target
-  except the LED, which moves to the onboard **PC13** (active-low,
-  open-drain, 2MHz). nRF IRQ PA2 (EXTI2), CSN PA3, CE PA4, SPI1 SCK/MISO/MOSI
-  PA5/6/7, USART1 TX/RX PA9/10 — no AFIO remap on either peripheral.
+  except the LED. No AFIO remap on either peripheral.
+
+| Function | Pin | Notes |
+|---|---|---|
+| LED | PC13 | active-low, open-drain, 2MHz |
+| nRF IRQ | PA2 | EXTI2 |
+| nRF CSN | PA3 | |
+| nRF CE | PA4 | |
+| SPI1 SCK | PA5 | |
+| SPI1 MISO | PA6 | |
+| SPI1 MOSI | PA7 | |
+| USART1 TX | PA9 | |
+| USART1 RX | PA10 | |
 - **SPI runs at 9MHz** (`BR_1`, /8 off the 72MHz PCLK2), under the
   nRF24L01+'s 10MHz ceiling. The F030's 12MHz is above spec and was not
   carried over — the same call already made for the Teensy targets.
@@ -278,9 +298,16 @@ still comfortably fits the 40-byte settings record. **Switching `BOARD`
 requires `make clean` first** — the define only reaches the framework objects
 under `build/fw`, and `make` has no way to know they're stale otherwise.
 
-- **Wiring** (`targets/teensy4x/pins.h`): SPI is LPSPI4 on its fixed pins —
-  SCK 13, MOSI 11, MISO 12 — plus CSN 10, CE 9, IRQ 2. SPI runs at 10MHz, the
-  nRF24L01+'s rated ceiling.
+- **Wiring** (`targets/teensy4x/pins.h`): LPSPI4 on fixed pins, SPI at 10MHz (nRF24L01+'s rated ceiling).
+
+| Function | Pin | Notes |
+|---|---|---|
+| nRF IRQ | 2 | |
+| nRF CE | 9 | |
+| nRF CSN | 10 | |
+| SPI MOSI | 11 | LPSPI4 fixed |
+| SPI MISO | 12 | LPSPI4 fixed |
+| SPI SCK | 13 | LPSPI4 fixed |
 - **No status LED.** Pin 13 is the onboard LED *and* LPSPI4's SCK, so it is
   unavailable, and `led_on()`/`led_off()` are no-ops — they only ever drove
   cosmetic activity indication. There is no boot blink on this target, and so
@@ -402,9 +429,16 @@ Three genuine differences from `teensy4x/`:
   method, including the measurement trap that makes the obvious approach
   over-read by nearly a second.
 
-- **Wiring** (`targets/teensy3x/pins.h`): SPI0 on its fixed pins — MOSI 11,
-  MISO 12 — with SCK moved to 14 as above — plus CSN 10, CE 9, IRQ 2. Same
-  10MHz SPI ceiling as every other target.
+- **Wiring** (`targets/teensy3x/pins.h`): SPI0 on fixed pins with SCK moved to 14 (freeing pin 13 for LED). SPI at 10MHz (same as every other target).
+
+| Function | Pin | Notes |
+|---|---|---|
+| nRF IRQ | 2 | |
+| nRF CE | 9 | |
+| nRF CSN | 10 | |
+| SPI MOSI | 11 | SPI0 fixed |
+| SPI MISO | 12 | SPI0 fixed |
+| SPI SCK | 14 | moved from pin 13 for LED |
 - **Settings**: PJRC's flash-emulated EEPROM, FlexNVM-backed — 4096 bytes on
   the 3.5/3.6 (`E2END 0xFFF`) — with the same record format and CRC16 as
   every other target.
