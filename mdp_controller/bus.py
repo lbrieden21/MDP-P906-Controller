@@ -97,6 +97,14 @@ class MDPBus:
         )
         self._adp.nrf_set_settings(setting)
         self._current_target = self._address
+        # Program pipe 1's base before any device attaches: pipes 2-5 receive
+        # on RX_ADDR_P1's upper 4 bytes plus their own LSB, and opening pipe 1
+        # is the only write that lands those bytes (nrf24l01p_open_rx_pipe()
+        # writes all 5 for pipe 1, addr[0] alone for pipe > 1). Nothing else
+        # sets them -- nrf24l01p_reset() leaves the address registers alone --
+        # so a pipe >= 2 device attaching first would otherwise listen on the
+        # radio's power-on default base and never receive a reply.
+        self._adp.nrf_open_pipe(1, self._pipe_address(1))
         time.sleep(0.1)
 
     @property

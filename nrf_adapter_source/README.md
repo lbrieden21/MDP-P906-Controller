@@ -230,6 +230,14 @@ a target cannot change the code any existing target compiles.
   address registers — the host must keep those addresses' upper bytes equal
   to pipe 1's address (this is a chip limitation `nrf24l01p_open_rx_pipe()`
   doesn't need to enforce; it's inherent to how those registers work).
+  Those shared upper bytes are written *only* by an `NRF_OPEN_PIPE` for pipe
+  1 — `CMD_NRF_SET` doesn't touch `RX_ADDR_P1`, and neither does the reset it
+  performs — so a host must open pipe 1 before (or instead of) relying on any
+  of pipes 2–5, whether or not it has a device for pipe 1. Until it does, the
+  register holds the chip's power-on default `C2:C2:C2:C2:C2` (or whatever a
+  previous session left, for as long as the radio stays powered) and pipes
+  2–5 receive nothing, while transmissions to those devices still ACK
+  normally. `bus.py` opens pipe 1 when it constructs the bus.
 - **Pipe number source**: `STATUS.RX_P_NO`, read for free off the SPI
   response byte that `R_RX_PAYLOAD` already returns — no extra SPI
   transaction, so this doesn't touch the timing-sensitive 50Hz Type-8
