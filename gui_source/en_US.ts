@@ -40,12 +40,12 @@
         <translation type="unfinished">IDCODE is empty, please complete the connection settings first</translation>
     </message>
     <message>
-        <location filename="device_panel.py" line="320"/>
+        <location filename="device_panel.py" line="324"/>
         <source>已连接</source>
         <translation type="unfinished">Connected</translation>
     </message>
     <message>
-        <location filename="device_panel.py" line="326"/>
+        <location filename="device_panel.py" line="332"/>
         <source>未连接</source>
         <translation type="unfinished">Disconnected</translation>
     </message>
@@ -68,17 +68,17 @@
         <translation type="unfinished">Voltage V</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1125"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1126"/>
         <source>电流 A</source>
         <translation type="unfinished">Current A</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1126"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1127"/>
         <source>功率 W</source>
         <translation type="unfinished">Power W</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1127"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1128"/>
         <source>能量 (J)</source>
         <translation type="unfinished">Energy (J)</translation>
     </message>
@@ -88,17 +88,17 @@
         <translation type="obsolete">Avg Power</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1129"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1130"/>
         <source>阻值 Ω</source>
         <translation type="unfinished">Resistance Ω</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1216"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1218"/>
         <source>系统状态 / SYSTEM STATE</source>
         <translation type="unfinished">SYSTEM STATE</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1128"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1129"/>
         <source>温度</source>
         <translation type="unfinished">Temperature</translation>
     </message>
@@ -123,7 +123,7 @@
         <translation type="obsolete">CP Target (W)</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1135"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1136"/>
         <source>负载 开/关</source>
         <translation type="unfinished">Load On/Off</translation>
     </message>
@@ -138,177 +138,177 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1130"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1131"/>
         <source>负载设定 / LOAD SETTING</source>
         <translation type="unfinished">LOAD SETTING</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1205"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1207"/>
         <source>CC</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1206"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1208"/>
         <source>CV</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1207"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1209"/>
         <source>CR</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1208"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1210"/>
         <source>CP</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1140"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1141"/>
         <source>辅助功能 / AUX FUNC</source>
         <translation type="unfinished">AUXILIARY FUNCTION</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1141"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1142"/>
         <source>◀</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1142"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1143"/>
         <source>Title</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1143"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1144"/>
         <source>▶</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1144"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1145"/>
         <source>None</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1145"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1146"/>
         <source>修改预设</source>
         <translation type="unfinished">Edit</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1146"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1147"/>
         <source>1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1178"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1179"/>
         <source>模式</source>
         <translation type="unfinished">Mode</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1183"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1184"/>
         <source>目标值</source>
         <translation type="unfinished">Target</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1184"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1185"/>
         <source>A</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1209"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1211"/>
         <source>保存</source>
         <translation type="unfinished">Save</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1155"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1156"/>
         <source>预设组</source>
         <translation type="unfinished">Presets</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1186"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1188"/>
         <source>V</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1138"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1139"/>
         <source>Ω</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1139"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1140"/>
         <source>W</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1214"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1216"/>
         <source>结束后保持负载开启</source>
         <translation type="unfinished">Leave load on when finished</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1176"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1177"/>
         <source>扫描</source>
         <translation type="unfinished">Sweep</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1201"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1203"/>
         <source>放电</source>
         <translation type="unfinished">Discharge</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1215"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1217"/>
         <source>序列</source>
         <translation type="unfinished">Sequence</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1156"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1157"/>
         <source>开始扫描</source>
         <translation type="unfinished">Start Sweep</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1162"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1163"/>
         <source>起始点</source>
         <translation type="unfinished">Start</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1164"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1165"/>
         <source>结束点</source>
         <translation type="unfinished">End</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1166"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1167"/>
         <source>步进值</source>
         <translation type="unfinished">Step</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1168"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1169"/>
         <source>驻留时间</source>
         <translation type="unfinished">Dwell Time</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1169"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1170"/>
         <source>s</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1170"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1171"/>
         <source>扫描响应</source>
         <translation type="unfinished">Response</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1171"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1172"/>
         <source>电压</source>
         <translation type="unfinished">Voltage</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1172"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1173"/>
         <source>电流</source>
         <translation type="unfinished">Current</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1173"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1174"/>
         <source>功率</source>
         <translation type="unfinished">Power</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1174"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1175"/>
         <source>阻值</source>
         <translation type="unfinished">Resistance</translation>
     </message>
@@ -318,102 +318,102 @@
         <translation type="obsolete">View Response Curve</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1203"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1205"/>
         <source>延迟</source>
         <translation type="unfinished">Delay</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1204"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1206"/>
         <source>等待</source>
         <translation type="unfinished">Wait</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1210"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1212"/>
         <source>载入</source>
         <translation type="unfinished">Load</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1211"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1213"/>
         <source>单次运行</source>
         <translation type="unfinished">Run Once</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1212"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1214"/>
         <source>循环运行</source>
         <translation type="unfinished">Run Loop</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1213"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1215"/>
         <source>停止序列</source>
         <translation type="unfinished">Stop Sequence</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1177"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1178"/>
         <source>开始放电</source>
         <translation type="unfinished">Start Discharge</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1185"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1186"/>
         <source>截止电压</source>
         <translation type="unfinished">Cutoff Voltage</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1187"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1189"/>
         <source>最大安时</source>
         <translation type="unfinished">Max Ah</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1188"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1190"/>
         <source>Ah</source>
         <translation type="unfinished">Ah</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1189"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1191"/>
         <source>最大瓦时</source>
         <translation type="unfinished">Max Wh</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1190"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1192"/>
         <source>Wh</source>
         <translation type="unfinished">Wh</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1191"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1193"/>
         <source>最大时长</source>
         <translation type="unfinished">Max Duration</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1192"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1194"/>
         <source>min</source>
         <translation type="unfinished">min</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1193"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1195"/>
         <source>已用时间</source>
         <translation type="unfinished">Elapsed</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1194"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1196"/>
         <source>00:00:00</source>
         <translation type="unfinished">00:00:00</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1195"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1197"/>
         <source>已放电量</source>
         <translation type="unfinished">Discharge Capacity</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1196"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1198"/>
         <source>0.0000 Ah</source>
         <translation type="unfinished">0.0000 Ah</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1197"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1199"/>
         <source>已放电能量</source>
         <translation type="unfinished">Discharge Energy</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1198"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1200"/>
         <source>0.0000 Wh</source>
         <translation type="unfinished">0.0000 Wh</translation>
     </message>
@@ -423,9 +423,19 @@
         <translation type="obsolete">View Discharge Curve</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1200"/>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1202"/>
         <source>保存CSV</source>
         <translation type="unfinished">Save CSV</translation>
+    </message>
+    <message>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1125"/>
+        <source>L1060 只有一路电压测量：接入远端采样线时测量采样端，未接入时测量负载端子，两者相差引线压降。协议中无法区分，软件无法自动判断。</source>
+        <translation type="unfinished">The L1060 has a single voltage measurement: with the remote-sense leads connected it measures at the sense terminals, without them at the load terminals. The two differ by the drop across your load leads. The protocol cannot distinguish them, so the software cannot tell which is in use.</translation>
+    </message>
+    <message>
+        <location filename="mdp_gui_template/device_panel_l1060_ui.py" line="1187"/>
+        <source>截止判断使用 L1060 的测量电压：接入远端采样线时为采样端电压，未接入时为负载端子电压，两者相差引线压降。请按实际接线设置截止值。</source>
+        <translation type="unfinished">The cutoff is judged on the L1060's measured voltage: the sense-terminal voltage if the remote-sense leads are connected, the load-terminal voltage if not. The two differ by the drop across your load leads, so set the cutoff for the wiring you are actually using.</translation>
     </message>
 </context>
 <context>

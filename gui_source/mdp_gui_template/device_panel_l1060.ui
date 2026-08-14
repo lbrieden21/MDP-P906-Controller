@@ -120,6 +120,9 @@
                 <verstretch>0</verstretch>
                </sizepolicy>
               </property>
+              <property name="toolTip">
+               <string>L1060 只有一路电压测量：接入远端采样线时测量采样端，未接入时测量负载端子，两者相差引线压降。协议中无法区分，软件无法自动判断。</string>
+              </property>
               <property name="minimumSize">
                <size>
                 <width>130</width>
@@ -1853,6 +1856,9 @@
                     <width>80</width>
                     <height>16777215</height>
                    </size>
+                  </property>
+                  <property name="toolTip">
+                   <string>截止判断使用 L1060 的测量电压：接入远端采样线时为采样端电压，未接入时为负载端子电压，两者相差引线压降。请按实际接线设置截止值。</string>
                   </property>
                   <property name="font">
                    <font>

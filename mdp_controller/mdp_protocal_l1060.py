@@ -78,6 +78,9 @@ def _parse_sample_slots(sample_data: bytes) -> List[dict]:
     """
     5-byte base-100 slots: [volts, 10mV, 0.1mV, 0.1A, 1mA], oldest-first. The
     last slot may be a truncated 4-byte tail (voltage only, no mA digit).
+
+    Type 10 carries slots in this same format (left undecoded, see below).
+    All-zero slots mean 0 V at the load, not an idle/invalid state.
     """
     slots = []
     for offset in range(0, len(sample_data), 5):
@@ -111,7 +114,13 @@ def parse_type7_response(data: bytes) -> dict:
     Returns a dict: errflag, temperature, load_mode, load_active (current
     actually flowing, the confirm signal for set_load_on -- L1060's Type 7
     has no LoadEnabled bit, that's Type 10 only), input_voltage (USB/power
-    rail, NOT load-terminal voltage), voltage, current.
+    rail, NOT the measured load voltage), voltage, current.
+
+    `voltage` is measured at the remote-sense terminals when the sense leads
+    are connected and at the load terminals when they are not -- the device has
+    one voltage measurement and substitutes it internally, so Types 7, 8 and 10
+    all report the same reference and never both at once. No field in any
+    response type says which one it is. `current` is unaffected.
     """
     assert data[0] == 7
     length = data[1]
@@ -206,6 +215,11 @@ def parse_type9_response(data: bytes) -> Tuple[bytes, Optional[bool]]:
 # target pages (CC->CR->CP->CV->CC...), self-reported via the trailing 5
 # bytes (family(2) + value(3)), advancing per get the device receives (not
 # per response reaching the host -- both directions can drop independently).
+#
+# sd[13:23] is two live sample slots in _parse_sample_slots' format, tracking
+# Type 7's in lockstep. Left undecoded here as redundant with Type 7, the
+# canonical measurement channel -- but they are data, not padding, so a Type 10
+# get alone is enough to anchor a measurement.
 #
 # gen_set_current/gen_set_voltage used to ride Type 7 instead (the live
 # measurement channel), tagged with the same family codes used here. That

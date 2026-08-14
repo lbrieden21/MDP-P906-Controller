@@ -155,9 +155,12 @@ class MDP_L1060(MDPDevice):
               sd[4] bit 0, the same field the real M01 polls); refreshed whenever a
               Type 10 response arrives, None until the first one does
             - Temperature (float): Device temperature
-            - InputVoltage (float): USB/power-input rail voltage (NOT load-terminal voltage)
-            - Voltage (float): Load-terminal voltage
-            - Current (float): Load-terminal current
+            - InputVoltage (float): USB/power-input rail voltage (NOT the measured
+              load voltage)
+            - Voltage (float): measured load voltage -- at the remote-sense terminals
+              if the sense leads are connected, at the load terminals if not, with no
+              way to tell which from the protocol (see parse_type7_response)
+            - Current (float): Load-terminal current (unaffected by the sense leads)
             - ErrFlag (int): System error flag
             - Protection (Optional[str]): None / "OVP" / "OCP" / "OPP_OR_UVP" when latched
             - ProtectionLatched (bool): True if a protection fault is latched (requires physical Run-button reset)
