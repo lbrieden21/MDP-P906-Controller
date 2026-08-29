@@ -6,7 +6,7 @@ sys.argv.append("--sim")
 from mdp_controller import MDP_L1060, MDPBus  # noqa: E402
 
 if __name__ == "__main__":
-    bus = MDPBus(freq=2521, tx_output_power="4dBm", debug=False)
+    bus = MDPBus(tx_output_power="4dBm", debug=False)
     idcode, pipe = bus.auto_match()
     mdp = MDP_L1060(bus, idcode=idcode, led_color=(0x66, 0xCC, 0xFF), debug=False)
     bus.attach(mdp, pipe)

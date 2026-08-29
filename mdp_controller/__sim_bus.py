@@ -54,8 +54,8 @@ class MDPBus:
         self,
         port: Optional[str] = None,
         baudrate: int = 921600,
-        address: str = "AA:BB:CC:DD:EE",
-        freq: int = 2442,
+        address: str = "0E:4C:B9:EF:E0",
+        freq: int = 2473,
         tx_output_power: Literal[
             "7dBm", "4dBm", "3dBm", "1dBm", "0dBm", "-4dBm", "-6dBm", "-12dBm"
         ] = "4dBm",

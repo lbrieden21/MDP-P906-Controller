@@ -16,12 +16,12 @@ from mdp_controller.nrf24_adapter import (
 
 # Pipe-address derivation: every device gets an address that shares its
 # upper 4 bytes with the bus's own configured address and differs only in
-# the last byte (one of _PIPE_ADDRESS_LSBS, indexed by pipe 1-5) -- the same
-# base_addr + (0xE1+k) scheme the real MDP-M01 hub uses. This isn't a style
-# choice: real nRF24L01+ hardware only gives pipes 1 and 0 a fully
-# independent 5-byte RX address; pipes 2-5 only have a single configurable
-# LSB register apiece and silently share pipe 1's upper 4 bytes for
-# reception (confirmed against this repo's own firmware,
+# the last byte (_PIPE_ADDRESS_PREFIX + pipe, pipes 1-5) -- the same
+# base_addr + (0xE1 + slot) scheme the MDP-M01 hub uses, pipe p carrying
+# slot p-1. This isn't a style choice: real nRF24L01+ hardware only gives
+# pipes 1 and 0 a fully independent 5-byte RX address; pipes 2-5 only have a
+# single configurable LSB register apiece and silently share pipe 1's upper
+# 4 bytes for reception (confirmed against this repo's own firmware,
 # nrf24l01p_open_rx_pipe() in nrf_adapter_source/core/nrf24l01p.c --
 # pipe==1 writes all 5 bytes, pipe>1 writes only addr[0]).
 # A per-device *idcode*-derived address (this file's previous scheme) broke
@@ -34,7 +34,7 @@ from mdp_controller.nrf24_adapter import (
 # same target pipe. Pipe 0 itself is never used for a device: RX_ADDR_P0 is
 # the adapter's own identity address, shared with TX_ADDR for ShockBurst
 # auto-ack, so it can't be reassigned per-device either.
-_PIPE_ADDRESS_PREFIX = 0xE1
+_PIPE_ADDRESS_PREFIX = 0xE0
 
 _MATCH_COM_TIMEOUT = 0.04
 
@@ -50,8 +50,8 @@ class MDPBus:
         self,
         port: Optional[str] = None,
         baudrate: int = 921600,
-        address: str = "AA:BB:CC:DD:EE",
-        freq: int = 2442,
+        address: str = "0E:4C:B9:EF:E0",
+        freq: int = 2473,
         tx_output_power: Literal[
             "7dBm", "4dBm", "3dBm", "1dBm", "0dBm", "-4dBm", "-6dBm", "-12dBm"
         ] = "4dBm",

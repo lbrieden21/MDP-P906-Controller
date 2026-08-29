@@ -730,7 +730,7 @@
         <enum>QAbstractSpinBox::AdaptiveDecimalStepType</enum>
        </property>
        <property name="value">
-        <double>2521.000000000000000</double>
+        <double>2473.000000000000000</double>
        </property>
       </widget>
      </item>

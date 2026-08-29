@@ -29,10 +29,10 @@ REP_NRF_PIPE_OPENED = 0x23
 REP_REG_DUMP = 0xFE
 
 # Bench config from mdp_controller/bus.py's MDPBus.__init__ / gui_source/settings.json:
-# freq=2521, air_data_rate=2Mbps, tx_output_power=4dBm, crc16, payload=32,
-# arc=12, ard=250us, address_width=5, address=AA:BB:CC:DD:EE (adapter base).
-BENCH_SET = bytes([121, 1, 6, 2, 32, 12, 1, 5, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE])
-P906_ADDR = bytes.fromhex("AABBCCDDE2")  # pipe 1, MDPBus._pipe_address()
+# freq=2473, air_data_rate=2Mbps, tx_output_power=4dBm, crc16, payload=32,
+# arc=12, ard=250us, address_width=5, address=0E:4C:B9:EF:E0 (adapter base).
+BENCH_SET = bytes([73, 1, 6, 2, 32, 12, 1, 5, 0x0E, 0x4C, 0xB9, 0xEF, 0xE0])
+P906_ADDR = bytes.fromhex("0E4CB9EFE1")  # pipe 1, MDPBus._pipe_address()
 
 fails = []
 
@@ -150,16 +150,16 @@ def main():
     reg = parse_dump(data)
     print(f"  raw: {reg}")
     check("CONFIG", reg["CONFIG"], 0x0F)
-    check("RF_CH", reg["RF_CH"], 0x79)
+    check("RF_CH", reg["RF_CH"], 0x49)
     check("RF_SETUP", reg["RF_SETUP"], 0x0E)
     check("EN_RXADDR", reg["EN_RXADDR"], 0x03)
     check("EN_AA", reg["EN_AA"], 0x03)
     check("SETUP_AW", reg["SETUP_AW"], 0x03)
     check("SETUP_RETR", reg["SETUP_RETR"], 0x0C)
     check("RX_PW_P0", reg["RX_PW_P0"], 0x20)
-    check("TX_ADDR", reg["TX_ADDR"], "eeddccbbaa")
-    check("RX_ADDR_P0", reg["RX_ADDR_P0"], "eeddccbbaa")
-    check("RX_ADDR_P1", reg["RX_ADDR_P1"], "e2ddccbbaa")
+    check("TX_ADDR", reg["TX_ADDR"], "e0efb94c0e")
+    check("RX_ADDR_P0", reg["RX_ADDR_P0"], "e0efb94c0e")
+    check("RX_ADDR_P1", reg["RX_ADDR_P1"], "e1efb94c0e")
 
     print()
     send(s, CMD_REBOOT)

@@ -141,6 +141,10 @@ The GUI can drive more than one device at a time. Open **Connection Settings**, 
 
 This is implemented using the adapter's nRF24L01+ hardware RX pipes to tell devices apart, so it requires the [multiceiver adapter firmware](#modification-method) and is capped at **5 devices per adapter** (pipes 1-5; pipe 0 is reserved for the adapter's own transmit ACKs).
 
+#### Sharing devices with a real MDP-M01
+
+Each device's address is derived as `<adapter address>[:4] + (0xE0 + pipe)` — the same scheme an MDP-M01 uses: the hub keeps `<base>E0` for itself and hands its slot *k* the address `<base> + (0xE1 + k)`, all on one shared RF channel. Set **Adapter Address** and **Frequency** to your M01's values and a device the M01 has paired is already where this software expects it (pipe 1 = the M01's first slot, pipe 2 = its second, and so on), so devices can move between the M01 and this controller without being re-matched at the front panel. Without an M01, any address and channel will do.
+
 #### Connecting over WiFi (ESP32 adapters)
 
 An ESP32-C6, ESP32-S3 or classic ESP32 (WROOM-32) adapter built with `HOST_LINK_WIFI` (see

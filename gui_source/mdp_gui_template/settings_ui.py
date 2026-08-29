@@ -287,7 +287,7 @@ class Ui_DialogSettings(object):
         self.spinBoxFreq.setMaximum(2525.0)
         self.spinBoxFreq.setSingleStep(1.0)
         self.spinBoxFreq.setStepType(QtWidgets.QAbstractSpinBox.AdaptiveDecimalStepType)
-        self.spinBoxFreq.setProperty("value", 2521.0)
+        self.spinBoxFreq.setProperty("value", 2473.0)
         self.spinBoxFreq.setObjectName("spinBoxFreq")
         self.horizontalLayout_37.addWidget(self.spinBoxFreq)
         self.horizontalLayout_37.setStretch(0, 2)

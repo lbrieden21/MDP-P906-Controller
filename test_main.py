@@ -3,8 +3,9 @@ import time
 from mdp_controller import MDP_P906, MDPBus
 
 if __name__ == "__main__":
-    bus = MDPBus(freq=2521, tx_output_power="4dBm", debug=False)
-    mdp = MDP_P906(bus, idcode="08375434", led_color=(0x66, 0xCC, 0xFF), debug=False)
+    # Address and channel come from MDPBus's defaults; the P906 is on pipe 1.
+    bus = MDPBus(tx_output_power="4dBm", debug=False)
+    mdp = MDP_P906(bus, idcode="FE2597EC", led_color=(0x66, 0xCC, 0xFF), debug=False)
 
     try:
         bus.attach(mdp, 1)

@@ -121,8 +121,8 @@ class AdapterSettings:
     def __init__(self) -> None:
         self.comport = ""
         self.baudrate = 921600
-        self.address = "AA:BB:CC:DD:EE"
-        self.freq = 2521
+        self.address = "0E:4C:B9:EF:E0"
+        self.freq = 2473
         self.txpower = "4dBm"
         # "serial" (default, zero-friction) or "tcp" for the ESP32 WiFi host
         # link -- see plans/nrf_adapter_esp32_wifi_link_plan.md, "Decisions
