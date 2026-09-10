@@ -3,7 +3,7 @@
 #
 # This does NOT touch the HOST_LINK_USB_JTAG/HOST_LINK_UART0 choice -- the
 # wired link of a WiFi build is whatever that choice already resolves to per
-# board (USB-Serial/JTAG on the C6/S3, UART0 on classic ESP32, which has no
+# board (USB-Serial/JTAG on the C5/C6/S3, UART0 on classic ESP32, which has no
 # USB-Serial/JTAG to choose in the first place). Both links stay live
 # concurrently; see host_link_mux.c.
 CONFIG_HOST_LINK_WIFI=y

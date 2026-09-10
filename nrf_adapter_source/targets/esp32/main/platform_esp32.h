@@ -48,8 +48,8 @@ uint32_t host_rx_byte_count(void);
 
 /* Achieved SPI clock in kHz, as reported by spi_device_get_actual_freq().
    Recorded during bring-up: the requested 10MHz divides differently from the
-   C6's 80MHz source than from the H2's 48MHz one. Returns 0 before
-   platform_init() has run. */
+   C6's 80MHz source, the H2's 48MHz one and the C5's 160MHz one. Returns 0
+   before platform_init() has run. */
 int spi_actual_freq_khz(void);
 
 #endif

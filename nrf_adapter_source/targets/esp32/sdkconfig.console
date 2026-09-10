@@ -17,7 +17,7 @@
 # CONFIG_ESP_CONSOLE_SECONDARY_NONE is deliberately NOT re-stated here: it
 # belongs to both configurations and lives in sdkconfig.defaults.
 
-# Console on UART0, which on all three DevKits is wired to the USB-to-UART
+# Console on UART0, which on all four DevKits is wired to the USB-to-UART
 # bridge connector -- the *other* USB port from the one carrying the protocol.
 CONFIG_ESP_CONSOLE_UART_DEFAULT=y
 

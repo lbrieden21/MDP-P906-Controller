@@ -477,12 +477,13 @@ Three genuine differences from `teensy4x/`:
   build — harmless, since only the STM32F030 and Teensy 4.x `.bin`s carry a
   byte-identical regression gate.
 
-## ESP32 target (C6 / H2 / S3 / classic ESP32)
+## ESP32 target (C5 / C6 / H2 / S3 / classic ESP32)
 
-Four boards, one target directory, selected by `BOARD` in the Makefile:
+Five boards, one target directory, selected by `BOARD` in the Makefile:
 
 | `BOARD` | Chip | Host link default | Status LED | Notes |
 |---|---|---|---|---|
+| `ESP32C5` | ESP32-C5-DevKitC-1(-N8R8) | native USB-Serial/JTAG | no-op | RGB LED on GPIO27 (strapping) |
 | `ESP32C6` (default) | ESP32-C6-DevKitC-1 | native USB-Serial/JTAG | no-op | RGB LED on a strapping pin |
 | `ESP32H2` | ESP32-H2-DevKitM-1 | native USB-Serial/JTAG | no-op | same reason |
 | `ESP32S3` | ESP32-S3-DevKitC-1(-N8R8) | native USB-Serial/JTAG | no-op | RGB LED on GPIO38 (v1.1) / GPIO48 (v1.0) |
@@ -493,8 +494,8 @@ ESP-IDF is CMake+Kconfig driven and multi-gigabyte, so it is pinned and
 recorded rather than copied into `Drivers/`:
 
 ```sh
-git clone -b v5.4.4 --recursive https://github.com/espressif/esp-idf.git ~/esp/esp-idf
-cd ~/esp/esp-idf && ./install.sh esp32,esp32c6,esp32h2,esp32s3
+git clone -b v5.5.5 --recursive https://github.com/espressif/esp-idf.git ~/esp/esp-idf
+cd ~/esp/esp-idf && ./install.sh esp32,esp32c5,esp32c6,esp32h2,esp32s3
 python $IDF_PATH/tools/idf_tools.py install cmake ninja   # not optional on Linux --
                                                             # install.sh marks these
                                                             # on_request, and without
@@ -503,11 +504,13 @@ python $IDF_PATH/tools/idf_tools.py install cmake ninja   # not optional on Linu
                                                             # available on the PATH
 ```
 
-Pinned at **v5.4.4** (`idf.py --version` → `ESP-IDF v5.4.4`, compiler
+Pinned at **v5.5.5** (`idf.py --version` → `ESP-IDF v5.5.5`, compiler
 `riscv32-esp-elf-gcc (crosstool-NG esp-14.2.0_20260121) 14.2.0` for the
 RISC-V chips, a matching Xtensa toolchain for the S3/classic ESP32) — same
 reasoning as `-DTEENSYDUINO=159` above: a moving SDK under a
-vendored-everything tree is exactly what `Drivers/` exists to prevent.
+vendored-everything tree is exactly what `Drivers/` exists to prevent. The
+bump from v5.4.4 was forced by the ESP32-C5: production silicon needs
+ESP-IDF ≥5.5, since 5.4.x only carried preview support for beta3 chips.
 
 ### Build / flash
 
@@ -515,8 +518,9 @@ vendored-everything tree is exactly what `Drivers/` exists to prevent.
 cd targets/esp32
 source ~/esp/esp-idf/export.sh   # or: export IDF_PATH=~/esp/esp-idf
 make                                          # ESP32C6, native USB-Serial/JTAG, console off
-make BOARD=ESP32H2                            # no `make clean` needed -- BOARD gets its own
+make BOARD=ESP32C5                            # no `make clean` needed -- BOARD gets its own
                                                # build dir and sdkconfig
+make BOARD=ESP32H2
 make BOARD=ESP32S3
 make BOARD=ESP32                              # classic ESP32, UART0 host link (forced)
 make CONSOLE=1                                # add the ESP-IDF console -- see below
@@ -533,14 +537,14 @@ boards to the same name).
 
 ### Host link: `HOST_LINK_USB_JTAG` (default) vs `HOST_LINK_UART0`
 
-The C6/H2/S3 default to their native USB-Serial/JTAG controller — already a
+The C5/C6/H2/S3 default to their native USB-Serial/JTAG controller — already a
 CDC-ACM device, non-blocking read/write against a driver-managed ring buffer,
 needs no managed components. Classic ESP32 has neither USB-Serial/JTAG nor
 USB-OTG, so `HOST_LINK_UART0` (through its CP2102/CH340 bridge) is both its
 only option and its forced default; `BOARD=ESP32 HOST_LINK=HOST_LINK_USB_JTAG`
 is a hard build error naming the missing peripheral.
 
-`HOST_LINK_UART0` is also buildable on the C6/H2/S3
+`HOST_LINK_UART0` is also buildable on the C5/C6/H2/S3
 (`make HOST_LINK=HOST_LINK_UART0`) — the cheapest way to exercise the second
 host link, since those boards keep their native port free as an out-of-band
 channel while the protocol runs on the bridge.
@@ -587,13 +591,14 @@ protocol, same multiceiver pipe routing, same unmodified `core/`.
 
 | `BOARD` | WiFi | Notes |
 |---|---|---|
+| `ESP32C5` | WiFi 6 (2.4 / 5GHz) | dual-band part, `esp_wifi_set_band_mode()` never called so the IDF default (auto, both bands) stands; only 2.4GHz was exercised here, the bench AP has no 5GHz radio |
 | `ESP32C6` | WiFi 6 (2.4GHz) | |
 | `ESP32S3` | WiFi 4 | |
 | `ESP32` (WROOM-32) | WiFi 4 | wired link is UART0, same as `HOST_LINK_UART0` above |
 | `ESP32H2` | **none** | 802.15.4 + BLE only — excluded by `depends on SOC_WIFI_SUPPORTED`, not a hand-written special case |
 
 ```sh
-make BOARD=ESP32C6 HOST_LINK=HOST_LINK_WIFI      # or ESP32S3 / ESP32
+make BOARD=ESP32C6 HOST_LINK=HOST_LINK_WIFI      # or ESP32C5 / ESP32S3 / ESP32
 make flash PORT=...                              # over the wired link, same as any other build
 ```
 
@@ -625,7 +630,7 @@ transport setting — see `../readme_EN.md`.
 — the same trust model the USB link already has, just extended over IP instead of requiring
 physical access to the cable. Treat the network the adapter is provisioned onto accordingly.
 
-`CONSOLE=1` combines freely with `HOST_LINK_WIFI` on the C6/S3 (their native port is free
+`CONSOLE=1` combines freely with `HOST_LINK_WIFI` on the C5/C6/S3 (their native port is free
 either way); on classic ESP32 it's a hard build error, for the same reason `CONSOLE=1` already
 conflicts with `HOST_LINK_UART0` above — UART0 can't be the console and a host link (wired or
 the wired half of a WiFi build) at once.
@@ -636,7 +641,28 @@ Every map avoids strapping pins, the USB D+/D- pair, the console UART, and
 (where applicable) the addressable RGB LED. `NRF_SPI_HZ` is 10MHz — the
 nRF24L01+'s rated ceiling — on every board; the achieved clock is read back
 with `spi_device_get_actual_freq()` and differs by board only because the SPI
-source clock does (80MHz on the C6/S3/classic ESP32, 48MHz on the H2):
+source clock does (80MHz on the C6/S3/classic ESP32, 48MHz on the H2, 160MHz
+on the C5):
+
+**ESP32-C5-DevKitC-1(-N8R8)** — `SPI2_HOST`, 10000 kHz achieved (160MHz /
+16 divides exactly):
+
+| nRF24 | GPIO | Header |
+|---|---|---|
+| SCK | 6 | J1-7 (FSPICLK) |
+| MISO | 8 | J1-9 |
+| MOSI | 9 | J1-10 |
+| CSN | 10 | J1-11 (FSPICS0) |
+| CE | 24 | J3-4 |
+| IRQ | 23 | J3-5 |
+
+The trio routes through the GPIO matrix rather than IOMUX (SPI2's IOMUX
+MOSI/MISO are GPIO7/GPIO2, both strapping pins), capping SPI master at
+40MHz — nowhere near a constraint at 10MHz. **GPIO15 (SPICS1 on any
+PSRAM-fitted module) is unavailable on the -N8R8 and marked NC on that
+variant's J3-6** — the non-obvious trap on this board, since every other
+GPIO in the strapping/USB/flash/JTAG exclusion list is easy to spot from the
+datasheet alone.
 
 **ESP32-C6-DevKitC-1** — one contiguous J3 block, `SPI2_HOST`, 10000 kHz achieved:
 
@@ -740,12 +766,13 @@ reset-to-reset interval, not measurement noise:
 
 | Board | reset-to-reset | Notes |
 |---|---|---|
+| ESP32-C5 | 4.177s | `CONSOLE=1`, includes console panic-dump time |
 | ESP32-C6 | 4.199s | `CONSOLE=1`, includes console panic-dump time |
 | ESP32-H2 | 4.207s | `CONSOLE=1`, same |
 | ESP32-S3 | 3.837s (`CONSOLE=1`) / 3.601s (`CONSOLE=0`) | both bracket 3500ms cleanly |
 | classic ESP32 | 3.657s | no console build exists for this board at all |
 
-All four are measured reset-to-reset (marker-frame to marker-frame), never
+All five are measured reset-to-reset (marker-frame to marker-frame), never
 marker-to-tty-disconnect — the disconnect method over-reads by USB teardown
 time, which is what put the Teensy 3.x figures elsewhere in this file wrong
 by the better part of a second.
@@ -793,11 +820,11 @@ make clean && make HOST_LINK=HOST_LINK_SERIAL1
 
 ## Flashing
 
-### ESP32 (C6 / H2 / S3 / classic ESP32)
+### ESP32 (C5 / C6 / H2 / S3 / classic ESP32)
 
 `make flash` (see "ESP32 target" above for `PORT`, `BOARD`, `HOST_LINK` and
-`CONSOLE`) — over the native USB-Serial/JTAG connector on the C6/H2/S3, or the
-bridge connector (the only one there is) on classic ESP32. No separate
+`CONSOLE`) — over the native USB-Serial/JTAG connector on the C5/C6/H2/S3, or
+the bridge connector (the only one there is) on classic ESP32. No separate
 flashing tool: the Makefile shells out to `idf.py flash`, which drives
 `esptool.py` itself.
 

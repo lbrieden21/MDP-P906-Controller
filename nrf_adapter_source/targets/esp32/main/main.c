@@ -81,7 +81,7 @@ void app_main(void) {
          * This target is the first where yielding is mandatory rather than
          * optional -- every other target's loop is stateless and never gives
          * the CPU up. Under FreeRTOS the idle task still has to run, and on
-         * the single-core C6 and H2 there is no second core to escape to.
+         * the single-core C5, C6 and H2 there is no second core to escape to.
          *
          * But an unconditional vTaskDelay(1) would be wrong: it puts a 1ms
          * floor on every iteration of a link the Teensy 4.1 turns at ~118

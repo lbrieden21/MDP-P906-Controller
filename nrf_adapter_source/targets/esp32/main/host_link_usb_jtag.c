@@ -2,12 +2,12 @@
  * Host link over the native USB-Serial/JTAG controller.
  *
  * Selected by HOST_LINK=HOST_LINK_USB_JTAG, which is the default on every chip
- * that has the peripheral (C6, H2, S3). Classic ESP32 has no native USB of any
- * kind and uses host_link_uart0.c instead; main/CMakeLists.txt compiles exactly
- * one of the two.
+ * that has the peripheral (C5, C6, H2, S3). Classic ESP32 has no native USB of
+ * any kind and uses host_link_uart0.c instead; main/CMakeLists.txt compiles
+ * exactly one of the two.
  *
  * The controller is already a CDC-ACM device, so there are no descriptors, no
- * managed components and no TinyUSB -- one implementation covers all three
+ * managed components and no TinyUSB -- one implementation covers all four
  * chips. Split out of platform_esp32.c unchanged when the second host link
  * arrived, following the F103's usb_cdc.c / uart.c precedent.
  */

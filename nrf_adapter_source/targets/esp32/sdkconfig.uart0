@@ -3,7 +3,7 @@
 #
 # Puts the binary protocol on UART0, out through the board's USB-to-UART
 # bridge. This is the only option on classic ESP32 (ESP-WROOM-32), which has no
-# native USB of any kind, and it is buildable on the C6/H2/S3 as a way to
+# native USB of any kind, and it is buildable on the C5/C6/H2/S3 as a way to
 # exercise host_link_uart0.c on a board that is already hardware-validated.
 #
 # Redundant but harmless on classic ESP32: HOST_LINK_USB_JTAG depends on

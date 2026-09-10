@@ -1,0 +1,7 @@
+# ESP32-C5-DevKitC-1-N8R8: 8MB flash, 8MB PSRAM.
+#
+# PSRAM is deliberately left disabled -- this firmware's largest buffer is a
+# 32-byte radio payload. Unlike the S3, the C5's PSRAM sits on the dedicated
+# flash/PSRAM pins (GPIO16-22) plus GPIO15, none of which this board's pin map
+# uses, so enabling it would not free anything the map needs.
+CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y

@@ -16,7 +16,30 @@
 
 #include "sdkconfig.h"
 
-#if defined(CONFIG_IDF_TARGET_ESP32C6)
+#if defined(CONFIG_IDF_TARGET_ESP32C5)
+
+/* ESP32-C5-DevKitC-1(-N8R8): mixed headers -- J1 supplies the SPI trio on its
+   FSPI IOMUX pins, J3 supplies CE/IRQ.
+   Avoided: GPIO2/3 (MTMS/MTDI, strapping), GPIO7 (strapping), GPIO25/26/27/28
+   (strapping), GPIO13/14 (USB D-/D+), GPIO11/12 (U0TXD/U0RXD), GPIO16-22 (SPI
+   flash and PSRAM), GPIO15 (SPICS1 on any PSRAM-fitted module, so unavailable
+   on this -N8R8 and marked NC on its J3-6), GPIO0/1 (XTAL_32K pair, the same
+   rationale the H2 map uses), and GPIO4/5 (MTCK/MTDO, the remaining JTAG
+   pins). */
+#define NRF_SCK_PIN 6   /* J1-7, FSPICLK  */
+#define NRF_MISO_PIN 8  /* J1-9   */
+#define NRF_MOSI_PIN 9  /* J1-10  */
+#define NRF_CSN_PIN 10  /* J1-11, FSPICS0 */
+#define NRF_CE_PIN 24   /* J3-4   */
+#define NRF_IRQ_PIN 23  /* J3-5   */
+
+/* SPI2's IOMUX MOSI (GPIO7) and MISO (GPIO2) are both strapping pins, so the
+   trio above routes through the GPIO matrix exactly as the C6's does, capping
+   SPI master at 40MHz -- not close to a constraint at 10MHz. SCK and CSN still
+   land on their named FSPI signals. */
+#define NRF_SPI_HOST SPI2_HOST
+
+#elif defined(CONFIG_IDF_TARGET_ESP32C6)
 
 /* ESP32-C6-DevKitC-1: one contiguous J3 block, GPIO23 down to GPIO18, which
    puts the whole harness on a single header run.
@@ -128,9 +151,10 @@
 /* 10MHz, the nRF24L01+'s rated SPI ceiling, same as the Teensy targets.
    This is a request, not a guarantee: the driver divides down from a
    chip-dependent source clock (80MHz on the C6 and classic ESP32, 48MHz on the
-   H2), so the boards will not all land on the same number. platform_esp32.c
-   reads the achieved frequency back with spi_device_get_actual_freq() and it is
-   recorded during bring-up; every board must land at or under 10MHz. */
+   H2, 160MHz on the C5 via SPI_CLK_SRC_DEFAULT = PLL_F160M), so the boards will
+   not all land on the same number. platform_esp32.c reads the achieved
+   frequency back with spi_device_get_actual_freq() and it is recorded during
+   bring-up; every board must land at or under 10MHz. */
 #define NRF_SPI_HZ 10000000
 
 /* NRF_SPI_HOST is per-board, above -- SPI2 on the C6/H2/S3, SPI3 on classic

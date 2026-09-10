@@ -1,4 +1,4 @@
-# ESP32 target (C6 / H2 / S3).
+# ESP32 target (C5 / C6 / H2 / S3).
 #
 # This is the one target in the tree that is NOT self-contained: it needs
 # ESP-IDF installed, and this Makefile is a thin wrapper over `idf.py` rather
@@ -8,8 +8,8 @@
 # build, so it is pinned and recorded instead of vendored. See the README.
 #
 # Required once:
-#   git clone -b v5.4.4 --recursive https://github.com/espressif/esp-idf.git ~/esp/esp-idf
-#   cd ~/esp/esp-idf && ./install.sh esp32c6,esp32h2,esp32s3
+#   git clone -b v5.5.5 --recursive https://github.com/espressif/esp-idf.git ~/esp/esp-idf
+#   cd ~/esp/esp-idf && ./install.sh esp32,esp32c5,esp32c6,esp32h2,esp32s3
 #   python $IDF_PATH/tools/idf_tools.py install cmake ninja
 # The last line is not optional on Linux: install.sh marks cmake and ninja
 # "on_request" there, and without them idf.py fails with the misleading
@@ -29,7 +29,9 @@ TARGET = MDP_Adapter_Multiceiver
 # Override on the command line: make BOARD=ESP32H2
 BOARD ?= ESP32C6
 
-ifeq ($(BOARD),ESP32C6)
+ifeq ($(BOARD),ESP32C5)
+IDF_TARGET = esp32c5
+else ifeq ($(BOARD),ESP32C6)
 IDF_TARGET = esp32c6
 else ifeq ($(BOARD),ESP32H2)
 IDF_TARGET = esp32h2
@@ -38,7 +40,7 @@ IDF_TARGET = esp32s3
 else ifeq ($(BOARD),ESP32)
 IDF_TARGET = esp32
 else
-$(error Unknown BOARD '$(BOARD)' -- use ESP32C6, ESP32H2, ESP32S3 or ESP32)
+$(error Unknown BOARD '$(BOARD)' -- use ESP32C5, ESP32C6, ESP32H2, ESP32S3 or ESP32)
 endif
 
 # Host link select. The C6/H2/S3 default to the native USB-Serial/JTAG
@@ -173,13 +175,22 @@ endif
 # a from-scratch ~1000-object rebuild. Ordering it behind the sdkconfig file
 # means it runs once per chip -- on the first build, or after `make distclean`
 # -- and every build after that is incremental.
+#
+# Every target below that invokes idf.py depends on $(SDKCONFIG) for the same
+# reason `all` does: without it, a target run before any sdkconfig file exists
+# for this CONFIG_ID never calls set-target at all, and idf.py silently
+# configures for its own default target (classic esp32) instead of erroring --
+# hardware-verified against the C5 bring-up, where `make BOARD=ESP32C5 size`
+# on a from-scratch tree built and reported success for an esp32 (Xtensa)
+# image under the esp32c5 filenames, and esptool caught the mismatch only at
+# flash time.
 all: $(SDKCONFIG)
 	idf.py $(IDF_ARGS) build
 
 $(SDKCONFIG):
 	idf.py $(IDF_ARGS) set-target $(IDF_TARGET)
 
-flash:
+flash: $(SDKCONFIG)
 	idf.py $(IDF_ARGS) -p $(PORT) flash
 
 # Console, boot log and panic dumps come out the *bridge* connector, not PORT.
@@ -190,13 +201,13 @@ flash:
 # drive EN/BOOT. That is fine for watching a boot, but it means you cannot
 # attach a console mid-run without rebooting the adapter.
 MONITOR_PORT ?= /dev/ttyUSB0
-monitor:
+monitor: $(SDKCONFIG)
 	idf.py $(IDF_ARGS) -p $(MONITOR_PORT) monitor
 
-size:
+size: $(SDKCONFIG)
 	idf.py $(IDF_ARGS) size
 
-menuconfig:
+menuconfig: $(SDKCONFIG)
 	idf.py $(IDF_ARGS) menuconfig
 
 # Removes this BOARD+CONSOLE configuration's build directory only; every other
@@ -208,13 +219,13 @@ clean:
 # or sdkconfig.wifi changes, since IDF will not re-read them for symbols an
 # existing generated sdkconfig already carries.
 distclean:
-	rm -rf build sdkconfig.esp32 sdkconfig.esp32c6 sdkconfig.esp32h2 \
-	       sdkconfig.esp32s3 sdkconfig.esp32-uart0 sdkconfig.esp32c6-uart0 \
-	       sdkconfig.esp32h2-uart0 sdkconfig.esp32s3-uart0 \
-	       sdkconfig.esp32c6-console sdkconfig.esp32h2-console \
+	rm -rf build sdkconfig.esp32 sdkconfig.esp32c5 sdkconfig.esp32c6 sdkconfig.esp32h2 \
+	       sdkconfig.esp32s3 sdkconfig.esp32-uart0 sdkconfig.esp32c5-uart0 \
+	       sdkconfig.esp32c6-uart0 sdkconfig.esp32h2-uart0 sdkconfig.esp32s3-uart0 \
+	       sdkconfig.esp32c5-console sdkconfig.esp32c6-console sdkconfig.esp32h2-console \
 	       sdkconfig.esp32s3-console \
-	       sdkconfig.esp32-wifi sdkconfig.esp32c6-wifi sdkconfig.esp32s3-wifi \
-	       sdkconfig.esp32c6-console-wifi sdkconfig.esp32s3-console-wifi \
+	       sdkconfig.esp32-wifi sdkconfig.esp32c5-wifi sdkconfig.esp32c6-wifi sdkconfig.esp32s3-wifi \
+	       sdkconfig.esp32c5-console-wifi sdkconfig.esp32c6-console-wifi sdkconfig.esp32s3-console-wifi \
 	       sdkconfig.esp32*.old
 
 .PHONY: all flash monitor size menuconfig clean distclean

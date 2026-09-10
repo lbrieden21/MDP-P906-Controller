@@ -23,7 +23,7 @@ choice HOST_LINK
         depends on SOC_USB_SERIAL_JTAG_SUPPORTED
         help
             The on-die USB-Serial/JTAG controller, already a CDC-ACM device.
-            Default wherever it exists (C6, H2, S3). Not offered on classic
+            Default wherever it exists (C5, C6, H2, S3). Not offered on classic
             ESP32, which has no native USB of any kind -- so that chip falls
             through to UART0 below without needing to be special-cased here.
 

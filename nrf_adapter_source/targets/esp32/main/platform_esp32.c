@@ -1,6 +1,6 @@
 /*
- * platform.h for the ESP32 target (C6 / H2 / S3 / classic ESP32 -- see the
- * Makefile's BOARD switch and pins.h).
+ * platform.h for the ESP32 target (C5 / C6 / H2 / S3 / classic ESP32 -- see
+ * the Makefile's BOARD switch and pins.h).
  *
  * This and the host_link_*.c files are the whole boundary: ESP-IDF headers
  * appear here and nowhere else, and core/ links against it unchanged. It is the
@@ -69,9 +69,10 @@ static void spi_init(void) {
     };
     ESP_ERROR_CHECK(spi_bus_add_device(NRF_SPI_HOST, &dev, &nrf_spi));
 
-    /* Requested 10MHz will not divide exactly from either chip's source clock
-       (80MHz on the C6, 48MHz on the H2). Read back what was actually
-       programmed so bring-up can record it rather than assume. */
+    /* Requested 10MHz divides down from a chip-dependent source clock (80MHz
+       on the C6 and classic ESP32, 48MHz on the H2, 160MHz on the C5), so the
+       boards will not all land on the same number. Read back what was
+       actually programmed so bring-up can record it rather than assume. */
     ESP_ERROR_CHECK(spi_device_get_actual_freq(nrf_spi, &spi_freq_khz));
 }
 
