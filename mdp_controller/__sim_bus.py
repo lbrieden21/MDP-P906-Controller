@@ -65,6 +65,7 @@ class MDPBus:
             f"MDPBus init params: port={port}, baudrate={baudrate}, address={address}, "
             f"freq={freq}, tx_output_power={tx_output_power}, debug={debug}"
         )
+        self.com_timeout = 0.08 if (port or "").startswith("tcp://") else 0.04
 
     @property
     def speed_counter(self) -> SpeedCounter:

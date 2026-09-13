@@ -15,11 +15,10 @@ from device_panel import (
     RECORD_CHANNELS,
     DevicePanelBase,
 )
+from battery_aux import BelowThresholdDebounce, CapacityAccumulator
 from l1060_aux import (
     DelayAction,
-    DischargeAccumulator,
     SetAction,
-    VoltageCutoffDebounce,
     WaitAction,
     build_sweep_targets,
     format_delay_action,
@@ -34,7 +33,7 @@ from mdp_gui_template import Ui_DevicePanelL1060
 from settings_model import SETTING_FILE, setting
 
 CHANNELS = BASE_CHANNELS + [
-    # Discharge-workflow running totals (l1060_aux.DischargeAccumulator).
+    # Discharge-workflow running totals (battery_aux.CapacityAccumulator).
     # Zero/flat outside an active discharge run, held at the last run's
     # final value in between -- included as ordinary store channels (rather
     # than a bespoke plot) so the main window's Ah/Wh graph buttons get the
@@ -963,8 +962,8 @@ class L1060DevicePanel(DevicePanelBase):
             if self.ui.checkBoxDischargeMaxDuration.isChecked()
             else None
         )
-        self._discharge_acc = DischargeAccumulator()
-        self._discharge_cutoff_debounce = VoltageCutoffDebounce(1.0)
+        self._discharge_acc = CapacityAccumulator()
+        self._discharge_cutoff_debounce = BelowThresholdDebounce(1.0)
         self._discharge_armed = False
         self._discharge_last_voltage = None
         self._set_discharge_inputs_enabled(False)

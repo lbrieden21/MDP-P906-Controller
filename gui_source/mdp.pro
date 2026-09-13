@@ -6,6 +6,7 @@ SOURCES += mdp_gui.py \
 	device_panel.py \
 	device_panel_p906.py \
 	device_panel_l1060.py \
+	battery_aux.py \
 	./mdp_gui_template/graphics_ui.py \
 	./mdp_gui_template/settings_ui.py \
 	./mdp_gui_template/mainwindow_ui.py \

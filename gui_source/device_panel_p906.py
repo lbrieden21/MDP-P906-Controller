@@ -11,6 +11,34 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from simple_pid import PID
 
 from app_context import FPSCounter, set_color
+from battery_aux import (
+    CHEM_LEAD_ACID,
+    CHEM_LI_ION,
+    CHEM_LIFEPO4,
+    CHEM_NIMH,
+    PHASE_CC,
+    PHASE_CV,
+    PHASE_DONE,
+    PHASE_FLOAT,
+    PHASE_PRECHARGE,
+    REASON_CEILING,
+    REASON_CUTOFF,
+    REASON_DEVICE_ERROR,
+    REASON_DISCONNECTED,
+    REASON_MAX_AH,
+    REASON_MAX_WH,
+    REASON_NDV,
+    REASON_OUTPUT_OFF,
+    REASON_TIMEOUT,
+    REASON_USER_STOP,
+    CapacityAccumulator,
+    ChargeController,
+    ChargeFinished,
+    ChargeProfile,
+    ChargeSetpoint,
+    build_profile,
+)
+from device_core import ChannelSpec, RecordData
 from device_panel import (
     BASE_CHANNEL_SHORT,
     BASE_CHANNELS,
@@ -31,6 +59,31 @@ from settings_model import SETTING_FILE, setting
 CHANNELS = BASE_CHANNELS
 CHANNEL_BY_KEY = {c.key: c for c in CHANNELS}
 CHANNEL_SHORT = BASE_CHANNEL_SHORT
+# Columns for the Battery Charge CSV export only; ah/wh are not store
+# channels, so nothing is added to the graph.
+CHARGE_CSV_CHANNELS = [
+    CHANNEL_BY_KEY["voltage"],
+    CHANNEL_BY_KEY["current"],
+    CHANNEL_BY_KEY["power"],
+    ChannelSpec("ah", QtCore.QCoreApplication.translate("P906DevicePanel", "安时"), "Ah"),
+    ChannelSpec("wh", QtCore.QCoreApplication.translate("P906DevicePanel", "瓦时"), "Wh"),
+]
+_CHARGE_TICK_MS = 200
+# Rows of the charge settings that only apply to some chemistries.
+_CHARGE_PRECHARGE_WIDGETS = (
+    "label_chargePrechargeV",
+    "spinBoxChargePrechargeV",
+    "label_chargePrechargeI",
+    "spinBoxChargePrechargeI",
+)
+_CHARGE_CUTOFF_WIDGETS = ("label_chargeCutoff", "spinBoxChargeCutoff")
+_CHARGE_FLOAT_WIDGETS = ("checkBoxChargeFloat", "spinBoxChargeFloat")
+_CHARGE_NDV_WIDGETS = (
+    "label_chargeNdv",
+    "spinBoxChargeNdv",
+    "label_chargeHoldoff",
+    "spinBoxChargeHoldoff",
+)
 
 
 class P906DevicePanel(DevicePanelBase):
@@ -60,6 +113,12 @@ class P906DevicePanel(DevicePanelBase):
         self._output_state = False
         self.output_state_str = ""
         self._temp_f = 0.0
+        self._err_flag = 0
+        self._charge_controller = None
+        self._charge_acc = None
+        self._charge_last_vi = None
+        self._charge_start_t = 0.0
+        self._charge_enable_rel = math.inf
         self.continuous_energy_counter = 0
         self.model = "Unknown"
         self.fps_counter = FPSCounter()
@@ -142,6 +201,8 @@ class P906DevicePanel(DevicePanelBase):
         self.func_seq_timer.timeout.connect(self.func_seq)
         self.func_bat_sim_timer = QtCore.QTimer(self)
         self.func_bat_sim_timer.timeout.connect(self.func_bat_sim)
+        self.charge_timer = QtCore.QTimer(self)
+        self.charge_timer.timeout.connect(self._charge_tick)
         self.stable_checker_timer = QtCore.QTimer(self)
         self.stable_checker_timer.timeout.connect(self.stable_checker)
 
@@ -151,6 +212,15 @@ class P906DevicePanel(DevicePanelBase):
             self.ui.comboSweepRecord.setItemData(idx + 1, ch.key)
         self.ui.comboSweepTarget.setItemData(0, "voltage")
         self.ui.comboSweepTarget.setItemData(1, "current")
+        for text, chem in (
+            (self.tr("锂离子"), CHEM_LI_ION),
+            (self.tr("磷酸铁锂"), CHEM_LIFEPO4),
+            (self.tr("铅酸"), CHEM_LEAD_ACID),
+            (self.tr("镍氢/镍镉"), CHEM_NIMH),
+        ):
+            self.ui.comboChargeChem.addItem(text, chem)
+        self.ui.comboChargeChem.currentTextChanged.connect(self._on_charge_chem_changed)
+        self._on_charge_chem_changed()
 
     def _init_signals(self):
         self.ui.comboPreset.currentTextChanged.connect(self.set_preset)
@@ -296,8 +366,8 @@ class P906DevicePanel(DevicePanelBase):
         self.ui.frameOutputSetting.setEnabled(not self.locked)
         if self.settings.lock_when_output and self._output_state:
             self.locked = True
-        self.ui.spinBoxVoltage.setEnabled(not self.locked)
-        self.ui.spinBoxCurrent.setEnabled(not self.locked)
+        self.ui.spinBoxVoltage.setEnabled(not self.locked and not self._charge_active)
+        self.ui.spinBoxCurrent.setEnabled(not self.locked and not self._charge_active)
         if SetVoltage >= 0:
             if self.settings.cali.use:
                 SetVoltage = (SetVoltage - self.settings.cali.vset_b) / self.settings.cali.vset_k
@@ -316,6 +386,7 @@ class P906DevicePanel(DevicePanelBase):
             setting.get_color("general_red") if Locked else None,
         )
         self.ui.labelInputVals.setText(f"{InputVoltage:.2f}V {InputCurrent:.2f}A")
+        self._err_flag = ErrFlag
         self._temp_f = Temperature * 9 / 5 + 32
         self.ui.labelTemperature.setText(f"{Temperature:.0f}°C/{self._temp_f:.0f}°F")
         self.ui.labelError.setText(
@@ -386,6 +457,8 @@ class P906DevicePanel(DevicePanelBase):
             self.stop_func_seq()
         if self.func_bat_sim_timer.isActive():
             self.stop_func_bat_sim()
+        if self._charge_active:
+            self._finish_charge(REASON_DISCONNECTED)
         if self.stable_checker_timer.isActive():
             self.stable_checker_timer.stop()
         api = self.api
@@ -518,6 +591,8 @@ class P906DevicePanel(DevicePanelBase):
         if self.func_sweep_timer.isActive():
             self.stop_func_sweep()
         else:
+            if self._refuse_during_charge(self.ui.btnSweep):
+                return
             self._sweep_target = self.ui.comboSweepTarget.currentData()
             self._sweep_start = self.ui.spinBoxSweepStart.value()
             self._sweep_stop = self.ui.spinBoxSweepStop.value()
@@ -652,6 +727,8 @@ class P906DevicePanel(DevicePanelBase):
         if self.func_wave_gen_timer.isActive():
             self.stop_func_wave_gen()
         else:
+            if self._refuse_during_charge(self.ui.btnWaveGen):
+                return
             self._wavegen_type = self.ui.comboWaveGenType.currentText()
             self._wavegen_period = self.ui.spinBoxWaveGenPeriod.value()
             self._wavegen_highlevel = self.ui.spinBoxWaveGenHigh.value()
@@ -743,6 +820,8 @@ class P906DevicePanel(DevicePanelBase):
         if self.func_keep_power_timer.isActive():
             self.stop_func_keep_power()
         else:
+            if self._refuse_during_charge(self.ui.btnKeepPower):
+                return
             self._keep_power_target = self.ui.spinBoxKeepPowerSet.value()
             self._keep_power_loopfreq = self.ui.spinBoxKeepPowerLoopFreq.value()
             self._keep_power_pid_i = self.ui.spinBoxKeepPowerPi.value()
@@ -880,6 +959,8 @@ class P906DevicePanel(DevicePanelBase):
         if self.func_bat_sim_timer.isActive():
             self.stop_func_bat_sim()
         else:
+            if self._refuse_during_charge(self.ui.btnBatSim):
+                return
             curve_name = self.ui.comboBatSimCurve.currentText()
             if curve_name not in self._battery_models:
                 return
@@ -978,7 +1059,7 @@ class P906DevicePanel(DevicePanelBase):
     @QtCore.pyqtSlot()
     def on_btnSeqSingle_clicked(self):
         cnt = self.ui.listSeq.count()
-        if cnt == 0:
+        if cnt == 0 or self._charge_active:
             return
         self.seq_btn_disable()
         self.start_seq(loop=False)
@@ -988,7 +1069,7 @@ class P906DevicePanel(DevicePanelBase):
     @QtCore.pyqtSlot()
     def on_btnSeqLoop_clicked(self):
         cnt = self.ui.listSeq.count()
-        if cnt == 0:
+        if cnt == 0 or self._charge_active:
             return
         self.seq_btn_disable()
         self.start_seq(loop=True)
@@ -1290,6 +1371,268 @@ class P906DevicePanel(DevicePanelBase):
                     self, self.tr("错误"), self.tr("数据验证错误: ") + f"{line}"
                 )
                 return
+
+    ######### 辅助功能-电池充电 #########
+
+    @property
+    def _charge_active(self) -> bool:
+        return self._charge_controller is not None
+
+    def _any_aux_active(self) -> bool:
+        return self._charge_active or any(
+            timer.isActive()
+            for timer in (
+                self.func_sweep_timer,
+                self.func_wave_gen_timer,
+                self.func_keep_power_timer,
+                self.func_seq_timer,
+                self.func_bat_sim_timer,
+                self.stable_checker_timer,
+            )
+        )
+
+    def _refuse_during_charge(self, button: QtWidgets.QPushButton) -> bool:
+        if not self._charge_active:
+            return False
+        button.setText(self.tr("充电进行中"))
+        QtCore.QTimer.singleShot(1000, lambda: button.setText(self.tr("功能已关闭")))
+        return True
+
+    def _flash_charge_button(self, text: str):
+        self.ui.btnCharge.setText(text)
+        QtCore.QTimer.singleShot(
+            1000,
+            lambda: self.ui.btnCharge.setText(
+                self.tr("停止充电") if self._charge_active else self.tr("开始充电")
+            ),
+        )
+
+    def _on_charge_chem_changed(self, _=None):
+        chem = self.ui.comboChargeChem.currentData()
+        for names, visible in (
+            (_CHARGE_PRECHARGE_WIDGETS, chem in (CHEM_LI_ION, CHEM_LIFEPO4)),
+            (_CHARGE_CUTOFF_WIDGETS, chem != CHEM_NIMH),
+            (_CHARGE_FLOAT_WIDGETS, chem == CHEM_LEAD_ACID),
+            (_CHARGE_NDV_WIDGETS, chem == CHEM_NIMH),
+        ):
+            for name in names:
+                getattr(self.ui, name).setVisible(visible)
+
+    @QtCore.pyqtSlot(bool)
+    def on_checkBoxChargeFloat_toggled(self, checked: bool):
+        self.ui.spinBoxChargeFloat.setEnabled(checked)
+
+    @QtCore.pyqtSlot(bool)
+    def on_checkBoxChargeMaxTime_toggled(self, checked: bool):
+        self.ui.spinBoxChargeMaxTime.setEnabled(checked)
+
+    @QtCore.pyqtSlot(bool)
+    def on_checkBoxChargeMaxAh_toggled(self, checked: bool):
+        self.ui.spinBoxChargeMaxAh.setEnabled(checked)
+
+    @QtCore.pyqtSlot(bool)
+    def on_checkBoxChargeMaxWh_toggled(self, checked: bool):
+        self.ui.spinBoxChargeMaxWh.setEnabled(checked)
+
+    @QtCore.pyqtSlot()
+    def on_btnChargeApplyPreset_clicked(self):
+        profile = build_profile(
+            self.ui.comboChargeChem.currentData(),
+            self.ui.spinBoxChargeCells.value(),
+            self.ui.spinBoxChargeCapacity.value() / 1000,
+        )
+        self.ui.spinBoxChargeCV.setValue(profile.cv_v)
+        self.ui.spinBoxChargeCC.setValue(profile.cc_a)
+        for spin, value in (
+            (self.ui.spinBoxChargePrechargeV, profile.precharge_below_v),
+            (self.ui.spinBoxChargePrechargeI, profile.precharge_a),
+            (self.ui.spinBoxChargeCutoff, profile.cutoff_a),
+            (self.ui.spinBoxChargeFloat, profile.float_v),
+            (self.ui.spinBoxChargeNdv, profile.ndv_v),
+            (self.ui.spinBoxChargeHoldoff, profile.ndv_holdoff_s),
+        ):
+            if value is not None:
+                spin.setValue(value)
+
+    def _charge_profile_from_ui(self) -> ChargeProfile:
+        chem = self.ui.comboChargeChem.currentData()
+        has_precharge = chem in (CHEM_LI_ION, CHEM_LIFEPO4)
+        is_nimh = chem == CHEM_NIMH
+        use_float = chem == CHEM_LEAD_ACID and self.ui.checkBoxChargeFloat.isChecked()
+        return ChargeProfile(
+            chemistry=chem,
+            cv_v=self.ui.spinBoxChargeCV.value(),
+            cc_a=self.ui.spinBoxChargeCC.value(),
+            precharge_below_v=self.ui.spinBoxChargePrechargeV.value() if has_precharge else None,
+            precharge_a=self.ui.spinBoxChargePrechargeI.value() if has_precharge else None,
+            cutoff_a=None if is_nimh else self.ui.spinBoxChargeCutoff.value(),
+            float_v=self.ui.spinBoxChargeFloat.value() if use_float else None,
+            ndv_v=self.ui.spinBoxChargeNdv.value() if is_nimh else None,
+            ndv_holdoff_s=self.ui.spinBoxChargeHoldoff.value() if is_nimh else None,
+            max_s=(
+                self.ui.spinBoxChargeMaxTime.value() * 60.0
+                if self.ui.checkBoxChargeMaxTime.isChecked()
+                else None
+            ),
+            max_ah=(
+                self.ui.spinBoxChargeMaxAh.value() / 1000
+                if self.ui.checkBoxChargeMaxAh.isChecked()
+                else None
+            ),
+            max_wh=(
+                self.ui.spinBoxChargeMaxWh.value()
+                if self.ui.checkBoxChargeMaxWh.isChecked()
+                else None
+            ),
+        )
+
+    def _charge_profile_valid(self, profile: ChargeProfile) -> bool:
+        i_max = self.ui.spinBoxCurrent.maximum()
+        currents = [profile.cc_a]
+        if profile.precharge_a is not None:
+            currents.append(profile.precharge_a)
+        voltages = [profile.cv_v]
+        if profile.float_v is not None:
+            voltages.append(profile.float_v)
+        return all(0 < a <= i_max for a in currents) and all(0 < v <= 30 for v in voltages)
+
+    @QtCore.pyqtSlot()
+    def on_btnCharge_clicked(self):
+        if self._charge_active:
+            self._finish_charge(REASON_USER_STOP)
+            return
+        if self.api is None or self.locked or self._any_aux_active():
+            self._flash_charge_button(self.tr("无法启动"))
+            return
+        profile = self._charge_profile_from_ui()
+        if not self._charge_profile_valid(profile):
+            self._flash_charge_button(self.tr("非法参数"))
+            return
+        self._charge_controller = ChargeController(profile)
+        self._charge_acc = CapacityAccumulator()
+        self._charge_last_vi = None
+        self._charge_enable_rel = math.inf
+        self._charge_start_t = time.perf_counter()
+        setpoint = self._charge_controller.start(self._charge_start_t)
+        self.ui.scrollAreaCharge.setEnabled(False)
+        self.ui.spinBoxVoltage.setEnabled(False)
+        self.ui.spinBoxCurrent.setEnabled(False)
+        self.ui.btnCharge.setText(self.tr("停止充电"))
+        self.ui.labelChargeReason.setText("")
+        self._update_charge_labels()
+        self.v_set = setpoint.v_set
+        self.i_set = setpoint.i_set
+        self.wait_output_stable(self._start_charge_timer)
+        # The output is commanded on by now; only samples from here on count.
+        self._charge_enable_rel = time.perf_counter() - self.store.start_time
+
+    def _start_charge_timer(self):
+        if self._charge_active:
+            self.charge_timer.start(_CHARGE_TICK_MS)
+
+    def _on_raw_batch(self, raw_rtvalues, t1):
+        if not self._charge_active or not raw_rtvalues:
+            return
+        if t1 - self.store.start_time >= self._charge_enable_rel:
+            self._charge_acc.add_batch(raw_rtvalues, t1)
+            self._charge_last_vi = raw_rtvalues[-1]
+
+    def _update_charge_labels(self):
+        acc = self._charge_acc
+        elapsed = int(time.perf_counter() - self._charge_start_t)
+        h, rem = divmod(elapsed, 3600)
+        m, s = divmod(rem, 60)
+        self.ui.labelChargeElapsed.setText(f"{h:02d}:{m:02d}:{s:02d}")
+        self.ui.labelChargeAh.setText(f"{acc.ah * 1000:.0f} mAh")
+        self.ui.labelChargeWh.setText(f"{acc.wh:.3f} Wh")
+        self.ui.labelChargePhase.setText(
+            self._charge_phase_text(self._charge_controller.phase)
+        )
+
+    def _charge_tick(self):
+        if not self._charge_active:
+            return
+        self._update_charge_labels()
+        if self.output_state_str == "off":
+            self._finish_charge(REASON_OUTPUT_OFF)
+            return
+        if self._err_flag != 0:
+            self._finish_charge(REASON_DEVICE_ERROR)
+            return
+        if self._charge_last_vi is None:
+            return
+        v, i = self._charge_last_vi
+        action = self._charge_controller.update(
+            time.perf_counter(), v, i, self.output_state_str, self._charge_acc
+        )
+        if isinstance(action, ChargeFinished):
+            self._finish_charge(action.reason)
+        elif isinstance(action, ChargeSetpoint):
+            self.v_set = action.v_set
+            self.i_set = action.i_set
+            self._update_charge_labels()
+
+    def _finish_charge(self, reason: str):
+        self.charge_timer.stop()
+        if self._stable_callback == self._start_charge_timer:
+            self.stable_checker_timer.stop()
+            self._stable_callback = None
+        self._update_charge_labels()
+        self._charge_controller = None
+        self.output_state = False
+        self.ui.scrollAreaCharge.setEnabled(True)
+        self.ui.spinBoxVoltage.setEnabled(not self.locked)
+        self.ui.spinBoxCurrent.setEnabled(not self.locked)
+        self.ui.btnCharge.setText(self.tr("开始充电"))
+        self.ui.labelChargePhase.setText(self._charge_phase_text(PHASE_DONE))
+        self.ui.labelChargeReason.setText(self._charge_reason_text(reason))
+
+    def _charge_phase_text(self, phase: str) -> str:
+        return {
+            PHASE_PRECHARGE: self.tr("预充"),
+            PHASE_CC: self.tr("恒流"),
+            PHASE_CV: self.tr("恒压"),
+            PHASE_FLOAT: self.tr("浮充"),
+            PHASE_DONE: self.tr("已结束"),
+        }[phase]
+
+    def _charge_reason_text(self, reason: str) -> str:
+        return {
+            REASON_CUTOFF: self.tr("电流已降至截止电流"),
+            REASON_NDV: self.tr("检测到-ΔV"),
+            REASON_CEILING: self.tr("已达到电压上限"),
+            REASON_TIMEOUT: self.tr("已达到最大时长"),
+            REASON_MAX_AH: self.tr("已达到最大容量"),
+            REASON_MAX_WH: self.tr("已达到最大能量"),
+            REASON_OUTPUT_OFF: self.tr("输出已关闭"),
+            REASON_DEVICE_ERROR: self.tr("设备错误"),
+            REASON_USER_STOP: self.tr("用户停止"),
+            REASON_DISCONNECTED: self.tr("已断开连接"),
+        }[reason]
+
+    @QtCore.pyqtSlot()
+    def on_btnChargeSave_clicked(self):
+        if self._charge_acc is None or not self._charge_acc.rows:
+            CustomMessageBox(self, self.tr("错误"), self.tr("充电记录为空"))
+            return
+        filename, _ = QtWidgets.QFileDialog.getSaveFileName(
+            self, self.tr("保存"), "", self.tr("CSV文件 (*.csv)")
+        )
+        if not filename:
+            return
+        rd = RecordData(CHARGE_CSV_CHANNELS)
+        for row in self._charge_acc.rows:
+            rd.add_values(
+                {
+                    "voltage": row.voltage,
+                    "current": row.current,
+                    "power": row.power,
+                    "ah": row.ah,
+                    "wh": row.wh,
+                },
+                row.elapsed,
+            )
+        rd.to_csv(filename)
 
 
 DEVICE_PANEL_TYPES["P906"] = P906DevicePanel

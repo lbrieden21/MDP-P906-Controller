@@ -49,6 +49,7 @@ A lot of time was spent optimizing the communication quality based on this proje
 - Function generator (sine/square/triangle/sawtooth/random)
 - Operation sequence (single or loop execution of action sequences)
 - Battery simulator (supports custom battery voltage curves/capacity/internal resistance/series-connection settings)
+- Battery charger: chemistry-preset CC/CV (or NiMH −ΔV) charging with cutoff-current/time/Ah/Wh stop conditions and CSV export (see [P906 Battery Charge](#p906-battery-charge) below)
 - MDP-L1060 electronic load support: mode-aware parameter sweep, sequence automation, and battery discharge testing (see [L1060 Auxiliary Tools](#l1060-electronic-load-auxiliary-tools) below)
 - Multi-device support: connect and monitor several power supplies at once, each with its own panel and independent link/unlink control
 - Data floating window
@@ -159,6 +160,18 @@ the same regardless of which transport the adapter is reached over.
 The same **Connection Type: WiFi (TCP)** setting also reaches a Teensy 4.1 adapter built with
 `ETH=1` (see the same README's Teensy 4.x section) — there's no separate "Ethernet" transport
 option, since both are just a TCP socket to the adapter's IP on port 9000.
+
+#### P906 Battery Charge
+
+The P906 panel's Battery Charge tab runs a real CC/CV (or NiMH −ΔV) charge, configured from a chemistry preset:
+
+- **Chemistry presets** — Li-ion/LiPo, LiFePO4, lead-acid, and NiMH/NiCd, each with per-cell default voltages/currents scaled by the cell count you set. **Apply Preset** fills in every derived value (CV/CC targets, precharge threshold/current, cutoff current, float voltage, −ΔV threshold/hold-off), and every value stays editable afterward.
+- **Phases** — Precharge (for chemistries with a discharged-cell threshold) → CC → CV → Float (lead-acid only, when enabled) → Done. The CC→CV transition follows the P906's own reported `cv` mode, not a voltage/current estimate.
+- **Stop conditions** — current tapering down to the cutoff current while in CV (Li-ion/LiFePO4/lead-acid), a −ΔV dip after a hold-off period (NiMH/NiCd), or optional maximum time/Ah/Wh limits, each of which applies in every phase including Float. The charge also stops if the output is switched off (manually or by the device) or the device reports a fault.
+- **Lead-acid float** — a checkbox chooses whether the charge switches to a float voltage after the absorption stage and continues indefinitely (until Stop or a limit fires) or stops outright once current reaches the cutoff.
+- While running, the tab shows phase, elapsed time, mAh, and Wh; live V/I are plotted in the shared main-window graph (no separate charge graph channel), and the finished run can be exported to CSV.
+
+> **Where the P906 measures voltage.** Like every other reading in this GUI, the charge controller uses the voltage the P906 reports at its own output terminals — there is no remote-sense compensation. The battery's actual terminal voltage will read slightly lower than the P906's number by the drop across your charge leads at whatever current is flowing.
 
 #### L1060 Electronic Load Auxiliary Tools
 
