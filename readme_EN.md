@@ -140,6 +140,8 @@ I have released a PyInstaller packaged version, you can just download and run it
 
 The GUI can drive more than one device at a time. Open **Connection Settings**, use the **+**/**-** buttons next to the device selector to add or remove a device, and configure each one's IDCODE/color/channel there. Every device gets its own panel (stacked in the left column) with its own **LINK/UNLINK** button, so devices can be connected and disconnected independently of each other — the radio adapter itself stays shared and opens/closes automatically as needed.
 
+With many devices the stacked panels get cramped. Set **Graphic Settings → Device Layout** to **Single Device** to show one panel at a time using the full column height, with a row of device buttons above it to switch between them. Devices that aren't shown stay linked and keep graphing. Linked devices are marked with a dot on their button.
+
 This is implemented using the adapter's nRF24L01+ hardware RX pipes to tell devices apart, so it requires the [multiceiver adapter firmware](#modification-method) and is capped at **5 devices per adapter** (pipes 1-5; pipe 0 is reserved for the adapter's own transmit ACKs).
 
 #### Sharing devices with a real MDP-M01

@@ -143,15 +143,7 @@ class P906DevicePanel(DevicePanelBase):
         self.ui.labelTab.setText(
             self.ui.tabWidget.tabText(self.ui.tabWidget.currentIndex())
         )
-        # QTabWidget sizes itself to its largest tab (Battery Sim/Sequence are
-        # much taller than Preset), which otherwise reserves that much room
-        # even while a short tab is showing and starves the L1060 panel's own
-        # aux area, which is stacked in the same column. Capping this leaves
-        # enough of the shared vertical budget for L1060's Presets tab to fit
-        # without scrolling; P906's own shorter tabs (like Preset) now rely on
-        # their existing internal scroll areas the same way its taller tabs
-        # already did.
-        self.ui.tabWidget.setMaximumHeight(210)
+        self.set_fills_column(False)
 
         self.set_interp(setting.ui.interp)
         self.refresh_preset()
@@ -166,6 +158,17 @@ class P906DevicePanel(DevicePanelBase):
         # + first layout pass done) so the digits aren't squeezed unreadably
         # thin in the narrower per-device panel column.
         QtCore.QTimer.singleShot(0, self._enforce_lcd_min_width)
+
+    def set_fills_column(self, fill: bool):
+        super().set_fills_column(fill)
+        # QTabWidget sizes itself to its largest tab (Battery Sim/Sequence are
+        # much taller than Preset), which otherwise reserves that much room
+        # even while a short tab is showing and starves the aux area of any
+        # panel stacked in the same column. Capping this leaves enough of the
+        # shared vertical budget for L1060's Presets tab to fit without
+        # scrolling; P906's own tabs rely on their internal scroll areas. A
+        # panel alone in the column has no one to share with, so it's uncapped.
+        self.ui.tabWidget.setMaximumHeight(QtWidgets.QWIDGETSIZE_MAX if fill else 210)
 
     def set_english_fonts(self):
         c_font = QtGui.QFont()

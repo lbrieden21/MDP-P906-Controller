@@ -129,8 +129,11 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
         self.ui.setupUi(self)
         self.panels = []
         self._panel_by_id = {}
+        self._init_device_selector()
         for dev in setting.devices:
             self._add_panel_for_device(dev)
+        self._rebuild_device_selector()
+        self.set_device_layout(setting.ui.device_layout)
         self.connection = ConnectionManager(self.panels)
         self.initSignals()
         self.initGraph()
@@ -150,6 +153,7 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
         panel = DEVICE_PANEL_TYPES[dev.type](self, dev)
         self.ui.layoutDevices.addWidget(panel)
         panel.link_state_changed.connect(self._update_title_for_model)
+        panel.link_state_changed.connect(self._refresh_device_selector_style)
         panel.link_toggle_requested.connect(
             lambda p=panel: self.on_panel_link_toggled(p)
         )
@@ -177,11 +181,102 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
         for dev in setting.devices:
             self._add_panel_for_device(dev)
         self.connection.panels = self.panels
+        self._rebuild_device_selector()
+        self.set_device_layout(setting.ui.device_layout)
         for block in self.graph_blocks.values():
             block.set_panels(self.panels)
         self.on_btnGraphClear_clicked(skip_confirm=True)
         self._update_title_for_model()
         self.panels_changed.emit()
+
+    def _init_device_selector(self):
+        """Device button row shown above the panels in the "single" device
+        layout; one exclusive checkable button per panel."""
+        self.device_selector = QtWidgets.QWidget(self.ui.widgetDeviceArea)
+        self.device_selector.setSizePolicy(
+            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed
+        )
+        self._device_selector_layout = QtWidgets.QHBoxLayout(self.device_selector)
+        self._device_selector_layout.setContentsMargins(0, 0, 0, 0)
+        self._device_selector_group = QtWidgets.QButtonGroup(self)
+        self._device_selector_group.setExclusive(True)
+        self._device_selector_buttons = {}
+        self._selected_device_id = None
+        self.ui.layoutDevices.insertWidget(0, self.device_selector)
+
+    def _rebuild_device_selector(self):
+        for btn in self._device_selector_buttons.values():
+            self._device_selector_group.removeButton(btn)
+            self._device_selector_layout.removeWidget(btn)
+            btn.deleteLater()
+        self._device_selector_buttons = {}
+        if self._selected_device_id not in self._panel_by_id:
+            self._selected_device_id = self.panels[0].device_id if self.panels else None
+        for panel in self.panels:
+            btn = QtWidgets.QPushButton(panel.display_name, self.device_selector)
+            btn.setCheckable(True)
+            btn.setChecked(panel.device_id == self._selected_device_id)
+            btn.clicked.connect(
+                lambda _=False, device_id=panel.device_id: self.select_device(device_id)
+            )
+            self._device_selector_group.addButton(btn)
+            self._device_selector_layout.addWidget(btn)
+            self._device_selector_buttons[panel.device_id] = btn
+        self._refresh_device_selector_style()
+
+    def _refresh_device_selector_style(self):
+        """Selected button is filled with the device color, the rest are
+        outlined in it; a linked device's button is prefixed with a dot."""
+        for device_id, btn in self._device_selector_buttons.items():
+            panel = self._panel_by_id[device_id]
+            color = f"#{panel.settings.color.lstrip('#')}"
+            btn.setText(("● " if panel.linked else "") + panel.display_name)
+            if btn.isChecked():
+                btn.setStyleSheet(
+                    "QPushButton {"
+                    f"background-color: {color}; color: black; border: 1px solid {color};"
+                    "border-radius: 3px; padding: 2px 8px; font-weight: bold; }"
+                )
+            else:
+                btn.setStyleSheet(
+                    "QPushButton {"
+                    f"border: 1px solid {color}; border-radius: 3px; padding: 2px 8px; }}"
+                )
+
+    def select_device(self, device_id: str):
+        self._selected_device_id = device_id
+        self._device_selector_buttons[device_id].setChecked(True)
+        self.set_device_layout(setting.ui.device_layout)
+
+    def set_device_layout(self, mode: str):
+        """"stacked" shows every panel; "single" shows only the selected one
+        plus the device button row. In "single" the device area keeps the
+        width the stacked layout would give it, so switching devices or
+        layouts never resizes the column."""
+        setting.ui.device_layout = mode
+        self.device_selector.setVisible(mode == "single")
+        self._update_device_area_width()
+        # Panel size hints only settle after an event-loop pass (deferred
+        # LCD min-width setup, style polish on first real show), so measure
+        # once more after that.
+        QtCore.QTimer.singleShot(0, self._update_device_area_width)
+        self._refresh_device_selector_style()
+
+    def _update_device_area_width(self):
+        """Apply panel visibility for the current device layout and, in
+        "single", pin the device area to the widest panel's width and give
+        the panel's extra height to its aux tab widget so every other
+        section keeps its natural size."""
+        single = setting.ui.device_layout == "single"
+        # A panel that has never been shown reports a narrower, unstyled size
+        # hint, so show every panel before measuring and hide afterwards.
+        for panel in self.panels:
+            panel.set_fills_column(single)
+            panel.setVisible(True)
+        stacked_width = max((p.sizeHint().width() for p in self.panels), default=0)
+        for panel in self.panels:
+            panel.setVisible(not single or panel.device_id == self._selected_device_id)
+        self.ui.widgetDeviceArea.setMinimumWidth(stacked_width if single else 0)
 
     def on_device_color_changed(self, device_id: str):
         """A device's wheel color was edited and saved in the Settings
@@ -194,6 +289,7 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
         panel.refresh_led_color()
         for block in self.graph_blocks.values():
             block.refresh_device_color(panel)
+        self._refresh_device_selector_style()
 
     def _update_title_for_model(self):
         if any(p.model == "P905" for p in self.panels):
@@ -210,6 +306,8 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
         for panel in self.panels:
             label = getattr(panel.ui, "labelTab", None)
             if label is None:  # e.g. L1060 panels have no tab bar to scroll-switch
+                continue
+            if not label.isVisible():  # panel hidden by the single device layout
                 continue
             label_geom = label.geometry()
             label_pos = label.mapTo(self, QtCore.QPoint(0, 0))
@@ -299,6 +397,7 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
         self.ui.horizontalSlider.setBarVisible(False)
         for panel in self.panels:
             panel.apply_theme()
+        self._refresh_device_selector_style()
 
     def on_panel_link_toggled(self, panel):
         try:
@@ -328,6 +427,7 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
         except Exception as e:
             logger.exception(f"Failed to link/unlink {panel.display_name}")
             CustomMessageBox(self, self.tr("连接失败"), str(e))
+        self._refresh_device_selector_style()
 
     def set_data_fps(self, text):
         if text != "":
@@ -847,6 +947,7 @@ DialogGraphics.state_fps_sig.connect(MainWindow.set_state_fps)
 DialogGraphics.set_data_len_sig.connect(MainWindow.set_data_length)
 DialogGraphics.set_interp_sig.connect(MainWindow.set_interp_all)
 DialogGraphics.theme_requested.connect(lambda theme: set_theme(theme))
+DialogGraphics.device_layout_requested.connect(MainWindow.set_device_layout)
 MainWindow.ui.btnRecordFloatWindow.clicked.connect(FloatingWindow.switch_visibility)
 DialogSettings.devices_changed.connect(MainWindow.rebuild_panels)
 DialogSettings.device_color_changed.connect(MainWindow.on_device_color_changed)

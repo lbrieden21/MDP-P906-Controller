@@ -304,6 +304,16 @@ class DevicePanelBase(QtWidgets.QWidget):
         ):
             lcd.setMinimumWidth(130)
 
+    def set_fills_column(self, fill: bool):
+        """fill=True when this panel is the only one shown in the device
+        column: the aux tab widget takes all extra height so every other
+        section keeps its natural size."""
+        policy = self.ui.tabWidget.sizePolicy()
+        policy.setVerticalPolicy(
+            QtWidgets.QSizePolicy.Expanding if fill else QtWidgets.QSizePolicy.Preferred
+        )
+        self.ui.tabWidget.setSizePolicy(policy)
+
     def set_data_fps(self, fps: float):
         self.data_fps = fps
         if self.state_request_sender_timer.isActive():

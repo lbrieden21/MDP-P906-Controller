@@ -300,6 +300,7 @@ class MDPGraphics(QtWidgets.QDialog, FramelessWindow):
     set_data_len_sig = QtCore.pyqtSignal(int)
     set_interp_sig = QtCore.pyqtSignal(int)
     theme_requested = QtCore.pyqtSignal(str)
+    device_layout_requested = QtCore.pyqtSignal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -356,6 +357,9 @@ class MDPGraphics(QtWidgets.QDialog, FramelessWindow):
             {"light": 1, "dark": 0}.get(setting.ui.theme, setting.ui.theme)
         )
         self.ui.comboInput.setCurrentIndex(int(not setting.ui.bitadjust))
+        self.ui.comboDeviceLayout.setCurrentIndex(
+            1 if setting.ui.device_layout == "single" else 0
+        )
 
     def show(self) -> None:
         self.initValues()
@@ -371,6 +375,10 @@ class MDPGraphics(QtWidgets.QDialog, FramelessWindow):
         self.theme_requested.emit(
             {0: "dark", 1: "light"}.get(index, self.ui.comboTheme.currentText())
         )
+
+    @QtCore.pyqtSlot(int)
+    def on_comboDeviceLayout_currentIndexChanged(self, index):
+        self.device_layout_requested.emit("single" if index == 1 else "stacked")
 
     @QtCore.pyqtSlot(int)
     def on_checkBoxAntialias_stateChanged(self, state: int):

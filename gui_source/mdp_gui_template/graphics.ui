@@ -158,6 +158,37 @@
        </property>
       </widget>
      </item>
+     <item>
+      <widget class="QLabel" name="labelDeviceLayout">
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>24</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>999</width>
+         <height>16777215</height>
+        </size>
+       </property>
+       <property name="font">
+        <font>
+         <family>Sarasa Fixed SC SemiBold</family>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>设备布局</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+       <property name="margin">
+        <number>6</number>
+       </property>
+      </widget>
+     </item>
     </layout>
    </item>
    <item>
@@ -219,6 +250,35 @@
        <item>
         <property name="text">
          <string>自由更改</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="comboDeviceLayout">
+       <property name="font">
+        <font>
+         <family>Sarasa Fixed SC SemiBold</family>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="layoutDirection">
+        <enum>Qt::LeftToRight</enum>
+       </property>
+       <property name="editable">
+        <bool>false</bool>
+       </property>
+       <property name="sizeAdjustPolicy">
+        <enum>QComboBox::AdjustToContentsOnFirstShow</enum>
+       </property>
+       <item>
+        <property name="text">
+         <string>全部显示</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>单个显示</string>
         </property>
        </item>
       </widget>

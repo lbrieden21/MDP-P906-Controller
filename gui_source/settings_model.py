@@ -144,6 +144,9 @@ class UiSettings:
         self.opengl = False
         self.antialias = True
         self.bitadjust = True
+        # "stacked" (every device panel in the left column) or "single"
+        # (one panel at a time, picked from a device button row).
+        self.device_layout = "stacked"
 
 
 class Setting:
