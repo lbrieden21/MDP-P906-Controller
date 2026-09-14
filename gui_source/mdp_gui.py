@@ -79,7 +79,7 @@ app.setFont(global_font)
 
 from mdp_custom import CustomMessageBox, CustomTitleBar
 from settings_model import setting
-from device_core import ChannelSpec, csv_unit
+from device_core import ChannelSpec, GraphCapture, csv_unit
 from device_panel import DEVICE_PANEL_TYPES
 from graph_block import GraphBlock
 from device_panel_p906 import CHANNEL_BY_KEY as _P906_CHANNEL_BY_KEY, CHANNEL_SHORT as _P906_CHANNEL_SHORT  # noqa: F401 (registers P906 in DEVICE_PANEL_TYPES)
@@ -119,6 +119,8 @@ CHANNEL_SHORT["sweep"] = ""
 class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainWindow
     close_signal = QtCore.pyqtSignal()
     panels_changed = QtCore.pyqtSignal()
+    graph_auto_started = QtCore.pyqtSignal()
+    graph_auto_stopped = QtCore.pyqtSignal()
     data_fps = 50
     graph_keep_flag = False
     graph_record_flag = False
@@ -129,6 +131,11 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
         self.ui.setupUi(self)
         self.panels = []
         self._panel_by_id = {}
+        self.capture = GraphCapture(
+            on_auto_start=self.graph_auto_started.emit,
+            on_auto_stop=self.graph_auto_stopped.emit,
+        )
+        self.set_graph_triggers()
         self._init_device_selector()
         for dev in setting.devices:
             self._add_panel_for_device(dev)
@@ -150,7 +157,7 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
         self.titleBar.raise_()
 
     def _add_panel_for_device(self, dev):
-        panel = DEVICE_PANEL_TYPES[dev.type](self, dev)
+        panel = DEVICE_PANEL_TYPES[dev.type](self.capture, self, dev)
         self.ui.layoutDevices.addWidget(panel)
         panel.link_state_changed.connect(self._update_title_for_model)
         panel.link_state_changed.connect(self._refresh_device_selector_style)
@@ -186,6 +193,7 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
         for block in self.graph_blocks.values():
             block.set_panels(self.panels)
         self.on_btnGraphClear_clicked(skip_confirm=True)
+        self.set_graph_triggers()
         self._update_title_for_model()
         self.panels_changed.emit()
 
@@ -358,6 +366,11 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
         self.ui.horizontalSlider.sliderMoved.connect(
             self.on_horizontalSlider_sliderMoved
         )
+        # Both fire on the serial/TCP worker thread (GraphCapture's
+        # callbacks); Qt queues them across to the GUI thread since these
+        # are real signals, not direct calls.
+        self.graph_auto_started.connect(self._refresh_graph_run_button)
+        self.graph_auto_stopped.connect(self._on_graph_stopped)
 
     def switch_fullscreen(self):
         if self.isFullScreen():
@@ -416,6 +429,9 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
                     if self.graph_record_save_timer.isActive():
                         self.on_btnGraphRecord_clicked()
                     self.close_state_ui()
+                    if self.capture.running:
+                        self.capture.stop()
+                        self._on_graph_stopped()
             else:
                 first_link = not self.connection.is_open
                 self.connection.link_panel(panel, self.data_fps)
@@ -428,6 +444,7 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
             logger.exception(f"Failed to link/unlink {panel.display_name}")
             CustomMessageBox(self, self.tr("连接失败"), str(e))
         self._refresh_device_selector_style()
+        self._refresh_graph_run_button()
 
     def set_data_fps(self, text):
         if text != "":
@@ -771,13 +788,70 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
             self.tr("确定要清空数据缓冲区吗？"),
         ):
             return
-        time_origin = self.connection.reset_time_origin()
+        self.capture.clear(time.perf_counter())
         for panel in self.panels:
-            panel.store.clear(time_origin)
+            panel.store.clear()
             panel.clear_aux_data()
         for block in self.graph_blocks.values():
             block.clear()
         set_color(self.ui.labelBufferSize, None)
+
+    @QtCore.pyqtSlot()
+    def on_btnGraphRun_clicked(self):
+        if self.capture.running:
+            self.capture.stop()
+            self._on_graph_stopped()
+        else:
+            self.capture.start(time.perf_counter())
+            self._refresh_graph_run_button()
+
+    def _on_graph_stopped(self):
+        for panel in self.panels:
+            panel.store.mark_gap()
+        self._refresh_graph_run_button()
+
+    def _refresh_graph_run_button(self):
+        btn = self.ui.btnGraphRun
+        btn.setEnabled(any(p.linked for p in self.panels) or self.capture.running)
+        if self.capture.running:
+            btn.setText(self.tr("停止"))
+            set_color(btn, setting.get_color("general_green"))
+            btn.setToolTip(self._graph_trigger_tooltip(self.capture.stop_mode, self.capture.stop_threshold, self.tr("时自动停止"), "<"))
+            return
+        watched = self._panel_by_id.get(self.capture.device_id)
+        armed = self.capture.start_mode != "off" and watched is not None and watched.linked
+        if armed:
+            btn.setText(self.tr("待触发"))
+            set_color(btn, setting.get_color("general_yellow"))
+            btn.setToolTip(self._graph_trigger_tooltip(self.capture.start_mode, self.capture.start_threshold, self.tr("时自动开始"), "≥"))
+        else:
+            btn.setText(self.tr("开始"))
+            set_color(btn, None)
+            btn.setToolTip("")
+
+    def _graph_trigger_tooltip(self, mode, threshold, suffix, symbol):
+        if mode == "off":
+            return ""
+        watched = self._panel_by_id.get(self.capture.device_id)
+        if watched is None:
+            return ""
+        kind = self.tr("电压") if mode == "voltage" else self.tr("电流")
+        unit = "V" if mode == "voltage" else "A"
+        return f"{watched.display_name}: {kind} {symbol} {threshold:.3f}{unit} {suffix}"
+
+    def set_graph_triggers(self):
+        device_id = setting.ui.graph_trigger_device
+        panel = self._panel_by_id.get(device_id)
+        if panel is None and self.panels:
+            panel = self.panels[0]
+        self.capture.set_triggers(
+            panel.device_id if panel else None,
+            setting.ui.graph_autostart,
+            setting.ui.graph_autostart_threshold,
+            setting.ui.graph_autostop,
+            setting.ui.graph_autostop_threshold,
+        )
+        self._refresh_graph_run_button()
 
     def _set_graphs_mouse_enabled(self, enabled):
         for block in self.graph_blocks.values():
@@ -932,6 +1006,7 @@ DialogGraphics.set_data_len_sig.connect(MainWindow.set_data_length)
 DialogGraphics.set_interp_sig.connect(MainWindow.set_interp_all)
 DialogGraphics.theme_requested.connect(lambda theme: set_theme(theme))
 DialogGraphics.device_layout_requested.connect(MainWindow.set_device_layout)
+DialogGraphics.graph_triggers_sig.connect(MainWindow.set_graph_triggers)
 MainWindow.ui.btnRecordFloatWindow.clicked.connect(FloatingWindow.switch_visibility)
 DialogSettings.devices_changed.connect(MainWindow.rebuild_panels)
 DialogSettings.device_color_changed.connect(MainWindow.on_device_color_changed)

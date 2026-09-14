@@ -145,13 +145,14 @@ class L1060DevicePanel(DevicePanelBase):
     api_class = MDP_L1060
     record_channels = RECORD_CHANNELS
 
-    def __init__(self, parent=None, device_settings=None):
+    def __init__(self, capture, parent=None, device_settings=None):
         device_settings = device_settings or setting.devices[0]
         super().__init__(
             device_id=device_settings.id,
             display_name=device_settings.name,
             channels=CHANNELS,
             data_length=setting.ui.data_pts,
+            capture=capture,
             open_r=OPEN_R,
             parent=parent,
         )
@@ -190,7 +191,7 @@ class L1060DevicePanel(DevicePanelBase):
         self._discharge_max_duration = None
         self._discharge_armed = False
         self._discharge_last_voltage = None
-        self._discharge_enable_rel = 0.0
+        self._discharge_enable_t = 0.0
 
         self._init_timers()
         self._init_mode_buttons()
@@ -975,7 +976,7 @@ class L1060DevicePanel(DevicePanelBase):
         if not self._apply_mode_target(mode, target) or not self._confirm_load_on():
             self._finish_discharge(leave_on=False, reason=self.tr("使能失败"))
             return
-        self._discharge_enable_rel = time.perf_counter() - self.store.start_time
+        self._discharge_enable_t = time.perf_counter()
         self.discharge_timer.start(_DISCHARGE_TICK_MS)
 
     def _discharge_check_termination(self):
@@ -1108,6 +1109,7 @@ class L1060DevicePanel(DevicePanelBase):
         api.close()
         self._load_commanded_on = False
         self.linked = False
+        self.capture.forget(self.device_id)
         self.close_state_ui(record_disconnect=True)
         self.link_state_changed.emit()
 
@@ -1120,7 +1122,7 @@ class L1060DevicePanel(DevicePanelBase):
             # Only integrate samples from after the enable was confirmed, so
             # a batch straddling the enable moment can't credit Ah/Wh (or
             # arm the cutoff debounce) against pre-load readings.
-            if t1 - self.store.start_time >= self._discharge_enable_rel:
+            if t1 >= self._discharge_enable_t:
                 self._discharge_acc.add_batch(raw_rtvalues, t1)
                 self._discharge_last_voltage = raw_rtvalues[-1][0]
                 self._discharge_armed = True

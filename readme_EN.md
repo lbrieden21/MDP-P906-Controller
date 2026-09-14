@@ -136,11 +136,20 @@ Refer to the code and the comments.
 
 I have released a PyInstaller packaged version, you can just download and run it. Everything is out of the box.
 
+#### Graph capture
+
+Linking a device no longer starts the graph by itself — the panel's LCDs and other readouts update as soon as it's linked, but the graph stays empty until capture is started.
+
+- **Start/Stop** (next to the Record button, above the graph) starts or stops writing samples into the graph. Pressing Start again after a Stop continues the same timeline with a visible break in the line rather than resetting to t=0; **Clear** is the only way to reset the timeline to t=0.
+- **Auto-start/auto-stop** — Graphic Settings has a trigger device and, independently, an auto-start and an auto-stop mode (Off/Voltage/Current) with a threshold. Auto-start fires on a rising crossing (the trigger device's reading goes from below the threshold to at or above it) and begins capture; auto-stop fires on a falling crossing (at or above to below) and ends it. Only the chosen trigger device is watched — other linked devices are captured but never trigger anything.
+- The Start/Stop button shows **Armed** (yellow) when capture is stopped and an auto-start is configured for a linked trigger device, with the start condition as its tooltip. While capture is running it shows **Stop** (green), with the stop condition (if any) as its tooltip.
+- **Record** is unrelated to graph capture: it always writes its raw full-rate CSV regardless of whether the graph is running.
+
 #### Multiple Devices
 
 The GUI can drive more than one device at a time. Open **Connection Settings**, use the **+**/**-** buttons next to the device selector to add or remove a device, and configure each one's IDCODE/color/channel there. Every device gets its own panel (stacked in the left column) with its own **LINK/UNLINK** button, so devices can be connected and disconnected independently of each other — the radio adapter itself stays shared and opens/closes automatically as needed.
 
-With many devices the stacked panels get cramped. Set **Graphic Settings → Device Layout** to **Single Device** to show one panel at a time using the full column height, with a row of device buttons above it to switch between them. Devices that aren't shown stay linked and keep graphing. Linked devices are marked with a dot on their button.
+With many devices the stacked panels get cramped. Set **Graphic Settings → Device Layout** to **Single Device** to show one panel at a time using the full column height, with a row of device buttons above it to switch between them. Devices that aren't shown stay linked and keep capturing while the graph is running. Linked devices are marked with a dot on their button.
 
 This is implemented using the adapter's nRF24L01+ hardware RX pipes to tell devices apart, so it requires the [multiceiver adapter firmware](#modification-method) and is capped at **5 devices per adapter** (pipes 1-5; pipe 0 is reserved for the adapter's own transmit ACKs).
 
@@ -171,7 +180,7 @@ The P906 panel's Battery Charge tab runs a real CC/CV (or NiMH −ΔV) charge, c
 - **Phases** — Precharge (for chemistries with a discharged-cell threshold) → CC → CV → Float (lead-acid only, when enabled) → Done. The CC→CV transition follows the P906's own reported `cv` mode, not a voltage/current estimate.
 - **Stop conditions** — current tapering down to the cutoff current while in CV (Li-ion/LiFePO4/lead-acid), a −ΔV dip after a hold-off period (NiMH/NiCd), or optional maximum time/Ah/Wh limits, each of which applies in every phase including Float. The charge also stops if the output is switched off (manually or by the device) or the device reports a fault.
 - **Lead-acid float** — a checkbox chooses whether the charge switches to a float voltage after the absorption stage and continues indefinitely (until Stop or a limit fires) or stops outright once current reaches the cutoff.
-- While running, the tab shows phase, elapsed time, mAh, and Wh; live V/I are plotted in the shared main-window graph (no separate charge graph channel), and the finished run can be exported to CSV.
+- While running, the tab shows phase, elapsed time, mAh, and Wh; live V/I are plotted in the shared main-window graph while graph capture is running (no separate charge graph channel), and the finished run can be exported to CSV.
 
 > **Where the P906 measures voltage.** Like every other reading in this GUI, the charge controller uses the voltage the P906 reports at its own output terminals — there is no remote-sense compensation. The battery's actual terminal voltage will read slightly lower than the P906's number by the drop across your charge leads at whatever current is flowing.
 
@@ -179,7 +188,7 @@ The P906 panel's Battery Charge tab runs a real CC/CV (or NiMH −ΔV) charge, c
 
 The L1060 panel has a Preset tab plus three automated-run tabs, each usable in any of the load's CC/CV/CR/CP modes:
 
-- **Sweep** — steps the target from a start to a stop value, dwelling at each step while the chosen response channel (voltage/current/power/resistance) is recorded live. The commanded-target-vs-response curve appears as a toggleable block in the main window's graph row (like the Discharge voltage-vs-Ah curve), hidden until a sweep has been run.
+- **Sweep** — steps the target from a start to a stop value, dwelling at each step while the chosen response channel (voltage/current/power/resistance) is recorded live while graph capture is running. The commanded-target-vs-response curve appears as a toggleable block in the main window's graph row (like the Discharge voltage-vs-Ah curve), hidden until a sweep has been run.
 - **Sequence** — runs an editable list of Delay/Wait/Set-mode-target actions, single-run or looped, with save/load to a text file (same editor pattern as the P906's sequence tool).
 - **Discharge** — runs a battery discharge test at a fixed mode/target and integrates elapsed time, Ah, and Wh. A minimum voltage cutoff is **required** before Start (there is no universally safe default across battery chemistries/series counts); maximum Ah, Wh, and duration are optional additional stop conditions. Results can be exported to CSV and plotted (measured voltage vs. discharged Ah).
 

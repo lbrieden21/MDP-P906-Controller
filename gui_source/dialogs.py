@@ -301,6 +301,7 @@ class MDPGraphics(QtWidgets.QDialog, FramelessWindow):
     set_interp_sig = QtCore.pyqtSignal(int)
     theme_requested = QtCore.pyqtSignal(str)
     device_layout_requested = QtCore.pyqtSignal(str)
+    graph_triggers_sig = QtCore.pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -360,6 +361,29 @@ class MDPGraphics(QtWidgets.QDialog, FramelessWindow):
         self.ui.comboDeviceLayout.setCurrentIndex(
             1 if setting.ui.device_layout == "single" else 0
         )
+        with signals_blocked(self.ui.comboGraphTriggerDevice):
+            self.ui.comboGraphTriggerDevice.clear()
+            for dev in setting.devices:
+                self.ui.comboGraphTriggerDevice.addItem(dev.name, dev.id)
+            idx = self.ui.comboGraphTriggerDevice.findData(setting.ui.graph_trigger_device)
+            self.ui.comboGraphTriggerDevice.setCurrentIndex(max(0, idx))
+        self.ui.comboGraphAutostart.setCurrentIndex(
+            {"off": 0, "voltage": 1, "current": 2}.get(setting.ui.graph_autostart, 0)
+        )
+        self.ui.spinGraphAutostartThreshold.setValue(setting.ui.graph_autostart_threshold)
+        self.ui.comboGraphAutostop.setCurrentIndex(
+            {"off": 0, "voltage": 1, "current": 2}.get(setting.ui.graph_autostop, 0)
+        )
+        self.ui.spinGraphAutostopThreshold.setValue(setting.ui.graph_autostop_threshold)
+        self._update_graph_trigger_enabled()
+
+    def _update_graph_trigger_enabled(self):
+        start_mode = self.ui.comboGraphAutostart.currentIndex()
+        self.ui.spinGraphAutostartThreshold.setEnabled(start_mode != 0)
+        self.ui.spinGraphAutostartThreshold.setSuffix("A" if start_mode == 2 else "V")
+        stop_mode = self.ui.comboGraphAutostop.currentIndex()
+        self.ui.spinGraphAutostopThreshold.setEnabled(stop_mode != 0)
+        self.ui.spinGraphAutostopThreshold.setSuffix("A" if stop_mode == 2 else "V")
 
     def show(self) -> None:
         self.initValues()
@@ -466,6 +490,33 @@ class MDPGraphics(QtWidgets.QDialog, FramelessWindow):
     def on_checkBoxUseCali_stateChanged(self, state: int):
         setting.devices[0].cali.use = state == QtCore.Qt.CheckState.Checked
 
+    @QtCore.pyqtSlot(int)
+    def on_comboGraphTriggerDevice_currentIndexChanged(self, index):
+        setting.ui.graph_trigger_device = self.ui.comboGraphTriggerDevice.itemData(index) or ""
+        self.graph_triggers_sig.emit()
+
+    @QtCore.pyqtSlot(int)
+    def on_comboGraphAutostart_currentIndexChanged(self, index):
+        setting.ui.graph_autostart = {0: "off", 1: "voltage", 2: "current"}[index]
+        self._update_graph_trigger_enabled()
+        self.graph_triggers_sig.emit()
+
+    @QtCore.pyqtSlot(float)
+    def on_spinGraphAutostartThreshold_valueChanged(self, _=None):
+        setting.ui.graph_autostart_threshold = self.ui.spinGraphAutostartThreshold.value()
+        self.graph_triggers_sig.emit()
+
+    @QtCore.pyqtSlot(int)
+    def on_comboGraphAutostop_currentIndexChanged(self, index):
+        setting.ui.graph_autostop = {0: "off", 1: "voltage", 2: "current"}[index]
+        self._update_graph_trigger_enabled()
+        self.graph_triggers_sig.emit()
+
+    @QtCore.pyqtSlot(float)
+    def on_spinGraphAutostopThreshold_valueChanged(self, _=None):
+        setting.ui.graph_autostop_threshold = self.ui.spinGraphAutostopThreshold.value()
+        self.graph_triggers_sig.emit()
+
     @QtCore.pyqtSlot()
     def on_btnClose_clicked(self):
         try:
@@ -489,6 +540,17 @@ class MDPGraphics(QtWidgets.QDialog, FramelessWindow):
             setting.ui.antialias = self.ui.checkBoxAntialias.isChecked()
             setting.ui.opengl = self.ui.checkBoxOpenGL.isChecked()
             setting.ui.bitadjust = self.ui.comboInput.currentIndex() == 0
+            setting.ui.graph_trigger_device = (
+                self.ui.comboGraphTriggerDevice.currentData() or ""
+            )
+            setting.ui.graph_autostart = {0: "off", 1: "voltage", 2: "current"}[
+                self.ui.comboGraphAutostart.currentIndex()
+            ]
+            setting.ui.graph_autostart_threshold = self.ui.spinGraphAutostartThreshold.value()
+            setting.ui.graph_autostop = {0: "off", 1: "voltage", 2: "current"}[
+                self.ui.comboGraphAutostop.currentIndex()
+            ]
+            setting.ui.graph_autostop_threshold = self.ui.spinGraphAutostopThreshold.value()
             setting.save(SETTING_FILE)
         except Exception as e:
             logger.error(e)

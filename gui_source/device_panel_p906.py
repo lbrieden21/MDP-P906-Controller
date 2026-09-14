@@ -90,13 +90,14 @@ class P906DevicePanel(DevicePanelBase):
     api_class = MDP_P906
     record_channels = RECORD_CHANNELS
 
-    def __init__(self, parent=None, device_settings=None):
+    def __init__(self, capture, parent=None, device_settings=None):
         device_settings = device_settings or setting.devices[0]
         super().__init__(
             device_id=device_settings.id,
             display_name=device_settings.name,
             channels=CHANNELS,
             data_length=setting.ui.data_pts,
+            capture=capture,
             open_r=OPEN_R,
             parent=parent,
         )
@@ -118,7 +119,7 @@ class P906DevicePanel(DevicePanelBase):
         self._charge_acc = None
         self._charge_last_vi = None
         self._charge_start_t = 0.0
-        self._charge_enable_rel = math.inf
+        self._charge_enable_t = math.inf
         self.continuous_energy_counter = 0
         self.model = "Unknown"
         self.fps_counter = FPSCounter()
@@ -472,6 +473,7 @@ class P906DevicePanel(DevicePanelBase):
         self.model = "Unknown"
         self.ui.spinBoxCurrent.setRange(0, 10)
         self.linked = False
+        self.capture.forget(self.device_id)
         self.close_state_ui(record_disconnect=True)
         self.link_state_changed.emit()
 
@@ -1514,7 +1516,7 @@ class P906DevicePanel(DevicePanelBase):
         self._charge_controller = ChargeController(profile)
         self._charge_acc = CapacityAccumulator()
         self._charge_last_vi = None
-        self._charge_enable_rel = math.inf
+        self._charge_enable_t = math.inf
         self._charge_start_t = time.perf_counter()
         setpoint = self._charge_controller.start(self._charge_start_t)
         self.ui.scrollAreaCharge.setEnabled(False)
@@ -1527,7 +1529,7 @@ class P906DevicePanel(DevicePanelBase):
         self.i_set = setpoint.i_set
         self.wait_output_stable(self._start_charge_timer)
         # The output is commanded on by now; only samples from here on count.
-        self._charge_enable_rel = time.perf_counter() - self.store.start_time
+        self._charge_enable_t = time.perf_counter()
 
     def _start_charge_timer(self):
         if self._charge_active:
@@ -1536,7 +1538,7 @@ class P906DevicePanel(DevicePanelBase):
     def _on_raw_batch(self, raw_rtvalues, t1):
         if not self._charge_active or not raw_rtvalues:
             return
-        if t1 - self.store.start_time >= self._charge_enable_rel:
+        if t1 >= self._charge_enable_t:
             self._charge_acc.add_batch(raw_rtvalues, t1)
             self._charge_last_vi = raw_rtvalues[-1]
 

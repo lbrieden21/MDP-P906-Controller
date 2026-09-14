@@ -606,6 +606,264 @@
     </layout>
    </item>
    <item>
+    <widget class="QLabel" name="labelGraphTriggerDevice">
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>24</height>
+      </size>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>999</width>
+       <height>16777215</height>
+      </size>
+     </property>
+     <property name="font">
+      <font>
+       <family>Sarasa Fixed SC SemiBold</family>
+       <bold>true</bold>
+      </font>
+     </property>
+     <property name="text">
+      <string>触发设备</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+     <property name="margin">
+      <number>6</number>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayoutGraphTriggerDevice">
+     <property name="spacing">
+      <number>6</number>
+     </property>
+     <item>
+      <widget class="QComboBox" name="comboGraphTriggerDevice">
+       <property name="font">
+        <font>
+         <family>Sarasa Fixed SC SemiBold</family>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="layoutDirection">
+        <enum>Qt::LeftToRight</enum>
+       </property>
+       <property name="editable">
+        <bool>false</bool>
+       </property>
+       <property name="sizeAdjustPolicy">
+        <enum>QComboBox::AdjustToContentsOnFirstShow</enum>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QLabel" name="labelGraphAutostart">
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>24</height>
+      </size>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>999</width>
+       <height>16777215</height>
+      </size>
+     </property>
+     <property name="font">
+      <font>
+       <family>Sarasa Fixed SC SemiBold</family>
+       <bold>true</bold>
+      </font>
+     </property>
+     <property name="text">
+      <string>自动开始</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+     <property name="margin">
+      <number>6</number>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayoutGraphAutostart">
+     <property name="spacing">
+      <number>6</number>
+     </property>
+     <item>
+      <widget class="QComboBox" name="comboGraphAutostart">
+       <property name="font">
+        <font>
+         <family>Sarasa Fixed SC SemiBold</family>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="layoutDirection">
+        <enum>Qt::LeftToRight</enum>
+       </property>
+       <property name="editable">
+        <bool>false</bool>
+       </property>
+       <property name="sizeAdjustPolicy">
+        <enum>QComboBox::AdjustToContentsOnFirstShow</enum>
+       </property>
+       <item>
+        <property name="text">
+         <string>关闭</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>电压</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>电流</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+     <item>
+      <widget class="QDoubleSpinBox" name="spinGraphAutostartThreshold">
+       <property name="font">
+        <font>
+         <family>Sarasa Fixed SC SemiBold</family>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+       </property>
+       <property name="decimals">
+        <number>3</number>
+       </property>
+       <property name="minimum">
+        <double>0.000000000000000</double>
+       </property>
+       <property name="maximum">
+        <double>999.000000000000000</double>
+       </property>
+       <property name="value">
+        <double>1.000000000000000</double>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QLabel" name="labelGraphAutostop">
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>24</height>
+      </size>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>999</width>
+       <height>16777215</height>
+      </size>
+     </property>
+     <property name="font">
+      <font>
+       <family>Sarasa Fixed SC SemiBold</family>
+       <bold>true</bold>
+      </font>
+     </property>
+     <property name="text">
+      <string>自动停止</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+     <property name="margin">
+      <number>6</number>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayoutGraphAutostop">
+     <property name="spacing">
+      <number>6</number>
+     </property>
+     <item>
+      <widget class="QComboBox" name="comboGraphAutostop">
+       <property name="font">
+        <font>
+         <family>Sarasa Fixed SC SemiBold</family>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="layoutDirection">
+        <enum>Qt::LeftToRight</enum>
+       </property>
+       <property name="editable">
+        <bool>false</bool>
+       </property>
+       <property name="sizeAdjustPolicy">
+        <enum>QComboBox::AdjustToContentsOnFirstShow</enum>
+       </property>
+       <item>
+        <property name="text">
+         <string>关闭</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>电压</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>电流</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+     <item>
+      <widget class="QDoubleSpinBox" name="spinGraphAutostopThreshold">
+       <property name="font">
+        <font>
+         <family>Sarasa Fixed SC SemiBold</family>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+       </property>
+       <property name="decimals">
+        <number>3</number>
+       </property>
+       <property name="minimum">
+        <double>0.000000000000000</double>
+       </property>
+       <property name="maximum">
+        <double>999.000000000000000</double>
+       </property>
+       <property name="value">
+        <double>0.000000000000000</double>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="Line" name="lineGraphTriggers">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QLabel" name="labelNumba">
      <property name="minimumSize">
       <size>

@@ -679,6 +679,27 @@
               </spacer>
              </item>
              <item>
+              <widget class="QPushButton" name="btnGraphRun">
+               <property name="maximumSize">
+                <size>
+                 <width>60</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="font">
+                <font>
+                 <family>Sarasa Fixed SC SemiBold</family>
+                </font>
+               </property>
+               <property name="toolTip">
+                <string/>
+               </property>
+               <property name="text">
+                <string>开始</string>
+               </property>
+              </widget>
+             </item>
+             <item>
               <widget class="QPushButton" name="btnGraphRecord">
                <property name="maximumSize">
                 <size>

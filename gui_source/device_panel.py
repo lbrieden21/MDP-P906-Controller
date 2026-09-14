@@ -5,7 +5,7 @@ import numpy as np
 from PyQt5 import QtCore, QtWidgets
 
 from app_context import DEBUG, set_color
-from device_core import ChannelSpec, DeviceDataStore, RecordData
+from device_core import ChannelSpec, DeviceDataStore, GraphCapture, RecordData
 from settings_model import setting
 
 DEVICE_PANEL_TYPES = {}
@@ -63,6 +63,7 @@ class DevicePanelBase(QtWidgets.QWidget):
         display_name: str,
         channels: List[ChannelSpec],
         data_length: int,
+        capture: GraphCapture,
         open_r: float = OPEN_R,
         parent=None,
     ) -> None:
@@ -71,7 +72,8 @@ class DevicePanelBase(QtWidgets.QWidget):
         self.display_name = display_name
         self.channels = channels
         self.open_r = open_r
-        self.store = DeviceDataStore(channels, data_length, open_r=open_r)
+        self.capture = capture
+        self.store = DeviceDataStore(channels, data_length, capture, open_r=open_r)
         self.linked = False
         self.record_flag = False
         self.record_data = None
@@ -107,7 +109,7 @@ class DevicePanelBase(QtWidgets.QWidget):
     def on_btnLink_clicked(self):
         self.link_toggle_requested.emit()
 
-    def link(self, bus, pipe: int, fps: float, time_origin: float):
+    def link(self, bus, pipe: int, fps: float):
         if not self.settings.idcode:
             raise ValueError(
                 QtCore.QCoreApplication.translate(
@@ -135,7 +137,7 @@ class DevicePanelBase(QtWidgets.QWidget):
         self.api = api
         self.api.register_realtime_value_callback(self.state_callback)
         t = time.perf_counter()
-        self.store.start_time = time_origin
+        self.capture.forget(self.device_id)
         self.store.eng_start_time = t
         self.store.last_time = t
         self.store.energy = 0
@@ -207,6 +209,18 @@ class DevicePanelBase(QtWidgets.QWidget):
                         {"voltage": v, "current": i}, t - dt + (dt / len_) * (idx + 1)
                     )
         self._on_raw_batch(raw_rtvalues, t1)
+        if self.linked:
+            # Checked on the raw, pre-avgmode batch and before store.append()
+            # so a crossing here starts capture in time for this same batch
+            # to land in the graph. Guarded on self.linked so the synthetic
+            # (0, 0) sample close_state_ui(record_disconnect=True) injects
+            # after unlink() can't itself act as a trigger.
+            self.capture.check_start(
+                self.device_id,
+                [v for v, i in raw_rtvalues],
+                [i for v, i in raw_rtvalues],
+                t1,
+            )
         if len(rtvalues) == 9:
             if self.settings.avgmode == 1:
                 rtvalues = np.array(rtvalues)
@@ -229,6 +243,10 @@ class DevicePanelBase(QtWidgets.QWidget):
         }
         values.update(self._extra_channel_values(len_))
         eng = self.store.append(raw_rtvalues, values, len_, t1)
+        if self.linked:
+            # After store.append() so the crossing sample itself is already
+            # in the graph by the time capture stops.
+            self.capture.check_stop(self.device_id, voltages, currents)
         self._on_samples_appended(eng)
         self.fps_counter.tick()
 
