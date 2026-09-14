@@ -409,7 +409,7 @@ class P906DevicePanel(DevicePanelBase):
         stable = (
             self.output_state_str == "cc"
             or abs(
-                self.store.series["voltage"][self.store.update_count - 1] - self.v_set
+                self.store.last("voltage") - self.v_set
             )
             < 0.1
             or dt > 10
@@ -689,10 +689,10 @@ class P906DevicePanel(DevicePanelBase):
     def func_sweep(self):
         if self._sweep_response_type:
             self._sweep_response_data_x.append(
-                self.store.series[self._sweep_target][self.store.update_count - 1]
+                self.store.last(self._sweep_target)
             )
             self._sweep_response_data_y.append(
-                self.store.series[self._sweep_response_type][self.store.update_count - 1]
+                self.store.last(self._sweep_response_type)
             )
 
         if not self._sweep_flag:
@@ -867,7 +867,7 @@ class P906DevicePanel(DevicePanelBase):
             if not self._keep_power_pid.auto_mode:
                 self._keep_power_pid.set_auto_mode(True, last_output=self.v_set)
             voltage = self._keep_power_pid(
-                self.store.series["power"][self.store.update_count - 1]
+                self.store.last("power")
             )
         self.v_set = voltage
 
@@ -1023,7 +1023,7 @@ class P906DevicePanel(DevicePanelBase):
         self.v_set = (
             new_volt
             - self._bat_sim_internal_r
-            * self.store.series["current"][self.store.update_count - 1]
+            * self.store.last("current")
         ) * self._bat_sim_cells
         self.highlight_point_signal.emit(new_percent, new_volt)
         self.ui.labelBatSimTime.setText(

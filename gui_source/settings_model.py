@@ -136,7 +136,7 @@ class UiSettings:
     def __init__(self) -> None:
         self.theme = "dark"
         self.color_palette = json.loads(json.dumps(DEFAULT_COLOR_PALETTE))
-        self.data_pts = 100000
+        self.data_pts = 1000000
         self.display_pts = 600
         self.graph_max_fps = 50
         self.state_fps = 15

@@ -892,9 +892,9 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
         for panel in self.panels:
             out_path = self._device_path(path, panel)
             with panel.store.sync_lock:
-                times = panel.store.times[: panel.store.update_count]
+                times = panel.store.ordered(panel.store.times)
                 cols = [times] + [
-                    panel.store.series[ch.key][: panel.store.update_count]
+                    panel.store.ordered(panel.store.series[ch.key])
                     for ch in panel.channels
                 ]
                 header = "time/s," + ",".join(

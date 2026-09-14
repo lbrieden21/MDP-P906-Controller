@@ -30,6 +30,19 @@ def csv_unit(unit: str) -> str:
 
 
 class DeviceDataStore:
+    """Fixed-capacity per-channel sample history, used for the live graph.
+
+    The backing arrays are a true circular buffer: `head` is the next
+    physical write index and `update_count` is the number of valid samples
+    (capped at data_length). append()/mark_gap() only ever write the new
+    samples at `head` and advance it - no existing data is shifted, so their
+    cost is O(len_) regardless of data_length. The physical layout is
+    unrolled into oldest-to-newest order on read instead (see ordered()),
+    which is where the O(data_length) cost now lives - paid on the
+    frame-rate-bounded render/export path rather than the
+    sample-rate-bounded write path.
+    """
+
     def __init__(
         self, channels: List[ChannelSpec], data_length: int, open_r: float = 1e7
     ) -> None:
@@ -43,6 +56,7 @@ class DeviceDataStore:
         self.current_tmp: List[float] = []
         self.energy = 0.0
         self.update_count = 0
+        self.head = 0
         t = time.perf_counter()
         self.start_time = t
         self.eng_start_time = t
@@ -52,6 +66,42 @@ class DeviceDataStore:
             c.key: np.zeros(data_length, np.float64) for c in channels
         }
 
+    def _write(self, arr: np.ndarray, values) -> None:
+        """Write `values` into `arr` starting at `head`, wrapping around the
+        end of the buffer as needed. Does not advance `head` - callers write
+        every array for a batch at the same `head` before calling _advance()
+        once, so they all land at matching indices."""
+        n = len(values)
+        if n >= self.data_length:
+            arr[:] = values[-self.data_length :]
+            return
+        end = self.head + n
+        if end <= self.data_length:
+            arr[self.head : end] = values
+        else:
+            first = self.data_length - self.head
+            arr[self.head :] = values[:first]
+            arr[: end - self.data_length] = values[first:]
+
+    def _advance(self, n: int) -> None:
+        self.head = 0 if n >= self.data_length else (self.head + n) % self.data_length
+        self.update_count = min(self.update_count + n, self.data_length)
+
+    def ordered(self, arr: np.ndarray) -> np.ndarray:
+        """Return `arr`'s valid samples in oldest-to-newest order. Caller
+        must hold sync_lock. A view (no copy) while the buffer hasn't
+        wrapped yet; a copy once it has, since the data is then split across
+        the physical end of the array."""
+        n = self.update_count
+        if n < self.data_length:
+            return arr[:n]
+        return np.concatenate((arr[self.head :], arr[: self.head]))
+
+    def last(self, key: str) -> float:
+        """Most recently stored value for `key`. Undefined before the first
+        sample lands."""
+        return self.series[key][(self.head - 1) % self.data_length]
+
     def mark_gap(self) -> None:
         """Insert a broken-line marker at the current head, e.g. on unlink,
         so a later resume doesn't draw a straight line across the time
@@ -60,16 +110,10 @@ class DeviceDataStore:
         with self.sync_lock:
             if self.update_count == 0:
                 return
-            if self.update_count >= self.data_length:
-                self.times = np.roll(self.times, -1)
-                for k in self.channel_keys:
-                    self.series[k] = np.roll(self.series[k], -1)
-                self.update_count -= 1
-            idx = self.update_count
-            self.times[idx] = time.perf_counter() - self.start_time
+            self._write(self.times, [time.perf_counter() - self.start_time])
             for k in self.channel_keys:
-                self.series[k][idx] = np.nan
-            self.update_count += 1
+                self._write(self.series[k], [np.nan])
+            self._advance(1)
 
     def clear(self) -> None:
         with self.sync_lock:
@@ -78,6 +122,7 @@ class DeviceDataStore:
                 k: np.zeros(self.data_length, np.float64) for k in self.channel_keys
             }
             self.update_count = 0
+            self.head = 0
             t = time.perf_counter()
             self.start_time = t
             self.last_time = t
@@ -110,29 +155,27 @@ class DeviceDataStore:
                 if "energy" in self.channel_keys:
                     energy_samples = self.energy + np.cumsum(per_sample_eng)
                 self.energy += eng
-            if self.update_count + len_ > self.data_length:
-                offset = self.update_count + len_ - self.data_length
-                self.times = np.roll(self.times, -offset)
-                for k in self.channel_keys:
-                    self.series[k] = np.roll(self.series[k], -offset)
-                self.update_count -= offset
-            for idx in range(len_):
-                self.times[self.update_count + idx] = t - dt + (dt / len_) * (idx + 1)
+            times_batch = np.fromiter(
+                (t - dt + (dt / len_) * (idx + 1) for idx in range(len_)),
+                np.float64,
+                count=len_,
+            )
+            self._write(self.times, times_batch)
             for k in self.channel_keys:
                 # energy is derived from power+dt here rather than supplied by
                 # the caller, since it needs the running total (self.energy)
                 # this store already tracks for the LCD/eng_start_time reset.
                 values = energy_samples if k == "energy" else values_by_channel[k]
-                self.series[k][self.update_count : self.update_count + len_] = values
-            self.update_count += len_
+                self._write(self.series[k], values)
+            self._advance(len_)
             return eng
 
     def get_series(self, key: Optional[str], display_pts: int, r_offset: int = 0):
         if key is None or key not in self.series:
             return None, None, None, None, None, None, None
         spec = self._spec_by_key[key]
-        data = self.series[key][: self.update_count]
-        time_ = self.times[: self.update_count]
+        data = self.ordered(self.series[key])
+        time_ = self.ordered(self.times)
         if spec.hide_above is not None:
             indexs = np.where(data != spec.hide_above)[0]
             data = data[indexs]
