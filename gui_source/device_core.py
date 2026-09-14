@@ -115,7 +115,9 @@ class DeviceDataStore:
                 self._write(self.series[k], [np.nan])
             self._advance(1)
 
-    def clear(self) -> None:
+    def clear(self, start_time: float) -> None:
+        """Empty the buffer and rebase its time axis on `start_time`, which
+        callers share across every store so all curves stay aligned."""
         with self.sync_lock:
             self.times = np.zeros(self.data_length, np.float64)
             self.series = {
@@ -123,9 +125,8 @@ class DeviceDataStore:
             }
             self.update_count = 0
             self.head = 0
-            t = time.perf_counter()
-            self.start_time = t
-            self.last_time = t
+            self.start_time = start_time
+            self.last_time = time.perf_counter()
 
     def append(self, raw_samples, values_by_channel, len_: int, t1: float) -> float:
         """Store one batch of samples.
@@ -170,30 +171,37 @@ class DeviceDataStore:
             self._advance(len_)
             return eng
 
-    def get_series(self, key: Optional[str], display_pts: int, r_offset: int = 0):
-        if key is None or key not in self.series:
-            return None, None, None, None, None, None, None
-        spec = self._spec_by_key[key]
-        data = self.ordered(self.series[key])
-        time_ = self.ordered(self.times)
-        if spec.hide_above is not None:
-            indexs = np.where(data != spec.hide_above)[0]
-            data = data[indexs]
-            time_ = time_[indexs]
-        if data.size == 0:
-            return None, None, None, None, None, None, None
-        start_index = max(0, len(data) - display_pts - r_offset)
-        to_index = len(data) - r_offset
-        eval_data = data[start_index:to_index]
+    def window(self, t_lo: float, t_hi: float) -> tuple[int, int]:
+        """(start, stop) indices into the ordered() samples whose times fall
+        in [t_lo, t_hi]. Caller must hold sync_lock. Relies on sample times
+        being non-decreasing between clears."""
+        times = self.ordered(self.times)
         return (
-            data,
-            time_,
-            start_index,
-            to_index,
-            np.nanmax(eval_data),
-            np.nanmin(eval_data),
-            np.nanmean(eval_data),
+            int(np.searchsorted(times, t_lo, side="left")),
+            int(np.searchsorted(times, t_hi, side="right")),
         )
+
+    def get_series(
+        self, key: Optional[str], start: int, stop: int, x_key: Optional[str] = None
+    ):
+        """(xs, ys, max, min, mean) for `key` over ordered samples
+        [start, stop), plotted against time or, given x_key, against that
+        series. Samples equal to the channel's hide_above sentinel are
+        dropped from both axes. Caller must hold sync_lock."""
+        if key is None or key not in self.series:
+            return None, None, None, None, None
+        if x_key is not None and x_key not in self.series:
+            return None, None, None, None, None
+        spec = self._spec_by_key[key]
+        data = self.ordered(self.series[key])[start:stop]
+        xs = self.ordered(self.times if x_key is None else self.series[x_key])[start:stop]
+        if spec.hide_above is not None:
+            keep = data != spec.hide_above
+            data = data[keep]
+            xs = xs[keep]
+        if data.size == 0:
+            return None, None, None, None, None
+        return xs, data, np.nanmax(data), np.nanmin(data), np.nanmean(data)
 
 
 class RecordData:

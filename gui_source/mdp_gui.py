@@ -572,44 +572,20 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
         block.plot_widget.setLabel("left", response_spec.label, units=response_spec.unit)
         block.plot_widget.setLabel("bottom", self.tr("目标"), units=target_unit)
 
-    def _series_for_block(self, block, panel, display_pts, r_offset):
+    def _series_for_block(self, block, panel, t_lo, t_hi):
         """(xs, ys, mx, mn, avg) for one panel's curve in this block, over
-        the exact same scrolling window (display_pts/r_offset, computed once
-        per tick above) every other block uses -- must be called with
-        panel.store.sync_lock held. "discharge" and "sweep" are the two
-        exceptions to a single store.get_series() call: each pairs two
-        existing series from that same window (voltage against accumulated
-        ah; sweep_target against whichever response channel that panel's
-        sweep was run with) instead of one series against time. Still just a
-        lookup against the same window everyone else uses, not separate
-        windowing logic."""
+        the time span [t_lo, t_hi] (computed once per tick above) every
+        panel and block shares -- must be called with panel.store.sync_lock
+        held. "discharge" and "sweep" plot one series against another
+        (voltage against accumulated ah; the sweep response channel against
+        sweep_target) instead of against time."""
+        start, stop = panel.store.window(t_lo, t_hi)
         if block.channel_key == "discharge":
-            ah, _, start_index, to_index, _, _, _ = panel.store.get_series(
-                "ah", display_pts, r_offset
-            )
-            voltage, _, _, _, mx, mn, avg = panel.store.get_series(
-                "voltage", display_pts, r_offset
-            )
-            if ah is None or voltage is None or ah.size == 0:
-                return None, None, None, None, None
-            return ah[start_index:to_index], voltage[start_index:to_index], mx, mn, avg
+            return panel.store.get_series("voltage", start, stop, x_key="ah")
         if block.channel_key == "sweep":
             response_key = getattr(panel, "_sweep_response_key", "voltage")
-            target, _, start_index, to_index, _, _, _ = panel.store.get_series(
-                "sweep_target", display_pts, r_offset
-            )
-            response, _, _, _, mx, mn, avg = panel.store.get_series(
-                response_key, display_pts, r_offset
-            )
-            if target is None or response is None or target.size == 0:
-                return None, None, None, None, None
-            return target[start_index:to_index], response[start_index:to_index], mx, mn, avg
-        data, time_, start_index, to_index, mx, mn, avg = panel.store.get_series(
-            block.channel_key, display_pts, r_offset
-        )
-        if data is None or data.size == 0:
-            return None, None, None, None, None
-        return time_[start_index:to_index], data[start_index:to_index], mx, mn, avg
+            return panel.store.get_series(response_key, start, stop, x_key="sweep_target")
+        return panel.store.get_series(block.channel_key, start, stop)
 
     _left_last = -1
 
@@ -661,9 +637,8 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
         # A panel that's never been linked still logs one throwaway
         # calibration sample at construction (close_state_ui()), so its
         # buffer sits frozen at update_count=1 forever. Picking it as
-        # sync_panel would pin display_pts to 1 for every panel's
-        # get_series() call below, collapsing everyone's window down to
-        # just their single latest sample. Prefer an actually-linked panel
+        # sync_panel would collapse the shared time span below down to that
+        # single stale sample. Prefer an actually-linked panel
         # as the reference; only fall back to an unlinked one (e.g. to keep
         # reviewing a just-disconnected device's history) if nothing is
         # currently linked.
@@ -708,6 +683,14 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
                 self.ui.horizontalSlider.setRange(0, 10)
             if syncing:
                 self.ui.horizontalSlider.setValue((left, update_count))
+            # The slider indexes sync_panel's samples; that index window is
+            # turned into a time span so every panel is drawn over the same
+            # stretch of time, whatever amount of history each one holds.
+            sync_times = sync_panel.store.ordered(sync_panel.store.times)
+            start_index = max(0, update_count - display_pts - r_offset)
+            to_index = update_count - r_offset
+            t_lo = -np.inf if start_index == 0 else sync_times[start_index]
+            t_hi = np.inf if r_offset == 0 or to_index <= 0 else sync_times[to_index - 1]
 
         self.ui.labelBufferSize.setText(
             f"{update_count/sync_panel.store.data_length*100:.1f}%"
@@ -745,7 +728,7 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
                     continue
                 with panel.store.sync_lock:
                     xs, ys, mx, mn, avg = self._series_for_block(
-                        block, panel, display_pts, r_offset
+                        block, panel, t_lo, t_hi
                     )
                 if xs is None or xs.size == 0:
                     curve.setData(x=[], y=[])
@@ -788,8 +771,9 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
             self.tr("确定要清空数据缓冲区吗？"),
         ):
             return
+        time_origin = self.connection.reset_time_origin()
         for panel in self.panels:
-            panel.store.clear()
+            panel.store.clear(time_origin)
             panel.clear_aux_data()
         for block in self.graph_blocks.values():
             block.clear()

@@ -107,7 +107,7 @@ class DevicePanelBase(QtWidgets.QWidget):
     def on_btnLink_clicked(self):
         self.link_toggle_requested.emit()
 
-    def link(self, bus, pipe: int = 0, fps: float = 50, session_start_time=None):
+    def link(self, bus, pipe: int, fps: float, time_origin: float):
         if not self.settings.idcode:
             raise ValueError(
                 QtCore.QCoreApplication.translate(
@@ -135,7 +135,7 @@ class DevicePanelBase(QtWidgets.QWidget):
         self.api = api
         self.api.register_realtime_value_callback(self.state_callback)
         t = time.perf_counter()
-        self.store.start_time = t if session_start_time is None else session_start_time
+        self.store.start_time = time_origin
         self.store.eng_start_time = t
         self.store.last_time = t
         self.store.energy = 0
