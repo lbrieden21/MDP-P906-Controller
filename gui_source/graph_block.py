@@ -48,6 +48,7 @@ class GraphBlock(QtWidgets.QWidget):
         self.chips: Dict[str, DeviceChip] = {}
         self.curves: Dict[str, pg.PlotDataItem] = {}
         self.pens: Dict[str, object] = {}
+        self._chips_visible = True
 
         layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -90,6 +91,7 @@ class GraphBlock(QtWidgets.QWidget):
             if panel.device_id not in self.chips:
                 chip = DeviceChip(panel)
                 self.chips_layout.addWidget(chip)
+                chip.setVisible(self._chips_visible)
                 self.chips[panel.device_id] = chip
                 pen = pg.mkPen(color=f"#{panel.settings.color.lstrip('#')}", width=1)
                 self.pens[panel.device_id] = pen
@@ -103,6 +105,14 @@ class GraphBlock(QtWidgets.QWidget):
                 chip.deleteLater()
                 self.plot_widget.removeItem(self.curves.pop(device_id))
                 self.pens.pop(device_id, None)
+
+    def set_chips_visible(self, visible: bool) -> None:
+        """Show or hide the device chips. Hidden chips keep their checked
+        state, so checked_panels() still reports every panel whose chip was
+        left checked."""
+        self._chips_visible = visible
+        for chip in self.chips.values():
+            chip.setVisible(visible)
 
     def refresh_device_color(self, panel) -> None:
         """Re-apply panel.settings.color to this device's chip and curve

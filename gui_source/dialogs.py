@@ -301,6 +301,7 @@ class MDPGraphics(QtWidgets.QDialog, FramelessWindow):
     set_interp_sig = QtCore.pyqtSignal(int)
     theme_requested = QtCore.pyqtSignal(str)
     device_layout_requested = QtCore.pyqtSignal(str)
+    graph_layout_requested = QtCore.pyqtSignal(str)
     graph_triggers_sig = QtCore.pyqtSignal()
 
     def __init__(self, parent=None):
@@ -361,21 +362,54 @@ class MDPGraphics(QtWidgets.QDialog, FramelessWindow):
         self.ui.comboDeviceLayout.setCurrentIndex(
             1 if setting.ui.device_layout == "single" else 0
         )
+        # Blocked: a changed graph layout rebuilds the graph views and clears
+        # their data, which only an actual user choice should do.
+        with signals_blocked(self.ui.comboGraphLayout):
+            self.ui.comboGraphLayout.setCurrentIndex(
+                1 if setting.ui.graph_layout == "separate" else 0
+            )
+        self._update_graph_trigger_label()
         with signals_blocked(self.ui.comboGraphTriggerDevice):
             self.ui.comboGraphTriggerDevice.clear()
             for dev in setting.devices:
                 self.ui.comboGraphTriggerDevice.addItem(dev.name, dev.id)
             idx = self.ui.comboGraphTriggerDevice.findData(setting.ui.graph_trigger_device)
             self.ui.comboGraphTriggerDevice.setCurrentIndex(max(0, idx))
-        self.ui.comboGraphAutostart.setCurrentIndex(
-            {"off": 0, "voltage": 1, "current": 2}.get(setting.ui.graph_autostart, 0)
+        self._load_graph_triggers()
+
+    def _trigger_device_settings(self):
+        """DeviceSettings of the device picked in comboGraphTriggerDevice,
+        whose triggers the trigger controls show and edit."""
+        device_id = self.ui.comboGraphTriggerDevice.currentData()
+        return next((d for d in setting.devices if d.id == device_id), setting.devices[0])
+
+    def _load_graph_triggers(self):
+        dev = self._trigger_device_settings()
+        controls = (
+            self.ui.comboGraphAutostart,
+            self.ui.spinGraphAutostartThreshold,
+            self.ui.comboGraphAutostop,
+            self.ui.spinGraphAutostopThreshold,
         )
-        self.ui.spinGraphAutostartThreshold.setValue(setting.ui.graph_autostart_threshold)
-        self.ui.comboGraphAutostop.setCurrentIndex(
-            {"off": 0, "voltage": 1, "current": 2}.get(setting.ui.graph_autostop, 0)
-        )
-        self.ui.spinGraphAutostopThreshold.setValue(setting.ui.graph_autostop_threshold)
+        with signals_blocked(*controls):
+            self.ui.comboGraphAutostart.setCurrentIndex(
+                {"off": 0, "voltage": 1, "current": 2}.get(dev.graph_autostart, 0)
+            )
+            self.ui.spinGraphAutostartThreshold.setValue(dev.graph_autostart_threshold)
+            self.ui.comboGraphAutostop.setCurrentIndex(
+                {"off": 0, "voltage": 1, "current": 2}.get(dev.graph_autostop, 0)
+            )
+            self.ui.spinGraphAutostopThreshold.setValue(dev.graph_autostop_threshold)
         self._update_graph_trigger_enabled()
+
+    def _update_graph_trigger_label(self):
+        """In the shared graph layout the picked device's triggers drive the
+        one graph; per device it only selects which device's triggers are
+        being edited."""
+        if setting.ui.graph_layout == "separate":
+            self.ui.labelGraphTriggerDevice.setText(self.tr("触发设置设备"))
+        else:
+            self.ui.labelGraphTriggerDevice.setText(self.tr("触发设备"))
 
     def _update_graph_trigger_enabled(self):
         start_mode = self.ui.comboGraphAutostart.currentIndex()
@@ -403,6 +437,11 @@ class MDPGraphics(QtWidgets.QDialog, FramelessWindow):
     @QtCore.pyqtSlot(int)
     def on_comboDeviceLayout_currentIndexChanged(self, index):
         self.device_layout_requested.emit("single" if index == 1 else "stacked")
+
+    @QtCore.pyqtSlot(int)
+    def on_comboGraphLayout_currentIndexChanged(self, index):
+        self.graph_layout_requested.emit("separate" if index == 1 else "shared")
+        self._update_graph_trigger_label()
 
     @QtCore.pyqtSlot(int)
     def on_checkBoxAntialias_stateChanged(self, state: int):
@@ -492,29 +531,31 @@ class MDPGraphics(QtWidgets.QDialog, FramelessWindow):
 
     @QtCore.pyqtSlot(int)
     def on_comboGraphTriggerDevice_currentIndexChanged(self, index):
-        setting.ui.graph_trigger_device = self.ui.comboGraphTriggerDevice.itemData(index) or ""
-        self.graph_triggers_sig.emit()
+        self._load_graph_triggers()
+        if setting.ui.graph_layout == "shared":
+            setting.ui.graph_trigger_device = self.ui.comboGraphTriggerDevice.itemData(index) or ""
+            self.graph_triggers_sig.emit()
 
     @QtCore.pyqtSlot(int)
     def on_comboGraphAutostart_currentIndexChanged(self, index):
-        setting.ui.graph_autostart = {0: "off", 1: "voltage", 2: "current"}[index]
+        self._trigger_device_settings().graph_autostart = {0: "off", 1: "voltage", 2: "current"}[index]
         self._update_graph_trigger_enabled()
         self.graph_triggers_sig.emit()
 
     @QtCore.pyqtSlot(float)
     def on_spinGraphAutostartThreshold_valueChanged(self, _=None):
-        setting.ui.graph_autostart_threshold = self.ui.spinGraphAutostartThreshold.value()
+        self._trigger_device_settings().graph_autostart_threshold = self.ui.spinGraphAutostartThreshold.value()
         self.graph_triggers_sig.emit()
 
     @QtCore.pyqtSlot(int)
     def on_comboGraphAutostop_currentIndexChanged(self, index):
-        setting.ui.graph_autostop = {0: "off", 1: "voltage", 2: "current"}[index]
+        self._trigger_device_settings().graph_autostop = {0: "off", 1: "voltage", 2: "current"}[index]
         self._update_graph_trigger_enabled()
         self.graph_triggers_sig.emit()
 
     @QtCore.pyqtSlot(float)
     def on_spinGraphAutostopThreshold_valueChanged(self, _=None):
-        setting.ui.graph_autostop_threshold = self.ui.spinGraphAutostopThreshold.value()
+        self._trigger_device_settings().graph_autostop_threshold = self.ui.spinGraphAutostopThreshold.value()
         self.graph_triggers_sig.emit()
 
     @QtCore.pyqtSlot()
@@ -540,17 +581,19 @@ class MDPGraphics(QtWidgets.QDialog, FramelessWindow):
             setting.ui.antialias = self.ui.checkBoxAntialias.isChecked()
             setting.ui.opengl = self.ui.checkBoxOpenGL.isChecked()
             setting.ui.bitadjust = self.ui.comboInput.currentIndex() == 0
-            setting.ui.graph_trigger_device = (
-                self.ui.comboGraphTriggerDevice.currentData() or ""
-            )
-            setting.ui.graph_autostart = {0: "off", 1: "voltage", 2: "current"}[
+            if setting.ui.graph_layout == "shared":
+                setting.ui.graph_trigger_device = (
+                    self.ui.comboGraphTriggerDevice.currentData() or ""
+                )
+            trigger_dev = self._trigger_device_settings()
+            trigger_dev.graph_autostart = {0: "off", 1: "voltage", 2: "current"}[
                 self.ui.comboGraphAutostart.currentIndex()
             ]
-            setting.ui.graph_autostart_threshold = self.ui.spinGraphAutostartThreshold.value()
-            setting.ui.graph_autostop = {0: "off", 1: "voltage", 2: "current"}[
+            trigger_dev.graph_autostart_threshold = self.ui.spinGraphAutostartThreshold.value()
+            trigger_dev.graph_autostop = {0: "off", 1: "voltage", 2: "current"}[
                 self.ui.comboGraphAutostop.currentIndex()
             ]
-            setting.ui.graph_autostop_threshold = self.ui.spinGraphAutostopThreshold.value()
+            trigger_dev.graph_autostop_threshold = self.ui.spinGraphAutostopThreshold.value()
             setting.save(SETTING_FILE)
         except Exception as e:
             logger.error(e)

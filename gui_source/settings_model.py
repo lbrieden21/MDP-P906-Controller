@@ -115,6 +115,13 @@ class DeviceSettings:
         self.l1060_mode = "CC"
         self.l1060_targets = {"CC": 1.0, "CV": 5.0, "CR": 100.0, "CP": 10.0}
         self.l1060_presets = dict(DEFAULT_L1060_PRESETS)
+        # Graph capture triggers watching this device. Mode is "off"/
+        # "voltage"/"current"; auto-start fires on a rising crossing of its
+        # threshold, auto-stop on a falling crossing of its own.
+        self.graph_autostart = "off"
+        self.graph_autostart_threshold = 1.0
+        self.graph_autostop = "off"
+        self.graph_autostop_threshold = 0.0
 
 
 class AdapterSettings:
@@ -147,15 +154,13 @@ class UiSettings:
         # "stacked" (every device panel in the left column) or "single"
         # (one panel at a time, picked from a device button row).
         self.device_layout = "stacked"
-        # Graph capture triggers (device the id) -- both watch this one
-        # device; "" means "the first device". Mode is "off"/"voltage"/
-        # "current"; auto-start fires on a rising crossing of its
-        # threshold, auto-stop on a falling crossing of its own.
+        # "shared" (one graph section for every device) or "separate" (one
+        # graph section per device, each with its own capture).
+        self.graph_layout = "shared"
+        # Device id whose triggers drive the shared graph section; "" means
+        # "the first device". Unused in the "separate" graph layout, where
+        # each section uses its own device's triggers.
         self.graph_trigger_device = ""
-        self.graph_autostart = "off"
-        self.graph_autostart_threshold = 1.0
-        self.graph_autostop = "off"
-        self.graph_autostop_threshold = 0.0
 
 
 class Setting:

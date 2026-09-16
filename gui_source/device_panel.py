@@ -78,6 +78,15 @@ class DevicePanelBase(QtWidgets.QWidget):
         self.record_flag = False
         self.record_data = None
 
+    def set_capture(self, capture: GraphCapture) -> None:
+        """Bind this panel and its store to a different GraphCapture. The
+        store's swap is taken under sync_lock because append() reads
+        capture.running and capture.origin together under that lock on the
+        worker thread."""
+        self.capture = capture
+        with self.store.sync_lock:
+            self.store.capture = capture
+
     ##########  Tab navigation  ##########
 
     @QtCore.pyqtSlot(int)

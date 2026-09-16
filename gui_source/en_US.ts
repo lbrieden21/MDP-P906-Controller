@@ -35,17 +35,17 @@
 <context>
     <name>DevicePanelBase</name>
     <message>
-        <location filename="device_panel.py" line="114"/>
+        <location filename="device_panel.py" line="123"/>
         <source>IDCODE为空, 请先完成连接设置</source>
         <translation type="unfinished">IDCODE is empty, please complete the connection settings first</translation>
     </message>
     <message>
-        <location filename="device_panel.py" line="352"/>
+        <location filename="device_panel.py" line="361"/>
         <source>已连接</source>
         <translation type="unfinished">Connected</translation>
     </message>
     <message>
-        <location filename="device_panel.py" line="360"/>
+        <location filename="device_panel.py" line="369"/>
         <source>未连接</source>
         <translation type="unfinished">Disconnected</translation>
     </message>
@@ -1037,234 +1037,249 @@
 <context>
     <name>DialogGraphics</name>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="664"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="690"/>
         <source>图形设置</source>
         <translation type="unfinished">Graphic Settings</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="703"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="732"/>
         <source>一位插值</source>
         <translation type="unfinished">1Bit</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="704"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="733"/>
         <source>二位插值</source>
         <translation type="unfinished">2Bit</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="705"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="734"/>
         <source>三位插值</source>
         <translation type="unfinished">3Bit</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="679"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="708"/>
         <source>不进行平滑</source>
         <translation type="unfinished">No</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="680"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="709"/>
         <source>三值平均</source>
         <translation type="unfinished">3-Values Avg</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="681"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="710"/>
         <source>九值平均</source>
         <translation type="unfinished">9-Values Avg</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="702"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="731"/>
         <source>不进行插值</source>
         <translation type="unfinished">No</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="706"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="735"/>
         <source>置零阈值</source>
         <translation type="unfinished">Zero Threshold</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="719"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="748"/>
         <source>确定 / OK</source>
         <translation type="unfinished">OK</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="696"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="725"/>
         <source>OpenGL加速</source>
         <translation type="unfinished">OpenGL</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="697"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="726"/>
         <source>曲线抗锯齿</source>
         <translation type="unfinished">Antialias</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="695"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="724"/>
         <source>Numba 加速已启用</source>
         <translation type="unfinished">Numba acceleration enabled</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="666"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="692"/>
         <source>界面主题</source>
         <translation type="unfinished">UI Theme</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="667"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="693"/>
         <source>输入方式</source>
         <translation type="unfinished">Num Adjust</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="669"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="695"/>
         <source>暗黑风格</source>
         <translation type="unfinished">Dark</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="670"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="696"/>
         <source>明亮风格</source>
         <translation type="unfinished">Light</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="671"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="697"/>
         <source>按位更改</source>
         <translation type="unfinished">Position</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="672"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="698"/>
         <source>自由更改</source>
         <translation type="unfinished">Free</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="709"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="738"/>
         <source>手动校准 (读/写)</source>
         <translation type="unfinished">Manual Calibration (R/W)</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="710"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="739"/>
         <source>应用校准参数 (y=kx+b)</source>
         <translation type="unfinished">Apply Cali Params (y=kx+b)</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="665"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="691"/>
         <source>UI 设置</source>
         <translation type="unfinished">UI Settings</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="675"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="704"/>
         <source>图表设置</source>
         <translation type="unfinished">Graph Settings</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="699"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="728"/>
         <source>最大刷新率</source>
         <translation type="unfinished">Max FPS</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="677"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="706"/>
         <source>平滑方式</source>
         <translation type="unfinished">Smoothing</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="682"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="711"/>
         <source>记录点数</source>
         <translation type="unfinished">Graph Buffer</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="698"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="727"/>
         <source>状态区设置</source>
         <translation type="unfinished">State Display Settings</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="700"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="729"/>
         <source>插值方式</source>
         <translation type="unfinished">Interpolation</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="683"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="712"/>
         <source>最小显示点数</source>
         <translation type="unfinished">Minimal Range</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="701"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="730"/>
         <source>fps</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="685"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="714"/>
         <source>pts</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="707"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="736"/>
         <source>V</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="708"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="737"/>
         <source>A</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="715"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="744"/>
         <source>Vk=</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="716"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="745"/>
         <source>Vb=</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="717"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="746"/>
         <source>Ik=</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="718"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="747"/>
         <source>Ib=</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="668"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="694"/>
         <source>设备布局</source>
         <translation type="unfinished">Device Layout</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="673"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="699"/>
         <source>全部显示</source>
         <translation type="unfinished">Show All</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="674"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="700"/>
         <source>单个显示</source>
         <translation type="unfinished">Single Device</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="686"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="715"/>
         <source>触发设备</source>
         <translation type="unfinished">Trigger device</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="687"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="716"/>
         <source>自动开始</source>
         <translation type="unfinished">Auto-start</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="692"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="721"/>
         <source>关闭</source>
         <translation type="unfinished">Off</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="693"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="722"/>
         <source>电压</source>
         <translation type="unfinished">Voltage</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="694"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="723"/>
         <source>电流</source>
         <translation type="unfinished">Current</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/graphics_ui.py" line="691"/>
+        <location filename="mdp_gui_template/graphics_ui.py" line="720"/>
         <source>自动停止</source>
         <translation type="unfinished">Auto-stop</translation>
+    </message>
+    <message>
+        <location filename="mdp_gui_template/graphics_ui.py" line="701"/>
+        <source>图形布局</source>
+        <translation type="unfinished">Graph Layout</translation>
+    </message>
+    <message>
+        <location filename="mdp_gui_template/graphics_ui.py" line="702"/>
+        <source>共享</source>
+        <translation type="unfinished">Shared</translation>
+    </message>
+    <message>
+        <location filename="mdp_gui_template/graphics_ui.py" line="703"/>
+        <source>每设备独立</source>
+        <translation type="unfinished">Per Device</translation>
     </message>
 </context>
 <context>
@@ -1536,6 +1551,209 @@
     </message>
 </context>
 <context>
+    <name>GraphView</name>
+    <message>
+        <location filename="graph_view.py" line="279"/>
+        <source>目标</source>
+        <translation type="unfinished">Target</translation>
+    </message>
+    <message>
+        <location filename="graph_view.py" line="404"/>
+        <source>数据缓冲区占用率</source>
+        <translation type="unfinished">Data buffer used</translation>
+    </message>
+    <message>
+        <location filename="graph_view.py" line="484"/>
+        <source>警告</source>
+        <translation type="unfinished">Warning</translation>
+    </message>
+    <message>
+        <location filename="graph_view.py" line="484"/>
+        <source>确定要清空数据缓冲区吗？</source>
+        <translation type="unfinished">Sure you want to empty the data buffer?</translation>
+    </message>
+    <message>
+        <location filename="graph_view.py" line="516"/>
+        <source>停止</source>
+        <translation type="unfinished">Stop</translation>
+    </message>
+    <message>
+        <location filename="graph_view.py" line="518"/>
+        <source>时自动停止</source>
+        <translation type="unfinished">auto-stops</translation>
+    </message>
+    <message>
+        <location filename="graph_view.py" line="523"/>
+        <source>待触发</source>
+        <translation type="unfinished">Armed</translation>
+    </message>
+    <message>
+        <location filename="graph_view.py" line="525"/>
+        <source>时自动开始</source>
+        <translation type="unfinished">auto-starts</translation>
+    </message>
+    <message>
+        <location filename="mdp_gui_template/graph_view_ui.py" line="238"/>
+        <source>开始</source>
+        <translation type="unfinished">Start</translation>
+    </message>
+    <message>
+        <location filename="mdp_gui_template/graph_view_ui.py" line="219"/>
+        <source>电压</source>
+        <translation type="unfinished">Voltage</translation>
+    </message>
+    <message>
+        <location filename="mdp_gui_template/graph_view_ui.py" line="221"/>
+        <source>电流</source>
+        <translation type="unfinished">Current</translation>
+    </message>
+    <message>
+        <location filename="graph_view.py" line="552"/>
+        <source>解除</source>
+        <translation type="unfinished">REL</translation>
+    </message>
+    <message>
+        <location filename="mdp_gui_template/graph_view_ui.py" line="242"/>
+        <source>保持</source>
+        <translation type="unfinished">HOLD</translation>
+    </message>
+    <message>
+        <location filename="mdp_gui_template/graph_view_ui.py" line="240"/>
+        <source>适应</source>
+        <translation type="unfinished">AUTO</translation>
+    </message>
+    <message>
+        <location filename="graph_view.py" line="566"/>
+        <source>手动</source>
+        <translation type="unfinished">MANUAL</translation>
+    </message>
+    <message>
+        <location filename="mdp_gui_template/graph_view_ui.py" line="218"/>
+        <source>显示/隐藏电压波形图</source>
+        <translation type="unfinished">Show/hide the voltage graph</translation>
+    </message>
+    <message>
+        <location filename="mdp_gui_template/graph_view_ui.py" line="220"/>
+        <source>显示/隐藏电流波形图</source>
+        <translation type="unfinished">Show/hide the current graph</translation>
+    </message>
+    <message>
+        <location filename="mdp_gui_template/graph_view_ui.py" line="222"/>
+        <source>显示/隐藏阻值波形图</source>
+        <translation type="unfinished">Show/hide the resistance graph</translation>
+    </message>
+    <message>
+        <location filename="mdp_gui_template/graph_view_ui.py" line="223"/>
+        <source>阻值</source>
+        <translation type="unfinished">Resistence</translation>
+    </message>
+    <message>
+        <location filename="mdp_gui_template/graph_view_ui.py" line="224"/>
+        <source>显示/隐藏功率波形图</source>
+        <translation type="unfinished">Show/hide the power graph</translation>
+    </message>
+    <message>
+        <location filename="mdp_gui_template/graph_view_ui.py" line="225"/>
+        <source>功率</source>
+        <translation type="unfinished">Power</translation>
+    </message>
+    <message>
+        <location filename="mdp_gui_template/graph_view_ui.py" line="226"/>
+        <source>显示/隐藏能量波形图</source>
+        <translation type="unfinished">Show/hide the energy graph</translation>
+    </message>
+    <message>
+        <location filename="mdp_gui_template/graph_view_ui.py" line="227"/>
+        <source>能量</source>
+        <translation type="unfinished">Energy</translation>
+    </message>
+    <message>
+        <location filename="mdp_gui_template/graph_view_ui.py" line="228"/>
+        <source>显示/隐藏温度波形图</source>
+        <translation type="unfinished">Show/hide the temperature graph</translation>
+    </message>
+    <message>
+        <location filename="mdp_gui_template/graph_view_ui.py" line="229"/>
+        <source>温度</source>
+        <translation type="unfinished">Temp</translation>
+    </message>
+    <message>
+        <location filename="mdp_gui_template/graph_view_ui.py" line="230"/>
+        <source>显示/隐藏放电安时曲线</source>
+        <translation type="unfinished">Show/hide the discharge Ah graph</translation>
+    </message>
+    <message>
+        <location filename="mdp_gui_template/graph_view_ui.py" line="231"/>
+        <source>安时</source>
+        <translation type="unfinished">Ah</translation>
+    </message>
+    <message>
+        <location filename="mdp_gui_template/graph_view_ui.py" line="232"/>
+        <source>显示/隐藏放电瓦时曲线</source>
+        <translation type="unfinished">Show/hide the discharge Wh graph</translation>
+    </message>
+    <message>
+        <location filename="mdp_gui_template/graph_view_ui.py" line="233"/>
+        <source>瓦时</source>
+        <translation type="unfinished">Wh</translation>
+    </message>
+    <message>
+        <location filename="mdp_gui_template/graph_view_ui.py" line="234"/>
+        <source>显示/隐藏放电曲线(电压-安时)</source>
+        <translation type="unfinished">Show/hide the discharge curve (voltage vs. Ah)</translation>
+    </message>
+    <message>
+        <location filename="mdp_gui_template/graph_view_ui.py" line="235"/>
+        <source>放电曲线</source>
+        <translation type="unfinished">DisChr Curve</translation>
+    </message>
+    <message>
+        <location filename="mdp_gui_template/graph_view_ui.py" line="236"/>
+        <source>显示/隐藏扫描曲线(响应-目标)</source>
+        <translation type="unfinished">Show/hide the sweep curve (response vs. target)</translation>
+    </message>
+    <message>
+        <location filename="mdp_gui_template/graph_view_ui.py" line="237"/>
+        <source>扫描曲线</source>
+        <translation type="unfinished">Sweep Curve</translation>
+    </message>
+    <message>
+        <location filename="mdp_gui_template/graph_view_ui.py" line="239"/>
+        <source>切换数据波形是否自动适应窗口</source>
+        <translation type="unfinished">Toggle waveform automatical adaption to window</translation>
+    </message>
+    <message>
+        <location filename="mdp_gui_template/graph_view_ui.py" line="241"/>
+        <source>停止数据波形刷新（数据缓冲区仍在更新）</source>
+        <translation type="unfinished">Stop refreshing the data waveform (the data buffer continues to update)</translation>
+    </message>
+    <message>
+        <location filename="mdp_gui_template/graph_view_ui.py" line="243"/>
+        <source>清空波形数据缓冲区</source>
+        <translation type="unfinished">Clear the waveform data buffer</translation>
+    </message>
+    <message>
+        <location filename="mdp_gui_template/graph_view_ui.py" line="244"/>
+        <source>清空</source>
+        <translation type="unfinished">CLEAR</translation>
+    </message>
+    <message>
+        <location filename="mdp_gui_template/graph_view_ui.py" line="245"/>
+        <source>0.0%</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="mdp_gui_template/graph_view_ui.py" line="246"/>
+        <source>显示范围</source>
+        <translation type="unfinished">Display range / pts</translation>
+    </message>
+    <message>
+        <location filename="mdp_gui_template/graph_view_ui.py" line="247"/>
+        <source>0</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>L1060DevicePanel</name>
     <message>
         <location filename="device_panel_l1060.py" line="1126"/>
@@ -1771,9 +1989,19 @@
 <context>
     <name>MDPGraphics</name>
     <message>
-        <location filename="dialogs.py" line="310"/>
+        <location filename="dialogs.py" line="311"/>
         <source>图形设置</source>
         <translation type="unfinished">Graphics Settings</translation>
+    </message>
+    <message>
+        <location filename="dialogs.py" line="410"/>
+        <source>触发设置设备</source>
+        <translation type="unfinished">Trigger settings for</translation>
+    </message>
+    <message>
+        <location filename="dialogs.py" line="412"/>
+        <source>触发设备</source>
+        <translation type="unfinished">Trigger device</translation>
     </message>
 </context>
 <context>
@@ -1791,7 +2019,7 @@
     <message>
         <location filename="mdp_gui.py" line="785"/>
         <source>警告</source>
-        <translation type="unfinished">Warning</translation>
+        <translation type="obsolete">Warning</translation>
     </message>
     <message>
         <location filename="mdp_gui.py" line="229"/>
@@ -1799,7 +2027,7 @@
         <translation type="obsolete">IDCODE is empty, please complete the connection settings first</translation>
     </message>
     <message>
-        <location filename="mdp_gui.py" line="445"/>
+        <location filename="mdp_gui.py" line="421"/>
         <source>连接失败</source>
         <translation type="unfinished">Connect failed</translation>
     </message>
@@ -1841,40 +2069,40 @@
     <message>
         <location filename="mdp_gui.py" line="864"/>
         <source>解除</source>
-        <translation type="unfinished">REL</translation>
+        <translation type="obsolete">REL</translation>
     </message>
     <message>
         <location filename="mdp_gui.py" line="866"/>
         <source>保持</source>
-        <translation type="unfinished">HOLD</translation>
+        <translation type="obsolete">HOLD</translation>
     </message>
     <message>
         <location filename="mdp_gui.py" line="876"/>
         <source>适应</source>
-        <translation type="unfinished">AUTO</translation>
+        <translation type="obsolete">AUTO</translation>
     </message>
     <message>
         <location filename="mdp_gui.py" line="878"/>
         <source>手动</source>
-        <translation type="unfinished">MANUAL</translation>
+        <translation type="obsolete">MANUAL</translation>
     </message>
     <message>
-        <location filename="mdp_gui.py" line="902"/>
+        <location filename="mdp_gui.py" line="501"/>
         <source>停止</source>
         <translation type="unfinished">STOP</translation>
     </message>
     <message>
-        <location filename="mdp_gui.py" line="910"/>
+        <location filename="mdp_gui.py" line="509"/>
         <source>录制完成</source>
         <translation type="unfinished">Record finished</translation>
     </message>
     <message>
-        <location filename="mdp_gui.py" line="970"/>
+        <location filename="mdp_gui.py" line="569"/>
         <source>数据已保存至：</source>
         <translation type="unfinished">Data has been saved to:</translation>
     </message>
     <message>
-        <location filename="mdp_gui.py" line="927"/>
+        <location filename="mdp_gui.py" line="526"/>
         <source>录制</source>
         <translation type="unfinished">REC</translation>
     </message>
@@ -1989,7 +2217,7 @@
         <translation type="obsolete">Select Preset</translation>
     </message>
     <message>
-        <location filename="mdp_gui.py" line="308"/>
+        <location filename="mdp_gui.py" line="315"/>
         <source>MDP-P906 数控电源上位机</source>
         <translation type="unfinished">MDP-P906 Digital Supply Controller</translation>
     </message>
@@ -2024,14 +2252,14 @@
         <translation type="obsolete">Input current-set:</translation>
     </message>
     <message>
-        <location filename="mdp_gui.py" line="970"/>
+        <location filename="mdp_gui.py" line="569"/>
         <source>打开文件路径</source>
         <translation type="unfinished">Open Path</translation>
     </message>
     <message>
         <location filename="mdp_gui.py" line="785"/>
         <source>确定要清空数据缓冲区吗？</source>
-        <translation type="unfinished">Sure you want to empty the data buffer?</translation>
+        <translation type="obsolete">Sure you want to empty the data buffer?</translation>
     </message>
     <message>
         <location filename="mdp_gui.py" line="1511"/>
@@ -2056,15 +2284,15 @@
     <message>
         <location filename="mdp_gui.py" line="715"/>
         <source>数据缓冲区占用率</source>
-        <translation type="unfinished">Data buffer used</translation>
+        <translation type="obsolete">Data buffer used</translation>
     </message>
     <message>
-        <location filename="mdp_gui.py" line="941"/>
+        <location filename="mdp_gui.py" line="540"/>
         <source>保存数据</source>
         <translation type="unfinished">Dump data to</translation>
     </message>
     <message>
-        <location filename="mdp_gui.py" line="970"/>
+        <location filename="mdp_gui.py" line="569"/>
         <source>保存完成</source>
         <translation type="unfinished">Dump success</translation>
     </message>
@@ -2094,19 +2322,19 @@
         <translation type="obsolete">Discharge</translation>
     </message>
     <message>
-        <location filename="mdp_gui.py" line="104"/>
+        <location filename="graph_view.py" line="45"/>
         <source>放电曲线</source>
         <translation type="unfinished">DisChr Curve</translation>
     </message>
     <message>
-        <location filename="mdp_gui.py" line="113"/>
+        <location filename="graph_view.py" line="54"/>
         <source>扫描曲线</source>
         <translation type="unfinished">Sweep Curve</translation>
     </message>
     <message>
         <location filename="mdp_gui.py" line="590"/>
         <source>目标</source>
-        <translation type="unfinished">Target</translation>
+        <translation type="obsolete">Target</translation>
     </message>
     <message>
         <location filename="device_panel_l1060.py" line="47"/>
@@ -2116,22 +2344,22 @@
     <message>
         <location filename="mdp_gui.py" line="819"/>
         <source>时自动停止</source>
-        <translation type="unfinished">auto-stops</translation>
+        <translation type="obsolete">auto-stops</translation>
     </message>
     <message>
         <location filename="mdp_gui.py" line="824"/>
         <source>待触发</source>
-        <translation type="unfinished">Armed</translation>
+        <translation type="obsolete">Armed</translation>
     </message>
     <message>
         <location filename="mdp_gui.py" line="826"/>
         <source>时自动开始</source>
-        <translation type="unfinished">auto-starts</translation>
+        <translation type="obsolete">auto-starts</translation>
     </message>
     <message>
         <location filename="mdp_gui.py" line="828"/>
         <source>开始</source>
-        <translation type="unfinished">Start</translation>
+        <translation type="obsolete">Start</translation>
     </message>
 </context>
 <context>
@@ -2215,7 +2443,7 @@
 <context>
     <name>MainWindow</name>
     <message>
-        <location filename="mdp_gui_template/mainwindow_ui.py" line="383"/>
+        <location filename="mdp_gui_template/mainwindow_ui.py" line="214"/>
         <source>MDP-P906 数控电源上位机</source>
         <translation type="unfinished">MDP-P906 Digital Supply Controller</translation>
     </message>
@@ -2322,12 +2550,12 @@
     <message>
         <location filename="mdp_gui_template/mainwindow_ui.py" line="390"/>
         <source>电压</source>
-        <translation type="unfinished">Voltage</translation>
+        <translation type="obsolete">Voltage</translation>
     </message>
     <message>
         <location filename="mdp_gui_template/mainwindow_ui.py" line="392"/>
         <source>电流</source>
-        <translation type="unfinished">Current</translation>
+        <translation type="obsolete">Current</translation>
     </message>
     <message>
         <location filename="mdp_gui_template/mainwindow_ui.py" line="2024"/>
@@ -2425,12 +2653,12 @@
         <translation type="obsolete">SYSTEM STATE</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/mainwindow_ui.py" line="384"/>
+        <location filename="mdp_gui_template/mainwindow_ui.py" line="215"/>
         <source>图形设置</source>
         <translation type="unfinished">GRAPHICS SET</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/mainwindow_ui.py" line="385"/>
+        <location filename="mdp_gui_template/mainwindow_ui.py" line="216"/>
         <source>连接设置</source>
         <translation type="unfinished">CONNECT SET</translation>
     </message>
@@ -2445,7 +2673,7 @@
         <translation type="obsolete">LINK/UNLINK</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/mainwindow_ui.py" line="388"/>
+        <location filename="mdp_gui_template/mainwindow_ui.py" line="219"/>
         <source>数据波形 / LINE CHART</source>
         <translation type="unfinished">LINE CHART</translation>
     </message>
@@ -2457,22 +2685,22 @@
     <message>
         <location filename="mdp_gui_template/mainwindow_ui.py" line="396"/>
         <source>功率</source>
-        <translation type="unfinished">Power</translation>
+        <translation type="obsolete">Power</translation>
     </message>
     <message>
         <location filename="mdp_gui_template/mainwindow_ui.py" line="394"/>
         <source>阻值</source>
-        <translation type="unfinished">Resistence</translation>
+        <translation type="obsolete">Resistence</translation>
     </message>
     <message>
         <location filename="mdp_gui_template/mainwindow_ui.py" line="398"/>
         <source>能量</source>
-        <translation type="unfinished">Energy</translation>
+        <translation type="obsolete">Energy</translation>
     </message>
     <message>
         <location filename="mdp_gui_template/mainwindow_ui.py" line="400"/>
         <source>温度</source>
-        <translation type="unfinished">Temp</translation>
+        <translation type="obsolete">Temp</translation>
     </message>
     <message>
         <location filename="mdp_gui_template/mainwindow_ui.py" line="372"/>
@@ -2480,37 +2708,37 @@
         <translation type="obsolete">Off</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/mainwindow_ui.py" line="409"/>
+        <location filename="mdp_gui_template/mainwindow_ui.py" line="220"/>
         <source>采样率:</source>
         <translation type="unfinished">Sample:</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/mainwindow_ui.py" line="425"/>
+        <location filename="mdp_gui_template/mainwindow_ui.py" line="235"/>
         <source>录制</source>
         <translation type="unfinished">REC</translation>
     </message>
     <message>
         <location filename="mdp_gui_template/mainwindow_ui.py" line="429"/>
         <source>适应</source>
-        <translation type="unfinished">AUTO</translation>
+        <translation type="obsolete">AUTO</translation>
     </message>
     <message>
         <location filename="mdp_gui_template/mainwindow_ui.py" line="431"/>
         <source>保持</source>
-        <translation type="unfinished">HOLD</translation>
+        <translation type="obsolete">HOLD</translation>
     </message>
     <message>
         <location filename="mdp_gui_template/mainwindow_ui.py" line="433"/>
         <source>清空</source>
-        <translation type="unfinished">CLEAR</translation>
+        <translation type="obsolete">CLEAR</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/mainwindow_ui.py" line="437"/>
+        <location filename="mdp_gui_template/mainwindow_ui.py" line="241"/>
         <source>回零</source>
         <translation type="unfinished">ZERO</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/mainwindow_ui.py" line="435"/>
+        <location filename="mdp_gui_template/mainwindow_ui.py" line="239"/>
         <source>浮窗</source>
         <translation type="unfinished">FLOAT</translation>
     </message>
@@ -2530,42 +2758,42 @@
         <translation type="obsolete">Lower graph window</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/mainwindow_ui.py" line="410"/>
+        <location filename="mdp_gui_template/mainwindow_ui.py" line="221"/>
         <source>设备输出数据请求频率</source>
         <translation type="unfinished">Output data sample rate</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/mainwindow_ui.py" line="424"/>
+        <location filename="mdp_gui_template/mainwindow_ui.py" line="234"/>
         <source>将原始数据记录到CSV文件，不受图形缓冲区限制</source>
         <translation type="unfinished">Record the raw data to a CSV file without being limited by the graphics buffer</translation>
     </message>
     <message>
         <location filename="mdp_gui_template/mainwindow_ui.py" line="428"/>
         <source>切换数据波形是否自动适应窗口</source>
-        <translation type="unfinished">Toggle waveform automatical adaption to window</translation>
+        <translation type="obsolete">Toggle waveform automatical adaption to window</translation>
     </message>
     <message>
         <location filename="mdp_gui_template/mainwindow_ui.py" line="430"/>
         <source>停止数据波形刷新（数据缓冲区仍在更新）</source>
-        <translation type="unfinished">Stop refreshing the data waveform (the data buffer continues to update)</translation>
+        <translation type="obsolete">Stop refreshing the data waveform (the data buffer continues to update)</translation>
     </message>
     <message>
         <location filename="mdp_gui_template/mainwindow_ui.py" line="432"/>
         <source>清空波形数据缓冲区</source>
-        <translation type="unfinished">Clear the waveform data buffer</translation>
+        <translation type="obsolete">Clear the waveform data buffer</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/mainwindow_ui.py" line="434"/>
+        <location filename="mdp_gui_template/mainwindow_ui.py" line="238"/>
         <source>切换数据监控悬浮窗</source>
         <translation type="unfinished">Switch the data monitoring floating window</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/mainwindow_ui.py" line="436"/>
+        <location filename="mdp_gui_template/mainwindow_ui.py" line="240"/>
         <source>清零平均功率和能量累计</source>
         <translation type="unfinished">Reset the average power and energy accumulation</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/mainwindow_ui.py" line="421"/>
+        <location filename="mdp_gui_template/mainwindow_ui.py" line="232"/>
         <source>实时采样率</source>
         <translation type="unfinished">Realtime sample rate</translation>
     </message>
@@ -2617,7 +2845,7 @@
     <message>
         <location filename="mdp_gui_template/mainwindow_ui.py" line="406"/>
         <source>放电曲线</source>
-        <translation type="unfinished">DisChr Curve</translation>
+        <translation type="obsolete">DisChr Curve</translation>
     </message>
     <message>
         <location filename="mdp_gui_template/mainwindow_ui.py" line="2072"/>
@@ -2652,121 +2880,111 @@
     <message>
         <location filename="mdp_gui_template/mainwindow_ui.py" line="439"/>
         <source>显示范围</source>
-        <translation type="unfinished">Display range / pts</translation>
+        <translation type="obsolete">Display range / pts</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/mainwindow_ui.py" line="426"/>
+        <location filename="mdp_gui_template/mainwindow_ui.py" line="236"/>
         <source>导出当前数据缓冲区的有效数据</source>
         <translation type="unfinished">Export valid data from data buffer</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/mainwindow_ui.py" line="427"/>
+        <location filename="mdp_gui_template/mainwindow_ui.py" line="237"/>
         <source>导出</source>
         <translation type="unfinished">DUMP</translation>
     </message>
     <message>
         <location filename="mdp_gui_template/mainwindow_ui.py" line="389"/>
         <source>显示/隐藏电压波形图</source>
-        <translation type="unfinished">Show/hide the voltage graph</translation>
+        <translation type="obsolete">Show/hide the voltage graph</translation>
     </message>
     <message>
         <location filename="mdp_gui_template/mainwindow_ui.py" line="391"/>
         <source>显示/隐藏电流波形图</source>
-        <translation type="unfinished">Show/hide the current graph</translation>
+        <translation type="obsolete">Show/hide the current graph</translation>
     </message>
     <message>
         <location filename="mdp_gui_template/mainwindow_ui.py" line="393"/>
         <source>显示/隐藏阻值波形图</source>
-        <translation type="unfinished">Show/hide the resistance graph</translation>
+        <translation type="obsolete">Show/hide the resistance graph</translation>
     </message>
     <message>
         <location filename="mdp_gui_template/mainwindow_ui.py" line="395"/>
         <source>显示/隐藏功率波形图</source>
-        <translation type="unfinished">Show/hide the power graph</translation>
+        <translation type="obsolete">Show/hide the power graph</translation>
     </message>
     <message>
         <location filename="mdp_gui_template/mainwindow_ui.py" line="397"/>
         <source>显示/隐藏能量波形图</source>
-        <translation type="unfinished">Show/hide the energy graph</translation>
+        <translation type="obsolete">Show/hide the energy graph</translation>
     </message>
     <message>
         <location filename="mdp_gui_template/mainwindow_ui.py" line="399"/>
         <source>显示/隐藏温度波形图</source>
-        <translation type="unfinished">Show/hide the temperature graph</translation>
+        <translation type="obsolete">Show/hide the temperature graph</translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/mainwindow_ui.py" line="386"/>
+        <location filename="mdp_gui_template/mainwindow_ui.py" line="217"/>
         <source>0kBps</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/mainwindow_ui.py" line="387"/>
+        <location filename="mdp_gui_template/mainwindow_ui.py" line="218"/>
         <source>CON-ERR 0%</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/mainwindow_ui.py" line="411"/>
+        <location filename="mdp_gui_template/mainwindow_ui.py" line="222"/>
         <source>10Hz</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/mainwindow_ui.py" line="412"/>
+        <location filename="mdp_gui_template/mainwindow_ui.py" line="223"/>
         <source>20Hz</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/mainwindow_ui.py" line="413"/>
+        <location filename="mdp_gui_template/mainwindow_ui.py" line="224"/>
         <source>30Hz</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/mainwindow_ui.py" line="414"/>
+        <location filename="mdp_gui_template/mainwindow_ui.py" line="225"/>
         <source>40Hz</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/mainwindow_ui.py" line="415"/>
+        <location filename="mdp_gui_template/mainwindow_ui.py" line="226"/>
         <source>50Hz</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/mainwindow_ui.py" line="416"/>
+        <location filename="mdp_gui_template/mainwindow_ui.py" line="227"/>
         <source>60Hz</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/mainwindow_ui.py" line="417"/>
+        <location filename="mdp_gui_template/mainwindow_ui.py" line="228"/>
         <source>70Hz</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/mainwindow_ui.py" line="418"/>
+        <location filename="mdp_gui_template/mainwindow_ui.py" line="229"/>
         <source>80Hz</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/mainwindow_ui.py" line="419"/>
+        <location filename="mdp_gui_template/mainwindow_ui.py" line="230"/>
         <source>90Hz</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/mainwindow_ui.py" line="420"/>
+        <location filename="mdp_gui_template/mainwindow_ui.py" line="231"/>
         <source>100Hz</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mdp_gui_template/mainwindow_ui.py" line="422"/>
+        <location filename="mdp_gui_template/mainwindow_ui.py" line="233"/>
         <source>0.0Hz</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="mdp_gui_template/mainwindow_ui.py" line="438"/>
-        <source>0.0%</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="mdp_gui_template/mainwindow_ui.py" line="440"/>
-        <source>0</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2782,42 +3000,42 @@
     <message>
         <location filename="mdp_gui_template/mainwindow_ui.py" line="401"/>
         <source>显示/隐藏放电安时曲线</source>
-        <translation type="unfinished">Show/hide the discharge Ah graph</translation>
+        <translation type="obsolete">Show/hide the discharge Ah graph</translation>
     </message>
     <message>
         <location filename="mdp_gui_template/mainwindow_ui.py" line="402"/>
         <source>安时</source>
-        <translation type="unfinished">Ah</translation>
+        <translation type="obsolete">Ah</translation>
     </message>
     <message>
         <location filename="mdp_gui_template/mainwindow_ui.py" line="403"/>
         <source>显示/隐藏放电瓦时曲线</source>
-        <translation type="unfinished">Show/hide the discharge Wh graph</translation>
+        <translation type="obsolete">Show/hide the discharge Wh graph</translation>
     </message>
     <message>
         <location filename="mdp_gui_template/mainwindow_ui.py" line="404"/>
         <source>瓦时</source>
-        <translation type="unfinished">Wh</translation>
+        <translation type="obsolete">Wh</translation>
     </message>
     <message>
         <location filename="mdp_gui_template/mainwindow_ui.py" line="405"/>
         <source>显示/隐藏放电曲线(电压-安时)</source>
-        <translation type="unfinished">Show/hide the discharge curve (voltage vs. Ah)</translation>
+        <translation type="obsolete">Show/hide the discharge curve (voltage vs. Ah)</translation>
     </message>
     <message>
         <location filename="mdp_gui_template/mainwindow_ui.py" line="407"/>
         <source>显示/隐藏扫描曲线(响应-目标)</source>
-        <translation type="unfinished">Show/hide the sweep curve (response vs. target)</translation>
+        <translation type="obsolete">Show/hide the sweep curve (response vs. target)</translation>
     </message>
     <message>
         <location filename="mdp_gui_template/mainwindow_ui.py" line="408"/>
         <source>扫描曲线</source>
-        <translation type="unfinished">Sweep Curve</translation>
+        <translation type="obsolete">Sweep Curve</translation>
     </message>
     <message>
         <location filename="mdp_gui_template/mainwindow_ui.py" line="423"/>
         <source>开始</source>
-        <translation type="unfinished">Start</translation>
+        <translation type="obsolete">Start</translation>
     </message>
 </context>
 <context>
