@@ -264,7 +264,6 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
             self.ui.layoutGraphViews.addWidget(view, stretch=1)
             view.on_btnGraphClear_clicked(skip_confirm=True)
             view.refresh_link_state()
-        self.set_graph_triggers()
         self._update_graph_view_visibility()
 
     def set_graph_layout(self, mode: str):
@@ -465,20 +464,6 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
             if view.isVisible():
                 view.draw()
 
-    def set_graph_triggers(self):
-        """The shared view uses the triggers of setting.ui.graph_trigger_device
-        (the first device if that id is unknown); each per-device view uses
-        its own device's triggers."""
-        if setting.ui.graph_layout == "separate":
-            for device_id, view in self.graph_views.items():
-                view.set_triggers(device_id, self._panel_by_id[device_id].settings)
-            return
-        view = self.graph_views.get(None)
-        if view is None or not self.panels:
-            return
-        panel = self._panel_by_id.get(setting.ui.graph_trigger_device, self.panels[0])
-        view.set_triggers(panel.device_id, panel.settings)
-
     def _device_path(self, base_path: str, panel) -> str:
         """One shared path if there's exactly one panel (byte-identical to
         pre-multi-device naming); otherwise suffix each panel's own file
@@ -606,7 +591,6 @@ DialogGraphics.set_interp_sig.connect(MainWindow.set_interp_all)
 DialogGraphics.theme_requested.connect(lambda theme: set_theme(theme))
 DialogGraphics.device_layout_requested.connect(MainWindow.set_device_layout)
 DialogGraphics.graph_layout_requested.connect(MainWindow.set_graph_layout)
-DialogGraphics.graph_triggers_sig.connect(MainWindow.set_graph_triggers)
 MainWindow.ui.btnRecordFloatWindow.clicked.connect(FloatingWindow.switch_visibility)
 DialogSettings.devices_changed.connect(MainWindow.rebuild_panels)
 DialogSettings.device_color_changed.connect(MainWindow.on_device_color_changed)

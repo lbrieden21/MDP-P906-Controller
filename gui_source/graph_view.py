@@ -18,7 +18,7 @@ from device_panel_p906 import (
 from graph_block import GraphBlock
 from mdp_custom import CustomMessageBox
 from mdp_gui_template.graph_view_ui import Ui_GraphView
-from settings_model import setting
+from settings_model import SETTING_FILE, setting
 
 CHANNEL_ORDER = [
     "voltage", "current", "resistance", "power", "energy", "temperature", "ah", "wh", "discharge", "sweep",
@@ -110,6 +110,8 @@ class GraphView(QtWidgets.QWidget):
         if device_name is not None:
             self.ui.labelDeviceName.setText(device_name)
             self._refresh_device_name_color()
+        self._populate_trigger_device_combo()
+        self._load_trigger_controls()
 
     def _refresh_device_name_color(self):
         if self._device_name is None or not self.panels:
@@ -127,6 +129,106 @@ class GraphView(QtWidgets.QWidget):
             dev_settings.graph_autostop_threshold,
         )
         self._refresh_graph_run_button()
+
+    def _populate_trigger_device_combo(self):
+        """comboGraphTriggerDevice only disambiguates which panel's triggers
+        are being edited in the shared view, where one GraphView holds every
+        device -- a single-device view has nothing to disambiguate."""
+        combo = self.ui.comboGraphTriggerDevice
+        shared = self._device_name is None
+        self.ui.labelGraphTriggerDevice.setVisible(shared)
+        combo.setVisible(shared)
+        if not shared:
+            return
+        with signals_blocked(combo):
+            combo.clear()
+            for panel in self.panels:
+                combo.addItem(panel.display_name, panel.device_id)
+            idx = combo.findData(setting.ui.graph_trigger_device)
+            combo.setCurrentIndex(max(0, idx))
+
+    def _trigger_device(self):
+        """(device_id, DeviceSettings) of the panel whose triggers the
+        trigger controls currently show and edit: the panel picked in
+        comboGraphTriggerDevice in the shared view, or this view's one panel
+        otherwise."""
+        if not self.panels:
+            return None, None
+        if self._device_name is None:
+            device_id = self.ui.comboGraphTriggerDevice.currentData()
+            panel = self._panel_by_id.get(device_id) or self.panels[0]
+        else:
+            panel = self.panels[0]
+        return panel.device_id, panel.settings
+
+    def _load_trigger_controls(self):
+        device_id, dev = self._trigger_device()
+        if dev is None:
+            return
+        controls = (
+            self.ui.comboGraphAutostart,
+            self.ui.spinGraphAutostartThreshold,
+            self.ui.comboGraphAutostop,
+            self.ui.spinGraphAutostopThreshold,
+        )
+        with signals_blocked(*controls):
+            self.ui.comboGraphAutostart.setCurrentIndex(
+                {"off": 0, "voltage": 1, "current": 2}.get(dev.graph_autostart, 0)
+            )
+            self.ui.spinGraphAutostartThreshold.setValue(dev.graph_autostart_threshold)
+            self.ui.comboGraphAutostop.setCurrentIndex(
+                {"off": 0, "voltage": 1, "current": 2}.get(dev.graph_autostop, 0)
+            )
+            self.ui.spinGraphAutostopThreshold.setValue(dev.graph_autostop_threshold)
+        self._update_trigger_controls_enabled()
+        self.set_triggers(device_id, dev)
+
+    def _update_trigger_controls_enabled(self):
+        start_mode = self.ui.comboGraphAutostart.currentIndex()
+        self.ui.spinGraphAutostartThreshold.setEnabled(start_mode != 0)
+        self.ui.spinGraphAutostartThreshold.setSuffix("A" if start_mode == 2 else "V")
+        stop_mode = self.ui.comboGraphAutostop.currentIndex()
+        self.ui.spinGraphAutostopThreshold.setEnabled(stop_mode != 0)
+        self.ui.spinGraphAutostopThreshold.setSuffix("A" if stop_mode == 2 else "V")
+
+    def _apply_trigger_from_controls(self):
+        device_id, dev = self._trigger_device()
+        if dev is None:
+            return
+        dev.graph_autostart = {0: "off", 1: "voltage", 2: "current"}[
+            self.ui.comboGraphAutostart.currentIndex()
+        ]
+        dev.graph_autostart_threshold = self.ui.spinGraphAutostartThreshold.value()
+        dev.graph_autostop = {0: "off", 1: "voltage", 2: "current"}[
+            self.ui.comboGraphAutostop.currentIndex()
+        ]
+        dev.graph_autostop_threshold = self.ui.spinGraphAutostopThreshold.value()
+        self.set_triggers(device_id, dev)
+        setting.save(SETTING_FILE)
+
+    @QtCore.pyqtSlot(int)
+    def on_comboGraphTriggerDevice_currentIndexChanged(self, index):
+        setting.ui.graph_trigger_device = self.ui.comboGraphTriggerDevice.itemData(index) or ""
+        self._load_trigger_controls()
+        setting.save(SETTING_FILE)
+
+    @QtCore.pyqtSlot(int)
+    def on_comboGraphAutostart_currentIndexChanged(self, _index):
+        self._update_trigger_controls_enabled()
+        self._apply_trigger_from_controls()
+
+    @QtCore.pyqtSlot(float)
+    def on_spinGraphAutostartThreshold_valueChanged(self, _=None):
+        self._apply_trigger_from_controls()
+
+    @QtCore.pyqtSlot(int)
+    def on_comboGraphAutostop_currentIndexChanged(self, _index):
+        self._update_trigger_controls_enabled()
+        self._apply_trigger_from_controls()
+
+    @QtCore.pyqtSlot(float)
+    def on_spinGraphAutostopThreshold_valueChanged(self, _=None):
+        self._apply_trigger_from_controls()
 
     def refresh_device_color(self, panel):
         if panel.device_id not in self._panel_by_id:
