@@ -53,20 +53,23 @@ from mdp_gui_template import Ui_DevicePanelP906
 from settings_model import SETTING_FILE, setting
 
 
-# The P906 has no channels beyond the shared set. CHANNEL_BY_KEY/
-# CHANNEL_SHORT stay module-level names here because mdp_gui imports them
-# from each panel module by name and merges them.
-CHANNELS = BASE_CHANNELS
+CHANNELS = BASE_CHANNELS + [
+    # Battery-charge running totals (battery_aux.CapacityAccumulator).
+    # Zero/flat outside an active charge run, held at the last run's final
+    # value in between -- ordinary store channels so the Ah/Wh/Charge Curve
+    # graphs get the same scrolling-window/slider behavior as every other
+    # channel.
+    ChannelSpec("ah", QtCore.QCoreApplication.translate("P906DevicePanel", "安时"), "Ah"),
+    ChannelSpec("wh", QtCore.QCoreApplication.translate("P906DevicePanel", "瓦时"), "Wh"),
+]
 CHANNEL_BY_KEY = {c.key: c for c in CHANNELS}
-CHANNEL_SHORT = BASE_CHANNEL_SHORT
-# Columns for the Battery Charge CSV export only; ah/wh are not store
-# channels, so nothing is added to the graph.
+CHANNEL_SHORT = {**BASE_CHANNEL_SHORT, "ah": "Ah", "wh": "Wh"}
 CHARGE_CSV_CHANNELS = [
     CHANNEL_BY_KEY["voltage"],
     CHANNEL_BY_KEY["current"],
     CHANNEL_BY_KEY["power"],
-    ChannelSpec("ah", QtCore.QCoreApplication.translate("P906DevicePanel", "安时"), "Ah"),
-    ChannelSpec("wh", QtCore.QCoreApplication.translate("P906DevicePanel", "瓦时"), "Wh"),
+    CHANNEL_BY_KEY["ah"],
+    CHANNEL_BY_KEY["wh"],
 ]
 _CHARGE_TICK_MS = 200
 # Rows of the charge settings that only apply to some chemistries.
@@ -1541,6 +1544,22 @@ class P906DevicePanel(DevicePanelBase):
         if t1 >= self._charge_enable_t:
             self._charge_acc.add_batch(raw_rtvalues, t1)
             self._charge_last_vi = raw_rtvalues[-1]
+
+    def _extra_channel_values(self, len_):
+        # Held flat at the running (or, between runs, final) total so the
+        # graph keeps its last reading after the run ends.
+        acc = self._charge_acc
+        return {
+            "ah": np.full(len_, acc.ah if acc is not None else 0.0),
+            "wh": np.full(len_, acc.wh if acc is not None else 0.0),
+        }
+
+    def has_charge_data(self) -> bool:
+        return self._charge_acc is not None
+
+    def clear_aux_data(self):
+        if not self._charge_active:
+            self._charge_acc = None
 
     def _update_charge_labels(self):
         acc = self._charge_acc

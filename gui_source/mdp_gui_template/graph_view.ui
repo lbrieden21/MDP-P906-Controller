@@ -201,7 +201,7 @@
          </font>
         </property>
         <property name="toolTip">
-         <string>显示/隐藏放电安时曲线</string>
+         <string>显示/隐藏安时曲线</string>
         </property>
         <property name="visible">
          <bool>false</bool>
@@ -228,7 +228,7 @@
          </font>
         </property>
         <property name="toolTip">
-         <string>显示/隐藏放电瓦时曲线</string>
+         <string>显示/隐藏瓦时曲线</string>
         </property>
         <property name="visible">
          <bool>false</bool>
@@ -265,6 +265,33 @@
         </property>
         <property name="text">
          <string>放电曲线</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="btnGraphCharge">
+        <property name="maximumSize">
+         <size>
+          <width>90</width>
+          <height>16777215</height>
+         </size>
+        </property>
+        <property name="font">
+         <font>
+          <family>Sarasa Fixed SC SemiBold</family>
+         </font>
+        </property>
+        <property name="toolTip">
+         <string>显示/隐藏充电曲线(电压-安时)</string>
+        </property>
+        <property name="visible">
+         <bool>false</bool>
+        </property>
+        <property name="checkable">
+         <bool>true</bool>
+        </property>
+        <property name="text">
+         <string>充电曲线</string>
         </property>
        </widget>
       </item>

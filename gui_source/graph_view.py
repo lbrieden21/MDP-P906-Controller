@@ -21,34 +21,43 @@ from mdp_gui_template.graph_view_ui import Ui_GraphView
 from settings_model import SETTING_FILE, setting
 
 CHANNEL_ORDER = [
-    "voltage", "current", "resistance", "power", "energy", "temperature", "ah", "wh", "discharge", "sweep",
+    "voltage", "current", "resistance", "power", "energy", "temperature",
+    "ah", "wh", "discharge", "charge", "sweep",
 ]
 DEFAULT_ACTIVE_CHANNELS = {"voltage", "current"}
-# Only meaningful for device types that support the discharge/sweep workflows
-# (currently just L1060); each group's buttons stay hidden until some panel
-# actually has that workflow's data, rather than cluttering the row
-# unconditionally like the always-applicable channels above. Kept as two
-# separate groups (not one combined set) so running Sweep doesn't also
-# reveal the unrelated Discharge/Ah/Wh buttons, and vice versa.
-DISCHARGE_GATED_CHANNELS = {"ah", "wh", "discharge"}
+# Only meaningful for device types that support the discharge/sweep (L1060)
+# or battery charge (P906) workflows; each group's buttons stay hidden until
+# some panel actually has that workflow's data, rather than cluttering the
+# row unconditionally like the always-applicable channels above. Kept as
+# separate groups so e.g. running Sweep doesn't also reveal the unrelated
+# Discharge Curve button. Ah/Wh are shared by discharge and charge.
+CAPACITY_GATED_CHANNELS = {"ah", "wh"}
+DISCHARGE_GATED_CHANNELS = {"discharge"}
+CHARGE_GATED_CHANNELS = {"charge"}
 SWEEP_GATED_CHANNELS = {"sweep"}
-GATED_CHANNELS = DISCHARGE_GATED_CHANNELS | SWEEP_GATED_CHANNELS
+# Blocks that plot voltage against accumulated ah instead of against time.
+CAPACITY_CURVE_CHANNELS = {"discharge", "charge"}
 
-# Merged so channels that only one device type has (e.g. L1060's Ah/Wh
-# discharge totals) still resolve here -- every panel type's blocks are
+# Merged so channels that only one device type has (e.g. L1060's
+# sweep_target) still resolve here -- every panel type's blocks are
 # built from this one shared lookup.
 CHANNEL_BY_KEY = {**_P906_CHANNEL_BY_KEY, **_L1060_CHANNEL_BY_KEY}
 CHANNEL_SHORT = {**_P906_CHANNEL_SHORT, **_L1060_CHANNEL_SHORT}
-# Not a real store channel/series -- this pairs two existing L1060 series
-# (voltage against accumulated ah) for the conventional discharge curve, so
-# it only needs a label/unit for the block's title and left axis.
+# Not real store channels/series -- these pair two existing series
+# (voltage against accumulated ah) for the conventional discharge (L1060)
+# and charge (P906) curves, so they only need a label/unit for the block's
+# title and left axis.
 CHANNEL_BY_KEY["discharge"] = ChannelSpec(
     "discharge", QtCore.QCoreApplication.translate("MDPMainwindow", "放电曲线"), "V"
 )
 CHANNEL_SHORT["discharge"] = "V"
+CHANNEL_BY_KEY["charge"] = ChannelSpec(
+    "charge", QtCore.QCoreApplication.translate("MDPMainwindow", "充电曲线"), "V"
+)
+CHANNEL_SHORT["charge"] = "V"
 # Also not a real store series -- pairs L1060's sweep_target (x) against
 # whichever response channel (voltage/current/power/resistance) that panel's
-# sweep was last run with (y). Unlike "discharge" above, that response and
+# sweep was last run with (y). Unlike "discharge"/"charge" above, that response and
 # its unit vary per run, so the left/bottom axis labels can't be fixed here
 # and are instead kept in sync in _sync_sweep_axes().
 CHANNEL_BY_KEY["sweep"] = ChannelSpec(
@@ -286,6 +295,7 @@ class GraphView(QtWidgets.QWidget):
             "ah": self.ui.btnGraphAh,
             "wh": self.ui.btnGraphWh,
             "discharge": self.ui.btnGraphDischarge,
+            "charge": self.ui.btnGraphCharge,
             "sweep": self.ui.btnGraphSweep,
         }
         for key, button in self._channel_buttons.items():
@@ -299,7 +309,7 @@ class GraphView(QtWidgets.QWidget):
         block = self.graph_blocks.get(key)
         if block is None:
             block = GraphBlock(key, CHANNEL_BY_KEY[key])
-            if key == "discharge":
+            if key in CAPACITY_CURVE_CHANNELS:
                 # Only the label differs here -- the window/curve update path
                 # is the same as every other block (see _series_for_block()).
                 block.plot_widget.setLabel("bottom", "Ah")
@@ -384,16 +394,32 @@ class GraphView(QtWidgets.QWidget):
         """(xs, ys, mx, mn, avg) for one panel's curve in this block, over
         the time span [t_lo, t_hi] (computed once per tick in draw()) every
         panel and block shares -- must be called with panel.store.sync_lock
-        held. "discharge" and "sweep" plot one series against another
-        (voltage against accumulated ah; the sweep response channel against
-        sweep_target) instead of against time."""
+        held. "discharge"/"charge" and "sweep" plot one series against
+        another (voltage against accumulated ah; the sweep response channel
+        against sweep_target) instead of against time."""
         start, stop = panel.store.window(t_lo, t_hi)
-        if block.channel_key == "discharge":
+        if block.channel_key in CAPACITY_CURVE_CHANNELS:
             return panel.store.get_series("voltage", start, stop, x_key="ah")
         if block.channel_key == "sweep":
             response_key = getattr(panel, "_sweep_response_key", "voltage")
             return panel.store.get_series(response_key, start, stop, x_key="sweep_target")
         return panel.store.get_series(block.channel_key, start, stop)
+
+    @staticmethod
+    def _panel_has_block_data(key, panel):
+        """Whether `panel` has anything to draw in the `key` block. Every
+        panel of a device type with a discharge or charge workflow carries
+        ah/wh series, so the gated blocks only draw panels that actually
+        ran (or are running) the matching workflow -- keeping an L1060's
+        discharge out of the Charge Curve and vice versa, and idle panels'
+        flat zero lines out of Ah/Wh."""
+        if key == "discharge":
+            return panel.has_discharge_data()
+        if key == "charge":
+            return panel.has_charge_data()
+        if key in CAPACITY_GATED_CHANNELS:
+            return panel.has_discharge_data() or panel.has_charge_data()
+        return True
 
     def on_horizontalSlider_sliderMoved(self, values):
         left = int(values[0])
@@ -421,7 +447,11 @@ class GraphView(QtWidgets.QWidget):
         # again once Clear drops that result (panel.clear_aux_data()) and no
         # run is running, at which point the toggle is also force-unchecked
         # so its now-hidden block doesn't stay stuck on screen.
-        self._sync_gated_channels(DISCHARGE_GATED_CHANNELS, any(p.has_discharge_data() for p in self.panels))
+        has_discharge = any(p.has_discharge_data() for p in self.panels)
+        has_charge = any(p.has_charge_data() for p in self.panels)
+        self._sync_gated_channels(CAPACITY_GATED_CHANNELS, has_discharge or has_charge)
+        self._sync_gated_channels(DISCHARGE_GATED_CHANNELS, has_discharge)
+        self._sync_gated_channels(CHARGE_GATED_CHANNELS, has_charge)
         self._sync_gated_channels(SWEEP_GATED_CHANNELS, any(p.has_sweep_data() for p in self.panels))
         sweep_block = self.graph_blocks.get("sweep")
         if sweep_block is not None:
@@ -531,7 +561,9 @@ class GraphView(QtWidgets.QWidget):
                 curve = block.curves.get(panel.device_id)
                 if curve is None:
                     continue
-                if panel.device_id not in checked_ids:
+                if panel.device_id not in checked_ids or not self._panel_has_block_data(
+                    block.channel_key, panel
+                ):
                     curve.setData(x=[], y=[])
                     continue
                 with panel.store.sync_lock:
@@ -553,7 +585,7 @@ class GraphView(QtWidgets.QWidget):
                 curve.setData(x=xs, y=ys)
                 vmin = mn if vmin is None else min(vmin, mn)
                 vmax = mx if vmax is None else max(vmax, mx)
-                if block.channel_key in ("discharge", "sweep"):
+                if block.channel_key in CAPACITY_CURVE_CHANNELS or block.channel_key == "sweep":
                     # x is another series rather than time, so it carries
                     # the NaN gap markers and its first/last samples aren't
                     # its bounds.

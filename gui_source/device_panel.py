@@ -401,11 +401,20 @@ class DevicePanelBase(QtWidgets.QWidget):
 
     def has_discharge_data(self) -> bool:
         """Whether this panel is currently running, or still holds the
-        results of, a discharge workflow -- used to reveal the Ah/Wh graph
-        channels (which only apply to device types supporting the discharge
-        workflow, currently only L1060) once they'd actually show
-        something, and to hide them again once clear_aux_data() drops that
-        result (and no run is active)."""
+        results of, a discharge workflow -- used to reveal the Ah/Wh and
+        Discharge Curve graph channels (which only apply to device types
+        supporting the discharge workflow, currently only L1060) once
+        they'd actually show something, and to hide them again once
+        clear_aux_data() drops that result (and no run is active)."""
+        return False
+
+    def has_charge_data(self) -> bool:
+        """Whether this panel is currently running, or still holds the
+        results of, a battery charge workflow -- used to reveal the Ah/Wh
+        and Charge Curve graph channels (which only apply to device types
+        supporting the charge workflow, currently only P906) once they'd
+        actually show something, and to hide them again once
+        clear_aux_data() drops that result (and no run is active)."""
         return False
 
     def has_sweep_data(self) -> bool:
@@ -418,8 +427,8 @@ class DevicePanelBase(QtWidgets.QWidget):
         return False
 
     def clear_aux_data(self) -> None:
-        """Drop any held discharge/sweep results so has_discharge_data()/
-        has_sweep_data() go back to False, unless that workflow is actively
-        running right now. Called by the main window's Clear-buffer action
-        alongside store.clear() -- a no-op for device types (e.g. P906)
-        that don't support these workflows."""
+        """Drop any held discharge/charge/sweep results so the matching
+        has_*_data() goes back to False, unless that workflow is actively
+        running right now. Called by the Clear-buffer action alongside
+        store.clear() -- a no-op for device types that don't support any
+        of these workflows."""
