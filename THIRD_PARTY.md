@@ -65,10 +65,3 @@ No upstream marker present in the file; not addressed by this inventory.
 
 Not addressed by this inventory.
 
-## What this file doesn't cover
-
-Git history is not discussed here. The five commits that once carried the
-`nrf_adapter_source/Drivers/` trees listed above were rewritten out of this
-repository's history (`plans/devendoring_plan.md`, Phase 4) —
-by the time this file exists, there is nothing left in history for it to
-disclose.
