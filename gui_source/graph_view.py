@@ -610,8 +610,13 @@ class GraphView(QtWidgets.QWidget):
                 and vmin != -np.inf
             ):
                 add = max(0.01, (vmax - vmin) * 0.05)
-                block.plot_widget.setYRange(vmin - add, vmax + add)
-                block.plot_widget.setXRange(xmin, xmax)
+                # The margin never carries the axis across zero: data that
+                # never goes negative (or positive) doesn't get an axis that
+                # does.
+                y_lo = vmin - add if vmin < 0 else max(vmin - add, 0.0)
+                y_hi = vmax + add if vmax >= 0 else min(vmax + add, 0.0)
+                block.plot_widget.setYRange(y_lo, y_hi, padding=0)
+                block.plot_widget.setXRange(xmin, xmax, padding=0)
 
     @QtCore.pyqtSlot()
     def on_btnGraphClear_clicked(self, _=None, skip_confirm=False):
