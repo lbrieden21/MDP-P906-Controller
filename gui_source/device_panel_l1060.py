@@ -28,6 +28,7 @@ from l1060_aux import (
     parse_sequence_lines,
 )
 from mdp_controller import MDP_L1060
+from mdp_controller.nrf24_adapter import NRF24AdapterError
 from mdp_custom import CustomInputDialog, CustomMessageBox
 from mdp_gui_template import Ui_DevicePanelL1060
 from settings_model import SETTING_FILE, setting
@@ -1143,6 +1144,10 @@ class L1060DevicePanel(DevicePanelBase):
     def update_state(self):
         if self.api is None:
             return
+        try:
+            status = self.api.get_status()
+        except (TimeoutError, NRF24AdapterError):
+            return
         (
             LoadMode,
             LoadActive,
@@ -1154,7 +1159,7 @@ class L1060DevicePanel(DevicePanelBase):
             _ErrFlag,
             Protection,
             ProtectionLatched,
-        ) = self.api.get_status()
+        ) = status
         if LoadMode != self.settings.l1060_mode:
             self._sync_mode_ui(LoadMode)
             self.settings.l1060_mode = LoadMode

@@ -6,6 +6,7 @@ state-machine logic here can be exercised by plain unittest without a
 running Qt event loop or hardware.
 """
 
+import math
 from collections import deque
 from typing import Deque, Dict, List, NamedTuple, Optional, Tuple, Union
 
@@ -79,7 +80,11 @@ class CapacityAccumulator:
         p = sum(s[2] for s in self._row_buf) / n
         self.rows.append(CapacityRow(self.elapsed, v, i, p, self.ah, self.wh))
         self._row_buf = []
-        self._next_row_boundary += self.ROW_INTERVAL_S
+        # First boundary past elapsed, so a batch spanning a long gap is
+        # followed by normal one-per-interval rows.
+        self._next_row_boundary = (
+            math.floor(self.elapsed / self.ROW_INTERVAL_S) + 1
+        ) * self.ROW_INTERVAL_S
 
 
 class BelowThresholdDebounce:

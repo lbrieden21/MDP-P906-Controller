@@ -113,6 +113,25 @@ class CapacityAccumulatorTest(unittest.TestCase):
         self.assertEqual(acc.ah, ah_after)
 
 
+    def test_gap_batch_does_not_leave_rows_catching_up(self):
+        acc = CapacityAccumulator()
+        t = 0.0
+        acc.add_batch([(4.0, 1.0)] * 9, t)
+        for _ in range(10):
+            t += 0.1
+            acc.add_batch([(4.0, 1.0)] * 9, t)
+        t += 300.0  # one batch arriving after a 300 s gap
+        acc.add_batch([(4.0, 1.0)] * 9, t)
+        rows_after_gap = len(acc.rows)
+        for _ in range(100):  # 10 s of normal batches
+            t += 0.1
+            acc.add_batch([(4.0, 1.0)] * 9, t)
+        self.assertLessEqual(len(acc.rows) - rows_after_gap, 11)
+        after = acc.rows[rows_after_gap:]
+        gaps = [b.elapsed - a.elapsed for a, b in zip(after, after[1:])]
+        self.assertTrue(all(g > 0.5 for g in gaps), gaps)
+
+
 class BelowThresholdDebounceTest(unittest.TestCase):
     """Renamed from VoltageCutoffDebounce; behaviour unchanged, and already
     used here for current as well as voltage."""

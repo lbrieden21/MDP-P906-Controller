@@ -121,6 +121,9 @@ host_link_test.py    Target-neutral host-protocol check (framing, dispatch,
                      settings persistence) shared by every board —
                      nothing in it depends on which is under test beyond the
                      port name.
+tx_burst_test.py     Target-neutral radio check: several NRF_TX frames in one
+                     host write, then probes that the adapter returned to RX
+                     and still receives replies. Needs a paired P906.
 Drivers/             Third-party trees. **Not committed to git** — git-ignored
                      and fetched on demand by `tools/fetch_vendor.py` at the
                      pins recorded in `tools/vendor.json` (see "Building"

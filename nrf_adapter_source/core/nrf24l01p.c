@@ -30,7 +30,6 @@
 
 static uint8_t nrf_mode = NRF_MODE_IDLE;
 static uint8_t nrf_auto = 0;
-static uint8_t nrf_auto_tx_cnt = 0;
 static uint8_t *nrf_rx_payload = NULL;
 static void (*nrf_tx_callback)(uint8_t) = NULL;
 static void (*nrf_rx_callback)(uint8_t) = NULL;
@@ -87,14 +86,12 @@ uint8_t nrf24l01p_transmit_then_receive(uint8_t *tx_payload,
     uint8_t ret = 1;
     nrf_tx_callback = tx_callback;
     nrf_auto = 1;
-    if ((nrf_auto_tx_cnt >= 3 && (nrf24l01p_get_fifo_status() & 0x20)) ||
-        nrf_auto_tx_cnt >= 6) {
+    if (nrf24l01p_get_fifo_status() & 0x20) { /* TX_FULL */
         nrf24l01p_idle_mode();
         nrf24l01p_flush_tx_fifo();
         nrf24l01p_clear_max_rt();
         nrf24l01p_clear_tx_ds();
         ret = 0;
-        nrf_auto_tx_cnt = 0;
     }
     if (nrf_mode != NRF_MODE_TX) {
         nrf24l01p_tx_mode();
@@ -104,10 +101,13 @@ uint8_t nrf24l01p_transmit_then_receive(uint8_t *tx_payload,
     spi_transfer(tx_payload, NULL, payload_length);
     nrf_csn_high();
     led_on();
-    nrf_auto_tx_cnt++;
     return ret;
 }
 
+/* TX_DS is a single latched flag, so one IRQ can stand for several completed
+   payloads, and TX_DS and MAX_RT can both be pending at once. Both are handled
+   from the same STATUS read, and the radio returns to RX once TX_EMPTY shows
+   nothing is left queued. */
 static void nrf24l01p_tx_irq(void) {
     uint8_t status = nrf24l01p_get_status();
 
@@ -115,21 +115,16 @@ static void nrf24l01p_tx_irq(void) {
         nrf24l01p_clear_tx_ds();
         led_off();
         nrf_tx_callback(1);
-        if (nrf_auto_tx_cnt) {
-            nrf_auto_tx_cnt--;
-        }
-    } else if (status & 0x10) { /* MAX_RT */
+    }
+    if (status & 0x10) { /* MAX_RT */
         nrf24l01p_flush_tx_fifo();
         nrf24l01p_clear_max_rt();
         led_off();
         nrf_tx_callback(0);
-        nrf_auto_tx_cnt = 0;
     }
 
-    if (nrf_auto) {
-        if (!nrf_auto_tx_cnt) {
-            nrf24l01p_rx_mode();
-        }
+    if (nrf_auto && (nrf24l01p_get_fifo_status() & 0x10)) { /* TX_EMPTY */
+        nrf24l01p_rx_mode();
     }
 }
 
@@ -230,15 +225,15 @@ void nrf24l01p_rx_set_payload_widths(uint8_t bytes) {
 }
 
 void nrf24l01p_clear_rx_dr(void) {
-    write_register(REG_STATUS, nrf24l01p_get_status() | 0x40);
+    write_register(REG_STATUS, 0x40); /* write-1-to-clear: this flag only */
 }
 
 void nrf24l01p_clear_tx_ds(void) {
-    write_register(REG_STATUS, nrf24l01p_get_status() | 0x20);
+    write_register(REG_STATUS, 0x20); /* write-1-to-clear: this flag only */
 }
 
 void nrf24l01p_clear_max_rt(void) {
-    write_register(REG_STATUS, nrf24l01p_get_status() | 0x10);
+    write_register(REG_STATUS, 0x10); /* write-1-to-clear: this flag only */
 }
 
 void nrf24l01p_power_up(void) {
