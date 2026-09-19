@@ -213,6 +213,21 @@ if args.status:
     print(f"CMD_NET_QUERY on {PORT}")
     send(s, CMD_NET_QUERY)
     cmd, data = recv(s)
+    # On the ESP32 targets, opening this port resets the chip (the native
+    # USB-Serial/JTAG controller's own auto-reset-on-open), which restarts
+    # WiFi association from scratch -- so the first reply can be a truthful
+    # "connecting" for a board that has actually been connected for a while.
+    # Poll instead of taking that first reply at face value: wait out the
+    # reassociation rather than reporting a snapshot from mid-reboot.
+    if cmd == 0x31 and parse_status(data) and parse_status(data)[0] == 1:
+        deadline = time.time() + 8.0
+        while time.time() < deadline:
+            time.sleep(0.5)
+            send(s, CMD_NET_QUERY)
+            cmd, data = recv(s)
+            parsed = parse_status(data) if cmd == 0x31 else None
+            if not parsed or parsed[0] != 1:
+                break
     name = REP_NAMES.get(cmd, hex(cmd) if cmd is not None else "no reply")
     print(f"  reply : {name}")
     if cmd == 0x31:
