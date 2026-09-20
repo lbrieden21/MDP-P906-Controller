@@ -904,6 +904,603 @@
         <property name="movable">
          <bool>false</bool>
         </property>
+        <widget class="QWidget" name="tabDischarge">
+         <attribute name="title">
+          <string>放电</string>
+         </attribute>
+         <layout class="QVBoxLayout" name="verticalLayout_dischargeTab">
+          <property name="spacing">
+           <number>4</number>
+          </property>
+          <property name="leftMargin">
+           <number>5</number>
+          </property>
+          <property name="topMargin">
+           <number>5</number>
+          </property>
+          <property name="rightMargin">
+           <number>5</number>
+          </property>
+          <property name="bottomMargin">
+           <number>5</number>
+          </property>
+          <item>
+           <widget class="QPushButton" name="btnDischargeRun">
+            <property name="text">
+             <string>开始放电</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QScrollArea" name="scrollAreaDischarge">
+            <property name="frameShape">
+             <enum>QFrame::NoFrame</enum>
+            </property>
+            <property name="lineWidth">
+             <number>0</number>
+            </property>
+            <property name="widgetResizable">
+             <bool>true</bool>
+            </property>
+            <widget class="QWidget" name="scrollAreaWidgetContentsDischarge">
+             <property name="geometry">
+              <rect>
+               <x>0</x>
+               <y>0</y>
+               <width>177</width>
+               <height>155</height>
+              </rect>
+             </property>
+             <layout class="QVBoxLayout" name="verticalLayout_dischargeScrollContents">
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_dischargeMode" stretch="1,2">
+                <item>
+                 <widget class="QLabel" name="label_dischargeMode">
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>28</height>
+                   </size>
+                  </property>
+                  <property name="font">
+                   <font>
+                    <family>Sarasa Fixed SC SemiBold</family>
+                   </font>
+                  </property>
+                  <property name="text">
+                   <string>模式</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                  <property name="margin">
+                   <number>6</number>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QComboBox" name="comboDischargeMode">
+                  <property name="maximumSize">
+                   <size>
+                    <width>80</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="font">
+                   <font>
+                    <family>Sarasa Fixed SC SemiBold</family>
+                   </font>
+                  </property>
+                  <item>
+                   <property name="text">
+                    <string>CC</string>
+                   </property>
+                  </item>
+                  <item>
+                   <property name="text">
+                    <string>CV</string>
+                   </property>
+                  </item>
+                  <item>
+                   <property name="text">
+                    <string>CR</string>
+                   </property>
+                  </item>
+                  <item>
+                   <property name="text">
+                    <string>CP</string>
+                   </property>
+                  </item>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_dischargeTarget" stretch="1,2">
+                <item>
+                 <widget class="QLabel" name="label_dischargeTarget">
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>28</height>
+                   </size>
+                  </property>
+                  <property name="font">
+                   <font>
+                    <family>Sarasa Fixed SC SemiBold</family>
+                   </font>
+                  </property>
+                  <property name="text">
+                   <string>目标值</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                  <property name="margin">
+                   <number>6</number>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QDoubleSpinBox" name="spinBoxDischargeTarget">
+                  <property name="maximumSize">
+                   <size>
+                    <width>80</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="font">
+                   <font>
+                    <family>Sarasa Fixed SC SemiBold</family>
+                   </font>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                  <property name="suffix">
+                   <string>A</string>
+                  </property>
+                  <property name="decimals">
+                   <number>3</number>
+                  </property>
+                  <property name="minimum">
+                   <double>0.000000000000000</double>
+                  </property>
+                  <property name="maximum">
+                   <double>10.000000000000000</double>
+                  </property>
+                  <property name="singleStep">
+                   <double>0.001000000000000</double>
+                  </property>
+                  <property name="value">
+                   <double>1.000000000000000</double>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_dischargeCutoff" stretch="1,2">
+                <item>
+                 <widget class="QLabel" name="label_dischargeCutoff">
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>28</height>
+                   </size>
+                  </property>
+                  <property name="font">
+                   <font>
+                    <family>Sarasa Fixed SC SemiBold</family>
+                   </font>
+                  </property>
+                  <property name="text">
+                   <string>截止电压</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                  <property name="margin">
+                   <number>6</number>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QDoubleSpinBox" name="spinBoxDischargeCutoff">
+                  <property name="maximumSize">
+                   <size>
+                    <width>80</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="toolTip">
+                   <string>截止判断使用 L1060 的测量电压：接入远端采样线时为采样端电压，未接入时为负载端子电压，两者相差引线压降。请按实际接线设置截止值。</string>
+                  </property>
+                  <property name="font">
+                   <font>
+                    <family>Sarasa Fixed SC SemiBold</family>
+                   </font>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                  <property name="suffix">
+                   <string>V</string>
+                  </property>
+                  <property name="decimals">
+                   <number>3</number>
+                  </property>
+                  <property name="minimum">
+                   <double>0.000000000000000</double>
+                  </property>
+                  <property name="maximum">
+                   <double>30.000000000000000</double>
+                  </property>
+                  <property name="singleStep">
+                   <double>0.100000000000000</double>
+                  </property>
+                  <property name="value">
+                   <double>0.000000000000000</double>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_dischargeMaxAh" stretch="1,2">
+                <item>
+                 <widget class="QCheckBox" name="checkBoxDischargeMaxAh">
+                  <property name="font">
+                   <font>
+                    <family>Sarasa Fixed SC SemiBold</family>
+                   </font>
+                  </property>
+                  <property name="text">
+                   <string>最大安时</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QDoubleSpinBox" name="spinBoxDischargeMaxAh">
+                  <property name="enabled">
+                   <bool>false</bool>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>80</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="font">
+                   <font>
+                    <family>Sarasa Fixed SC SemiBold</family>
+                   </font>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                  <property name="suffix">
+                   <string>Ah</string>
+                  </property>
+                  <property name="decimals">
+                   <number>3</number>
+                  </property>
+                  <property name="minimum">
+                   <double>0.001000000000000</double>
+                  </property>
+                  <property name="maximum">
+                   <double>999.999000000000024</double>
+                  </property>
+                  <property name="singleStep">
+                   <double>0.100000000000000</double>
+                  </property>
+                  <property name="value">
+                   <double>1.000000000000000</double>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_dischargeMaxWh" stretch="1,2">
+                <item>
+                 <widget class="QCheckBox" name="checkBoxDischargeMaxWh">
+                  <property name="font">
+                   <font>
+                    <family>Sarasa Fixed SC SemiBold</family>
+                   </font>
+                  </property>
+                  <property name="text">
+                   <string>最大瓦时</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QDoubleSpinBox" name="spinBoxDischargeMaxWh">
+                  <property name="enabled">
+                   <bool>false</bool>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>80</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="font">
+                   <font>
+                    <family>Sarasa Fixed SC SemiBold</family>
+                   </font>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                  <property name="suffix">
+                   <string>Wh</string>
+                  </property>
+                  <property name="decimals">
+                   <number>3</number>
+                  </property>
+                  <property name="minimum">
+                   <double>0.001000000000000</double>
+                  </property>
+                  <property name="maximum">
+                   <double>9999.999000000000524</double>
+                  </property>
+                  <property name="singleStep">
+                   <double>1.000000000000000</double>
+                  </property>
+                  <property name="value">
+                   <double>10.000000000000000</double>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_dischargeMaxDuration" stretch="1,2">
+                <item>
+                 <widget class="QCheckBox" name="checkBoxDischargeMaxDuration">
+                  <property name="font">
+                   <font>
+                    <family>Sarasa Fixed SC SemiBold</family>
+                   </font>
+                  </property>
+                  <property name="text">
+                   <string>最大时长</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QDoubleSpinBox" name="spinBoxDischargeMaxDuration">
+                  <property name="enabled">
+                   <bool>false</bool>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>80</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="font">
+                   <font>
+                    <family>Sarasa Fixed SC SemiBold</family>
+                   </font>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                  <property name="suffix">
+                   <string>min</string>
+                  </property>
+                  <property name="decimals">
+                   <number>1</number>
+                  </property>
+                  <property name="minimum">
+                   <double>0.100000000000000</double>
+                  </property>
+                  <property name="maximum">
+                   <double>1440.000000000000000</double>
+                  </property>
+                  <property name="singleStep">
+                   <double>1.000000000000000</double>
+                  </property>
+                  <property name="value">
+                   <double>60.000000000000000</double>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_dischargeElapsed" stretch="1,2">
+                <item>
+                 <widget class="QLabel" name="label_dischargeElapsed">
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>28</height>
+                   </size>
+                  </property>
+                  <property name="font">
+                   <font>
+                    <family>Sarasa Fixed SC SemiBold</family>
+                   </font>
+                  </property>
+                  <property name="text">
+                   <string>已用时间</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                  <property name="margin">
+                   <number>6</number>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLabel" name="labelDischargeElapsed">
+                  <property name="font">
+                   <font>
+                    <family>Sarasa Fixed SC SemiBold</family>
+                   </font>
+                  </property>
+                  <property name="text">
+                   <string>00:00:00</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_dischargeAh" stretch="1,2">
+                <item>
+                 <widget class="QLabel" name="label_dischargeAh">
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>28</height>
+                   </size>
+                  </property>
+                  <property name="font">
+                   <font>
+                    <family>Sarasa Fixed SC SemiBold</family>
+                   </font>
+                  </property>
+                  <property name="text">
+                   <string>已放电量</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                  <property name="margin">
+                   <number>6</number>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLabel" name="labelDischargeAh">
+                  <property name="font">
+                   <font>
+                    <family>Sarasa Fixed SC SemiBold</family>
+                   </font>
+                  </property>
+                  <property name="text">
+                   <string>0.0000 Ah</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_dischargeWh" stretch="1,2">
+                <item>
+                 <widget class="QLabel" name="label_dischargeWh">
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>28</height>
+                   </size>
+                  </property>
+                  <property name="font">
+                   <font>
+                    <family>Sarasa Fixed SC SemiBold</family>
+                   </font>
+                  </property>
+                  <property name="text">
+                   <string>已放电能量</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                  <property name="margin">
+                   <number>6</number>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLabel" name="labelDischargeWh">
+                  <property name="font">
+                   <font>
+                    <family>Sarasa Fixed SC SemiBold</family>
+                   </font>
+                  </property>
+                  <property name="text">
+                   <string>0.0000 Wh</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <widget class="QLabel" name="labelDischargeReason">
+                <property name="font">
+                 <font>
+                  <family>Sarasa Fixed SC SemiBold</family>
+                 </font>
+                </property>
+                <property name="text">
+                 <string/>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignCenter</set>
+                </property>
+                <property name="wordWrap">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QCheckBox" name="checkBoxDischargeLeaveOn">
+                <property name="font">
+                 <font>
+                  <family>Sarasa Fixed SC SemiBold</family>
+                 </font>
+                </property>
+                <property name="text">
+                 <string>结束后保持负载开启</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="btnDischargeSave">
+                <property name="font">
+                 <font>
+                  <family>Sarasa Fixed SC SemiBold</family>
+                 </font>
+                </property>
+                <property name="text">
+                 <string>保存CSV</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer name="verticalSpacer_discharge">
+                <property name="orientation">
+                 <enum>Qt::Vertical</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>20</width>
+                  <height>40</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+             </layout>
+            </widget>
+           </widget>
+          </item>
+         </layout>
+        </widget>
         <widget class="QWidget" name="tabPreset">
          <attribute name="title">
           <string>预设组</string>
@@ -1631,603 +2228,6 @@
               </item>
               <item>
                <spacer name="verticalSpacer_sweep">
-                <property name="orientation">
-                 <enum>Qt::Vertical</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>20</width>
-                  <height>40</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-             </layout>
-            </widget>
-           </widget>
-          </item>
-         </layout>
-        </widget>
-        <widget class="QWidget" name="tabDischarge">
-         <attribute name="title">
-          <string>放电</string>
-         </attribute>
-         <layout class="QVBoxLayout" name="verticalLayout_dischargeTab">
-          <property name="spacing">
-           <number>4</number>
-          </property>
-          <property name="leftMargin">
-           <number>5</number>
-          </property>
-          <property name="topMargin">
-           <number>5</number>
-          </property>
-          <property name="rightMargin">
-           <number>5</number>
-          </property>
-          <property name="bottomMargin">
-           <number>5</number>
-          </property>
-          <item>
-           <widget class="QPushButton" name="btnDischargeRun">
-            <property name="text">
-             <string>开始放电</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QScrollArea" name="scrollAreaDischarge">
-            <property name="frameShape">
-             <enum>QFrame::NoFrame</enum>
-            </property>
-            <property name="lineWidth">
-             <number>0</number>
-            </property>
-            <property name="widgetResizable">
-             <bool>true</bool>
-            </property>
-            <widget class="QWidget" name="scrollAreaWidgetContentsDischarge">
-             <property name="geometry">
-              <rect>
-               <x>0</x>
-               <y>0</y>
-               <width>177</width>
-               <height>155</height>
-              </rect>
-             </property>
-             <layout class="QVBoxLayout" name="verticalLayout_dischargeScrollContents">
-              <item>
-               <layout class="QHBoxLayout" name="horizontalLayout_dischargeMode" stretch="1,2">
-                <item>
-                 <widget class="QLabel" name="label_dischargeMode">
-                  <property name="minimumSize">
-                   <size>
-                    <width>0</width>
-                    <height>28</height>
-                   </size>
-                  </property>
-                  <property name="font">
-                   <font>
-                    <family>Sarasa Fixed SC SemiBold</family>
-                   </font>
-                  </property>
-                  <property name="text">
-                   <string>模式</string>
-                  </property>
-                  <property name="alignment">
-                   <set>Qt::AlignCenter</set>
-                  </property>
-                  <property name="margin">
-                   <number>6</number>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QComboBox" name="comboDischargeMode">
-                  <property name="maximumSize">
-                   <size>
-                    <width>80</width>
-                    <height>16777215</height>
-                   </size>
-                  </property>
-                  <property name="font">
-                   <font>
-                    <family>Sarasa Fixed SC SemiBold</family>
-                   </font>
-                  </property>
-                  <item>
-                   <property name="text">
-                    <string>CC</string>
-                   </property>
-                  </item>
-                  <item>
-                   <property name="text">
-                    <string>CV</string>
-                   </property>
-                  </item>
-                  <item>
-                   <property name="text">
-                    <string>CR</string>
-                   </property>
-                  </item>
-                  <item>
-                   <property name="text">
-                    <string>CP</string>
-                   </property>
-                  </item>
-                 </widget>
-                </item>
-               </layout>
-              </item>
-              <item>
-               <layout class="QHBoxLayout" name="horizontalLayout_dischargeTarget" stretch="1,2">
-                <item>
-                 <widget class="QLabel" name="label_dischargeTarget">
-                  <property name="minimumSize">
-                   <size>
-                    <width>0</width>
-                    <height>28</height>
-                   </size>
-                  </property>
-                  <property name="font">
-                   <font>
-                    <family>Sarasa Fixed SC SemiBold</family>
-                   </font>
-                  </property>
-                  <property name="text">
-                   <string>目标值</string>
-                  </property>
-                  <property name="alignment">
-                   <set>Qt::AlignCenter</set>
-                  </property>
-                  <property name="margin">
-                   <number>6</number>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QDoubleSpinBox" name="spinBoxDischargeTarget">
-                  <property name="maximumSize">
-                   <size>
-                    <width>80</width>
-                    <height>16777215</height>
-                   </size>
-                  </property>
-                  <property name="font">
-                   <font>
-                    <family>Sarasa Fixed SC SemiBold</family>
-                   </font>
-                  </property>
-                  <property name="alignment">
-                   <set>Qt::AlignCenter</set>
-                  </property>
-                  <property name="suffix">
-                   <string>A</string>
-                  </property>
-                  <property name="decimals">
-                   <number>3</number>
-                  </property>
-                  <property name="minimum">
-                   <double>0.000000000000000</double>
-                  </property>
-                  <property name="maximum">
-                   <double>10.000000000000000</double>
-                  </property>
-                  <property name="singleStep">
-                   <double>0.001000000000000</double>
-                  </property>
-                  <property name="value">
-                   <double>1.000000000000000</double>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
-              </item>
-              <item>
-               <layout class="QHBoxLayout" name="horizontalLayout_dischargeCutoff" stretch="1,2">
-                <item>
-                 <widget class="QLabel" name="label_dischargeCutoff">
-                  <property name="minimumSize">
-                   <size>
-                    <width>0</width>
-                    <height>28</height>
-                   </size>
-                  </property>
-                  <property name="font">
-                   <font>
-                    <family>Sarasa Fixed SC SemiBold</family>
-                   </font>
-                  </property>
-                  <property name="text">
-                   <string>截止电压</string>
-                  </property>
-                  <property name="alignment">
-                   <set>Qt::AlignCenter</set>
-                  </property>
-                  <property name="margin">
-                   <number>6</number>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QDoubleSpinBox" name="spinBoxDischargeCutoff">
-                  <property name="maximumSize">
-                   <size>
-                    <width>80</width>
-                    <height>16777215</height>
-                   </size>
-                  </property>
-                  <property name="toolTip">
-                   <string>截止判断使用 L1060 的测量电压：接入远端采样线时为采样端电压，未接入时为负载端子电压，两者相差引线压降。请按实际接线设置截止值。</string>
-                  </property>
-                  <property name="font">
-                   <font>
-                    <family>Sarasa Fixed SC SemiBold</family>
-                   </font>
-                  </property>
-                  <property name="alignment">
-                   <set>Qt::AlignCenter</set>
-                  </property>
-                  <property name="suffix">
-                   <string>V</string>
-                  </property>
-                  <property name="decimals">
-                   <number>3</number>
-                  </property>
-                  <property name="minimum">
-                   <double>0.000000000000000</double>
-                  </property>
-                  <property name="maximum">
-                   <double>30.000000000000000</double>
-                  </property>
-                  <property name="singleStep">
-                   <double>0.100000000000000</double>
-                  </property>
-                  <property name="value">
-                   <double>0.000000000000000</double>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
-              </item>
-              <item>
-               <layout class="QHBoxLayout" name="horizontalLayout_dischargeMaxAh" stretch="1,2">
-                <item>
-                 <widget class="QCheckBox" name="checkBoxDischargeMaxAh">
-                  <property name="font">
-                   <font>
-                    <family>Sarasa Fixed SC SemiBold</family>
-                   </font>
-                  </property>
-                  <property name="text">
-                   <string>最大安时</string>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QDoubleSpinBox" name="spinBoxDischargeMaxAh">
-                  <property name="enabled">
-                   <bool>false</bool>
-                  </property>
-                  <property name="maximumSize">
-                   <size>
-                    <width>80</width>
-                    <height>16777215</height>
-                   </size>
-                  </property>
-                  <property name="font">
-                   <font>
-                    <family>Sarasa Fixed SC SemiBold</family>
-                   </font>
-                  </property>
-                  <property name="alignment">
-                   <set>Qt::AlignCenter</set>
-                  </property>
-                  <property name="suffix">
-                   <string>Ah</string>
-                  </property>
-                  <property name="decimals">
-                   <number>3</number>
-                  </property>
-                  <property name="minimum">
-                   <double>0.001000000000000</double>
-                  </property>
-                  <property name="maximum">
-                   <double>999.999000000000024</double>
-                  </property>
-                  <property name="singleStep">
-                   <double>0.100000000000000</double>
-                  </property>
-                  <property name="value">
-                   <double>1.000000000000000</double>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
-              </item>
-              <item>
-               <layout class="QHBoxLayout" name="horizontalLayout_dischargeMaxWh" stretch="1,2">
-                <item>
-                 <widget class="QCheckBox" name="checkBoxDischargeMaxWh">
-                  <property name="font">
-                   <font>
-                    <family>Sarasa Fixed SC SemiBold</family>
-                   </font>
-                  </property>
-                  <property name="text">
-                   <string>最大瓦时</string>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QDoubleSpinBox" name="spinBoxDischargeMaxWh">
-                  <property name="enabled">
-                   <bool>false</bool>
-                  </property>
-                  <property name="maximumSize">
-                   <size>
-                    <width>80</width>
-                    <height>16777215</height>
-                   </size>
-                  </property>
-                  <property name="font">
-                   <font>
-                    <family>Sarasa Fixed SC SemiBold</family>
-                   </font>
-                  </property>
-                  <property name="alignment">
-                   <set>Qt::AlignCenter</set>
-                  </property>
-                  <property name="suffix">
-                   <string>Wh</string>
-                  </property>
-                  <property name="decimals">
-                   <number>3</number>
-                  </property>
-                  <property name="minimum">
-                   <double>0.001000000000000</double>
-                  </property>
-                  <property name="maximum">
-                   <double>9999.999000000000524</double>
-                  </property>
-                  <property name="singleStep">
-                   <double>1.000000000000000</double>
-                  </property>
-                  <property name="value">
-                   <double>10.000000000000000</double>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
-              </item>
-              <item>
-               <layout class="QHBoxLayout" name="horizontalLayout_dischargeMaxDuration" stretch="1,2">
-                <item>
-                 <widget class="QCheckBox" name="checkBoxDischargeMaxDuration">
-                  <property name="font">
-                   <font>
-                    <family>Sarasa Fixed SC SemiBold</family>
-                   </font>
-                  </property>
-                  <property name="text">
-                   <string>最大时长</string>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QDoubleSpinBox" name="spinBoxDischargeMaxDuration">
-                  <property name="enabled">
-                   <bool>false</bool>
-                  </property>
-                  <property name="maximumSize">
-                   <size>
-                    <width>80</width>
-                    <height>16777215</height>
-                   </size>
-                  </property>
-                  <property name="font">
-                   <font>
-                    <family>Sarasa Fixed SC SemiBold</family>
-                   </font>
-                  </property>
-                  <property name="alignment">
-                   <set>Qt::AlignCenter</set>
-                  </property>
-                  <property name="suffix">
-                   <string>min</string>
-                  </property>
-                  <property name="decimals">
-                   <number>1</number>
-                  </property>
-                  <property name="minimum">
-                   <double>0.100000000000000</double>
-                  </property>
-                  <property name="maximum">
-                   <double>1440.000000000000000</double>
-                  </property>
-                  <property name="singleStep">
-                   <double>1.000000000000000</double>
-                  </property>
-                  <property name="value">
-                   <double>60.000000000000000</double>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
-              </item>
-              <item>
-               <layout class="QHBoxLayout" name="horizontalLayout_dischargeElapsed" stretch="1,2">
-                <item>
-                 <widget class="QLabel" name="label_dischargeElapsed">
-                  <property name="minimumSize">
-                   <size>
-                    <width>0</width>
-                    <height>28</height>
-                   </size>
-                  </property>
-                  <property name="font">
-                   <font>
-                    <family>Sarasa Fixed SC SemiBold</family>
-                   </font>
-                  </property>
-                  <property name="text">
-                   <string>已用时间</string>
-                  </property>
-                  <property name="alignment">
-                   <set>Qt::AlignCenter</set>
-                  </property>
-                  <property name="margin">
-                   <number>6</number>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QLabel" name="labelDischargeElapsed">
-                  <property name="font">
-                   <font>
-                    <family>Sarasa Fixed SC SemiBold</family>
-                   </font>
-                  </property>
-                  <property name="text">
-                   <string>00:00:00</string>
-                  </property>
-                  <property name="alignment">
-                   <set>Qt::AlignCenter</set>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
-              </item>
-              <item>
-               <layout class="QHBoxLayout" name="horizontalLayout_dischargeAh" stretch="1,2">
-                <item>
-                 <widget class="QLabel" name="label_dischargeAh">
-                  <property name="minimumSize">
-                   <size>
-                    <width>0</width>
-                    <height>28</height>
-                   </size>
-                  </property>
-                  <property name="font">
-                   <font>
-                    <family>Sarasa Fixed SC SemiBold</family>
-                   </font>
-                  </property>
-                  <property name="text">
-                   <string>已放电量</string>
-                  </property>
-                  <property name="alignment">
-                   <set>Qt::AlignCenter</set>
-                  </property>
-                  <property name="margin">
-                   <number>6</number>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QLabel" name="labelDischargeAh">
-                  <property name="font">
-                   <font>
-                    <family>Sarasa Fixed SC SemiBold</family>
-                   </font>
-                  </property>
-                  <property name="text">
-                   <string>0.0000 Ah</string>
-                  </property>
-                  <property name="alignment">
-                   <set>Qt::AlignCenter</set>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
-              </item>
-              <item>
-               <layout class="QHBoxLayout" name="horizontalLayout_dischargeWh" stretch="1,2">
-                <item>
-                 <widget class="QLabel" name="label_dischargeWh">
-                  <property name="minimumSize">
-                   <size>
-                    <width>0</width>
-                    <height>28</height>
-                   </size>
-                  </property>
-                  <property name="font">
-                   <font>
-                    <family>Sarasa Fixed SC SemiBold</family>
-                   </font>
-                  </property>
-                  <property name="text">
-                   <string>已放电能量</string>
-                  </property>
-                  <property name="alignment">
-                   <set>Qt::AlignCenter</set>
-                  </property>
-                  <property name="margin">
-                   <number>6</number>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QLabel" name="labelDischargeWh">
-                  <property name="font">
-                   <font>
-                    <family>Sarasa Fixed SC SemiBold</family>
-                   </font>
-                  </property>
-                  <property name="text">
-                   <string>0.0000 Wh</string>
-                  </property>
-                  <property name="alignment">
-                   <set>Qt::AlignCenter</set>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
-              </item>
-              <item>
-               <widget class="QLabel" name="labelDischargeReason">
-                <property name="font">
-                 <font>
-                  <family>Sarasa Fixed SC SemiBold</family>
-                 </font>
-                </property>
-                <property name="text">
-                 <string/>
-                </property>
-                <property name="alignment">
-                 <set>Qt::AlignCenter</set>
-                </property>
-                <property name="wordWrap">
-                 <bool>true</bool>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QCheckBox" name="checkBoxDischargeLeaveOn">
-                <property name="font">
-                 <font>
-                  <family>Sarasa Fixed SC SemiBold</family>
-                 </font>
-                </property>
-                <property name="text">
-                 <string>结束后保持负载开启</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QPushButton" name="btnDischargeSave">
-                <property name="font">
-                 <font>
-                  <family>Sarasa Fixed SC SemiBold</family>
-                 </font>
-                </property>
-                <property name="text">
-                 <string>保存CSV</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <spacer name="verticalSpacer_discharge">
                 <property name="orientation">
                  <enum>Qt::Vertical</enum>
                 </property>
