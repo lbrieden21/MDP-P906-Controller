@@ -79,7 +79,7 @@ update_pyqtgraph_setting()
 class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainWindow
     close_signal = QtCore.pyqtSignal()
     panels_changed = QtCore.pyqtSignal()
-    data_fps = 50
+    data_fps = 10
     graph_record_flag = False
 
     def __init__(self, parent=None):

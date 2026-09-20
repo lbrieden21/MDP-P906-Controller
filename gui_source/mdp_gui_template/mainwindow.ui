@@ -330,8 +330,23 @@
                 <string>设备输出数据请求频率</string>
                </property>
                <property name="currentIndex">
-                <number>5</number>
+                <number>3</number>
                </property>
+               <item>
+                <property name="text">
+                 <string>1Hz</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>2Hz</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>5Hz</string>
+                </property>
+               </item>
                <item>
                 <property name="text">
                  <string>10Hz</string>
