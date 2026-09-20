@@ -1,3 +1,4 @@
+import queue
 import threading
 import time
 from copy import deepcopy
@@ -77,6 +78,14 @@ class MDPBus:
         self._match_wait_header = -1
         self._match_event = threading.Event()
 
+        # Fire-and-forget sends (transfer(wait_response=False)) are queued
+        # here instead of calling NRF24Adapter.nrf_send() inline, so the
+        # calling thread (typically the GUI thread, via a QTimer) never
+        # blocks on the local radio's own TX-ack -- see _send_worker().
+        self._send_queue: "queue.Queue[Optional[Tuple[object, bytes]]]" = queue.Queue()
+        self._send_thread = threading.Thread(target=self._send_worker, daemon=True)
+        self._send_thread.start()
+
         self._adp = NRF24Adapter(port=port, baudrate=baudrate, debug=debug)
         self._adp.nrf_register_recv_callback(self._on_recv)
 
@@ -154,26 +163,20 @@ class MDPBus:
         wait_response: bool = True,
         _retry: Optional[int] = None,
     ) -> bytes:
+        if not wait_response:
+            # Enqueue and return immediately -- _send_worker() does the
+            # actual nrf_send() (and its local-ack wait) on its own thread,
+            # taking self._lock itself for each job so ordering against
+            # waited transfers below is unchanged.
+            self._send_queue.put((owner, packet))
+            return b""
+
         with self._lock:
             if self._current_target != owner.address:
                 self._adp.nrf_set_tx_target(owner.address)
                 self._current_target = owner.address
 
-            context = (
-                f"pipe addr ..{owner.address[-1]:02X}, type 0x{packet[0]:02X}, "
-                f"{'waited' if wait_response else 'fire-and-forget'}"
-            )
-
-            if not wait_response:
-                if _retry is None:
-                    _retry = owner.com_retry
-                try:
-                    self._adp.nrf_send(packet, timeout=owner.com_timeout, context=context)
-                except NRF24AdapterError:
-                    if _retry > 0:
-                        return self.transfer(owner, packet, wait_response, _retry - 1)
-                    raise
-                return b""
+            context = f"pipe addr ..{owner.address[-1]:02X}, type 0x{packet[0]:02X}, waited"
 
             if _retry is None:
                 _retry = owner.com_retry
@@ -191,6 +194,37 @@ class MDPBus:
                     return self.transfer(owner, packet, wait_response, _retry - 1)
                 raise TimeoutError("NRF24 timeout")
             return owner._transfer_data
+
+    def _send_worker(self):
+        """Drains _send_queue on its own thread. Each job gets the same
+        target-switch + send + retry treatment transfer(wait_response=False)
+        used to do inline, just off whatever thread called transfer()."""
+        while True:
+            job = self._send_queue.get()
+            if job is None:
+                return
+            owner, packet = job
+            self._send_fire_and_forget(owner, packet)
+
+    def _send_fire_and_forget(self, owner, packet: bytes, _retry: Optional[int] = None):
+        with self._lock:
+            if self._current_target != owner.address:
+                self._adp.nrf_set_tx_target(owner.address)
+                self._current_target = owner.address
+
+            context = (
+                f"pipe addr ..{owner.address[-1]:02X}, type 0x{packet[0]:02X}, "
+                "fire-and-forget"
+            )
+            if _retry is None:
+                _retry = owner.com_retry
+            try:
+                self._adp.nrf_send(packet, timeout=owner.com_timeout, context=context)
+            except NRF24AdapterError:
+                if _retry > 0:
+                    self._send_fire_and_forget(owner, packet, _retry - 1)
+                elif self._debug:
+                    logger.debug(f"Fire-and-forget send failed after retries: {context}")
 
     def _match_transfer(self, packet: bytes) -> Optional[bytes]:
         self._match_data = b""
@@ -274,5 +308,10 @@ class MDPBus:
         return idcode.hex().upper(), pipe
 
     def close(self):
+        # Sentinel is FIFO-ordered behind whatever's already queued, so
+        # pending sends drain through the still-open adapter before the
+        # thread exits and the adapter itself closes.
+        self._send_queue.put(None)
+        self._send_thread.join()
         self._adp.close()
         logger.info("MDPBus closed")

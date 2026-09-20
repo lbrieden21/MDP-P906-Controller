@@ -44,6 +44,7 @@ class MDP_L1060:
         self._bus = bus
         self._idcode = idcode
         self._rtvalue_callback = None
+        self._status_callback = None
 
         self._mode = "CC"
         self._targets: Dict[str, float] = {"CC": 1.0, "CV": 5.0, "CR": 100.0, "CP": 10.0}
@@ -149,6 +150,15 @@ class MDP_L1060:
 
     def register_realtime_value_callback(self, callback: Callable[[list], None]):
         self._rtvalue_callback = callback
+
+    def request_status(self) -> bool:
+        if self._status_callback is not None:
+            self._status_callback(self.get_status())
+            return True
+        return False
+
+    def register_status_callback(self, callback: Callable[[tuple], None]):
+        self._status_callback = callback
 
     def request_target_page(self) -> bool:
         return True

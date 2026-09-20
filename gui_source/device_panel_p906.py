@@ -48,7 +48,6 @@ from device_panel import (
     DevicePanelBase,
 )
 from mdp_controller import MDP_P906
-from mdp_controller.nrf24_adapter import NRF24AdapterError
 from mdp_custom import CustomInputDialog, CustomMessageBox
 from mdp_gui_template import Ui_DevicePanelP906
 from settings_model import SETTING_FILE, setting
@@ -342,9 +341,9 @@ class P906DevicePanel(DevicePanelBase):
     def update_state(self):
         if self.api is None:
             return
-        try:
-            status = self.api.get_status()
-        except (TimeoutError, NRF24AdapterError):
+        with self._status_lock:
+            status = self._latest_status
+        if status is None:
             return
         (
             State,

@@ -80,6 +80,8 @@ class MDP_L1060(MDPDevice):
                 self._status["Voltage"] = result["voltage"]
                 self._status["Current"] = result["current"]
                 self._status["AnchorValid"] = True
+            if self._status_callback is not None:
+                self._status_callback(self._status_tuple())
         elif data[0] == 8:
             # Type-8 carries wrapped deltas, so it is only decodable against a
             # Type-7 anchor -- unwrapping against a zero/stale reference would
@@ -139,6 +141,22 @@ class MDP_L1060(MDPDevice):
         except (TimeoutError, NRF24AdapterError):
             return False
 
+    def _status_tuple(
+        self,
+    ) -> Tuple[str, Optional[bool], Optional[bool], float, float, float, float, int, Optional[str], bool]:
+        return (
+            self._status["LoadMode"],
+            self._status["LoadActive"],
+            self._status["LoadEnabled"],
+            self._status["Temperature"],
+            self._status["InputVoltage"],
+            self._status["Voltage"],
+            self._status["Current"],
+            self._status["ErrFlag"],
+            self._status["Protection"],
+            self._status["ProtectionLatched"],
+        )
+
     def get_status(
         self,
     ) -> Tuple[str, Optional[bool], Optional[bool], float, float, float, float, int, Optional[str], bool]:
@@ -171,18 +189,7 @@ class MDP_L1060(MDPDevice):
                 self._idcode, self._m01_channel, blink=self._blink
             )
         )
-        return (
-            self._status["LoadMode"],
-            self._status["LoadActive"],
-            self._status["LoadEnabled"],
-            self._status["Temperature"],
-            self._status["InputVoltage"],
-            self._status["Voltage"],
-            self._status["Current"],
-            self._status["ErrFlag"],
-            self._status["Protection"],
-            self._status["ProtectionLatched"],
-        )
+        return self._status_tuple()
 
     def request_target_page(self) -> bool:
         """

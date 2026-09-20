@@ -28,7 +28,6 @@ from l1060_aux import (
     parse_sequence_lines,
 )
 from mdp_controller import MDP_L1060
-from mdp_controller.nrf24_adapter import NRF24AdapterError
 from mdp_custom import CustomInputDialog, CustomMessageBox
 from mdp_gui_template import Ui_DevicePanelL1060
 from settings_model import SETTING_FILE, setting
@@ -793,6 +792,8 @@ class L1060DevicePanel(DevicePanelBase):
         )
         if not filename:
             return
+        if not filename.lower().endswith(".txt"):
+            filename += ".txt"
         lines = [
             self.ui.listSequence.item(i).text()
             for i in range(self.ui.listSequence.count())
@@ -1036,6 +1037,8 @@ class L1060DevicePanel(DevicePanelBase):
         )
         if not filename:
             return
+        if not filename.lower().endswith(".csv"):
+            filename += ".csv"
         rd = RecordData(DISCHARGE_CHANNELS)
         for row in self._discharge_acc.rows:
             rd.add_values(
@@ -1144,9 +1147,9 @@ class L1060DevicePanel(DevicePanelBase):
     def update_state(self):
         if self.api is None:
             return
-        try:
-            status = self.api.get_status()
-        except (TimeoutError, NRF24AdapterError):
+        with self._status_lock:
+            status = self._latest_status
+        if status is None:
             return
         (
             LoadMode,

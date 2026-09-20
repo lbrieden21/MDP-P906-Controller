@@ -1,5 +1,6 @@
+import threading
 import time
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import numpy as np
 from PyQt5 import QtCore, QtWidgets
@@ -77,6 +78,11 @@ class DevicePanelBase(QtWidgets.QWidget):
         self.linked = False
         self.record_flag = False
         self.record_data = None
+        # Written by _on_status() on NRF24Adapter._worker's thread, read by
+        # update_state_timer on the GUI thread -- same idiom as state_lcd_timer
+        # reading store under store.sync_lock, no bus I/O on the GUI thread.
+        self._latest_status: Optional[tuple] = None
+        self._status_lock = threading.Lock()
 
     def set_capture(self, capture: GraphCapture) -> None:
         """Bind this panel and its store to a different GraphCapture. The
@@ -145,6 +151,7 @@ class DevicePanelBase(QtWidgets.QWidget):
             raise
         self.api = api
         self.api.register_realtime_value_callback(self.state_callback)
+        self.api.register_status_callback(self._on_status)
         t = time.perf_counter()
         self.capture.forget(self.device_id)
         self.store.eng_start_time = t
@@ -181,6 +188,13 @@ class DevicePanelBase(QtWidgets.QWidget):
     def request_state(self):
         if self.api is not None:
             self.api.request_realtime_value()
+            self.api.request_status()
+
+    def _on_status(self, status: tuple):
+        """Runs on NRF24Adapter._worker's thread. Stash only -- no widget
+        writes here; update_state_timer reads this back on the GUI thread."""
+        with self._status_lock:
+            self._latest_status = status
 
     def update_state(self) -> None:
         raise NotImplementedError

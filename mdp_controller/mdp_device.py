@@ -88,6 +88,7 @@ class MDPDevice:
         self._transfer_event = Event()
 
         self._rtvalue_callback: Optional[Callable[[list], None]] = None
+        self._status_callback: Optional[Callable[[tuple], None]] = None
 
     @property
     def idcode(self) -> Optional[bytes]:
@@ -209,6 +210,43 @@ class MDPDevice:
             The callback will be called in a separate thread. get_realtime_value() will also trigger the callback like request_realtime_value(), but in blocking mode.
         """
         self._rtvalue_callback = callback
+
+    def request_status(self) -> bool:
+        """
+        Request the status packet (Type-7) in async mode.
+
+        Note:
+            Should call register_status_callback() first.
+
+        Returns:
+            bool: True if success, False if failed.
+        """
+        assert self._idcode is not None, "Please pair first"
+        try:
+            self._transfer(
+                mdp_protocal.gen_get_type7(
+                    self._idcode, self._m01_channel, blink=self._blink
+                ),
+                wait_response=False,
+            )
+            return True
+        except (TimeoutError, NRF24AdapterError):
+            return False
+
+    def register_status_callback(self, callback: Callable[[tuple], None]):
+        """
+        Register a callback function to handle the status packet in async mode.
+
+        Args:
+            callback (Callable[[tuple], None]): A function that takes the same
+                tuple get_status() returns.
+
+        Note:
+            The callback will be called in a separate thread, on every
+            Type-7 response the device parses -- both from request_status()
+            and from get_status()'s own blocking call.
+        """
+        self._status_callback = callback
 
     def set_led_color(self, rgb: Tuple[int, int, int]):
         """

@@ -92,6 +92,8 @@ class MDP_P906(MDPDevice):
             self._status["State"] = {0: "off", 1: "cc", 2: "cv", 3: "on"}[state]
             self._status["Temperature"] = temperature
             self._status["RealtimeOutput4"] = realtime_adc
+            if self._status_callback is not None:
+                self._status_callback(self._status_tuple())
         elif data[0] == 9:
             idcode, HVzero16, HVgain16, HCzero04, HCgain04, model = (
                 mdp_protocal.parse_type9_response(data)
@@ -122,6 +124,33 @@ class MDP_P906(MDPDevice):
         else:
             return False
         return True
+
+    def _status_tuple(
+        self,
+    ) -> Tuple[
+        str,
+        bool,
+        float,
+        float,
+        float,
+        float,
+        float,
+        int,
+        List[Tuple[float, float]],
+        str,
+    ]:
+        return (
+            self._status["State"],
+            self._status["Locked"],
+            self._status["SetVoltage"],
+            self._status["SetCurrent"],
+            self._status["InputVoltage"],
+            self._status["InputCurrent"],
+            self._status["Temperature"],
+            self._status["ErrFlag"],
+            self._status["RealtimeOutput4"],
+            self._status["Model"],
+        )
 
     def get_status(
         self,
@@ -162,18 +191,7 @@ class MDP_P906(MDPDevice):
                 self._idcode, self._m01_channel, blink=self._blink
             )
         )
-        return (
-            self._status["State"],
-            self._status["Locked"],
-            self._status["SetVoltage"],
-            self._status["SetCurrent"],
-            self._status["InputVoltage"],
-            self._status["InputCurrent"],
-            self._status["Temperature"],
-            self._status["ErrFlag"],
-            self._status["RealtimeOutput4"],
-            self._status["Model"],
-        )
+        return self._status_tuple()
 
     def set_output(self, state: bool):
         """

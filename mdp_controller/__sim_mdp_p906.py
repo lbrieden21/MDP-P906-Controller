@@ -47,6 +47,7 @@ class MDP_P906:
         self._bus = bus
         self._idcode = idcode
         self._rtvalue_callback = None
+        self._status_callback = None
         self._output_state = False
         self._voltage_set = 5
         self._current_set = 5
@@ -170,6 +171,31 @@ class MDP_P906:
             The callback will be called in a separate thread. get_realtime_value() will also trigger the callback like request_realtime_value(), but in blocking mode.
         """
         self._rtvalue_callback = callback
+
+    def request_status(self) -> bool:
+        """
+        Request the status packet (Type-7) in async mode.
+
+        Note:
+            Should call register_status_callback() first.
+
+        Returns:
+            bool: True if success, False if failed.
+        """
+        if self._status_callback is not None:
+            self._status_callback(self.get_status())
+            return True
+        return False
+
+    def register_status_callback(self, callback: Callable[[tuple], None]):
+        """
+        Register a callback function to handle the status packet in async mode.
+
+        Args:
+            callback (Callable[[tuple], None]): A function that takes the same
+                tuple get_status() returns.
+        """
+        self._status_callback = callback
 
     def set_output(self, state: bool):
         """
