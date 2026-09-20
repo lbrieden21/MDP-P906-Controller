@@ -48,7 +48,7 @@ A lot of time was spent optimizing the communication quality based on this proje
   - Plotting scanning response curves (for discovering load characteristics)
 - Function generator (sine/square/triangle/sawtooth/random)
 - Operation sequence (single or loop execution of action sequences)
-- Battery simulator (supports custom battery voltage curves/capacity/internal resistance/series-connection settings)
+- Battery simulator (supports custom battery voltage curves/capacity/internal resistance/series-connection settings; ships with Li-ion, LiFePO4, lead-acid, NiMH, alkaline, and zinc-carbon discharge curves)
 - Battery charger: chemistry-preset CC/CV (or NiMH −ΔV) charging with cutoff-current/time/Ah/Wh stop conditions and CSV export (see [P906 Battery Charge](#p906-battery-charge) below)
 - MDP-L1060 electronic load support: mode-aware parameter sweep, sequence automation, and battery discharge testing (see [L1060 Auxiliary Tools](#l1060-electronic-load-auxiliary-tools) below)
 - Multi-device support: connect and monitor several power supplies at once, each with its own panel and independent link/unlink control

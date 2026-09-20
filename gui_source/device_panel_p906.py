@@ -153,9 +153,16 @@ class P906DevicePanel(DevicePanelBase):
         self.refresh_preset()
         self.get_preset("1")
         self.close_state_ui()
-        self.load_battery_model(
-            os.path.join(os.path.dirname(__file__), "Li-ion.csv")
-        )
+        battery_curve_dir = os.path.join(os.path.dirname(__file__), "battery_curves")
+        for chem in (
+            "LiFePO4",
+            "Lead-acid",
+            "NiMH",
+            "Alkaline",
+            "Zinc-carbon",
+            "Li-ion",
+        ):
+            self.load_battery_model(os.path.join(battery_curve_dir, f"{chem}.csv"))
         # qdarktheme's global stylesheet (applied once, at startup, after this
         # constructor runs) clobbers the .ui-set minimumSize on QLCDNumber
         # widgets. Re-assert it once the event loop is actually running (show()

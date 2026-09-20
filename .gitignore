@@ -21,6 +21,7 @@ settings.json
 *.psd
 *.log
 *.csv
+!/gui_source/battery_curves/*.csv
 *.svg
 
 # vendored trees, fetched by tools/fetch_vendor.py (see nrf_adapter_source/README.md)
