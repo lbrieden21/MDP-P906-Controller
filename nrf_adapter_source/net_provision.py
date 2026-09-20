@@ -171,8 +171,18 @@ def open_port(baud=DEFAULT_BAUD):
     return s
 
 
+def band_of(channel):
+    """Band implied by an 802.11 primary channel number, or None if the
+    channel is 0 (wired link, not connected, or the adapter could not read
+    it). 1-14 is 2.4GHz; everything above is 5GHz on the parts this tree
+    supports -- no 6GHz-capable board is in the lineup."""
+    if not channel:
+        return None
+    return "2.4GHz" if channel <= 14 else "5GHz"
+
+
 def parse_status(data):
-    if data is None or len(data) < 16:
+    if data is None or len(data) < 17:
         return None
     state = data[0]
     mode = data[1]
@@ -180,9 +190,10 @@ def parse_status(data):
     mask = data[6:10]
     gw = data[10:14]
     rssi = data[14] - 256 if data[14] >= 128 else data[14]
-    ssid_len = data[15]
-    ssid = data[16:16 + ssid_len].decode(errors="replace")
-    return state, mode, ip, mask, gw, rssi, ssid
+    channel = data[15]
+    ssid_len = data[16]
+    ssid = data[17:17 + ssid_len].decode(errors="replace")
+    return state, mode, ip, mask, gw, rssi, channel, ssid
 
 
 def print_status(data):
@@ -190,7 +201,7 @@ def print_status(data):
     if parsed is None:
         print("  malformed REP_NET_STATUS payload:", data.hex() if data else None)
         return
-    state, mode, ip, mask, gw, rssi, ssid = parsed
+    state, mode, ip, mask, gw, rssi, channel, ssid = parsed
     print(f"  state : {STATE_NAMES.get(state, state)}")
     print(f"  mode  : {MODE_NAMES.get(mode, mode)}")
     # A static config is meaningful as soon as it's stored, link or no link --
@@ -205,6 +216,9 @@ def print_status(data):
     if state == 2 and ssid:
         print(f"  rssi  : {rssi} dBm")
         print(f"  ssid  : {ssid}")
+        band = band_of(channel)
+        if band is not None:
+            print(f"  channel : {channel} ({band})")
 
 
 s = open_port()

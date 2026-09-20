@@ -147,6 +147,16 @@ def start():
         app.quit()
         return
 
+    # store.append() only writes the ring buffer -- and so only advances
+    # update_count, which is what the sample counts below are read from --
+    # while the panel's capture is running. The GUI starts that from the
+    # graph view's button or its auto-start trigger, neither of which exists
+    # in a headless run, so start it here explicitly.
+    t_start = time.perf_counter()
+    for panel in state["linked"]:
+        if not panel.capture.running:
+            panel.capture.start(t_start)
+
     state["t0"] = time.perf_counter()
     # Sample counts are taken from the moment linking finished, so the
     # connect() handshake and the boot-deaf wait are not charged against the
@@ -181,10 +191,15 @@ def stop():
     print()
     print(f"== {elapsed:.1f}s run ==")
     for name, model, count in rows:
-        print(f"  {name:<12} {model:<6} {count:6d} samples   {count / elapsed:6.1f}/s")
+        print(f"  {name:<12} {model:<6} {count:6d} samples   {count / elapsed:6.1f} samples/s")
     if speed is not None:
         print(f"  link {speed[0] / 1024:.1f} KB/s, adapter-reported error rate {speed[1] * 100:.2f}%")
     print()
+    # A realtime packet carries several samples, and avgmode collapses a
+    # 9-sample batch to 3 or 1, so samples/s is req/s times a per-device,
+    # settings-dependent factor. Request rate comes from counting
+    # 'NRF received' lines in a TRACE log, not from here.
+    print("samples/s is NOT a request rate -- count 'NRF received' lines for that.")
     print("Now run: venv/bin/python tools/noack_report.py gui_source/mdp.log")
 
     from loguru import logger

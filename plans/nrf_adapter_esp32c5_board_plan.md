@@ -406,3 +406,121 @@ and never hit by a C5 on its native port.
 - No byte-identical or image-size regression gate; sizes moving under 5.5.5 is expected.
 - No changes to `readme.md`.
 - Commits are the user's to make, don't mention them, don't mention that things are uncomitted. Dont tell the user its his to commit. These are all obvious.
+
+---
+
+## Follow-up measurement — 2026-09-19, hardware-verified: band control
+
+Added after the fact. Phase 4 and its results section above are left exactly as written.
+Phase 4 recorded 5GHz as **untested** because the bench AP was 2.4GHz-only; a dual-band AP
+is now available, so this section closes that gap. No firmware change was kept.
+
+### Band locking works, and where the call has to go
+
+`esp_wifi_set_band_mode(WIFI_BAND_MODE_2G_ONLY)` / `WIFI_BAND_MODE_5G_ONLY` does what it
+says on the C5 under IDF v5.5.5. **It must be called after `esp_wifi_start()`** — called
+before, it returns `ESP_ERR_WIFI_NOT_STARTED` and the band is unchanged.
+`sdkconfig.defaults.esp32c5` needs no change to support either mode.
+
+This was established with a temporary edit to `wifi_sta.c` used only to force each band for
+the runs below. **That edit has been fully reverted and the C5 is back on stock firmware** —
+band locking is not in the tree, and Phase 4's "Not doing: no band lock or 5GHz-specific
+code" still stands as the current state. The finding is recorded so that the decision can be
+revisited with data rather than re-derived.
+
+Because the IDF default is auto/both-band, the band a station associates on was not visible
+from the host: `wifi_sta.c` read `ap_info` and discarded it, so `REP_NET_STATUS` carried no
+channel, and the band had to be confirmed from the AP's own UI for the runs below. **That gap
+is now closed** — see "Channel reporting" at the end of this section.
+
+### Method
+
+Same board, same VLAN8, same session, same AP — **only the band varied**. This is the
+controlled comparison Phase 4 step 9 could not run.
+
+Throughput is counted from `NRF received (pipe N)` lines in the TRACE log over the polling
+window (first to last such line), not from the GUI's printed `samples/s`. That printed
+figure counts samples, not requests, and is not a request rate — see the correction section
+in `nrf_adapter_teensy_ethernet_link_plan.md`. The `req/s (notes)` column is the same packet
+count over the whole-log span, which includes the ~2.3-2.7s connect and boot-deaf prelude
+and so reads about 4% low; it is kept only for traceability.
+
+**Pipe labels have changed** since Phase 4: current addressing is base `0E:4C:B9:EF:E0` @
+channel 73, **`..E1` = P906 (pipe 1)**, **`..E2` = L1060 (pipe 2)**. Earlier sections of this
+document use the pre-2026-08-17 scheme.
+
+All runs 60s, both devices linked, two runs per condition, `mdp.log` rotated before each.
+Floods were throttled UDP aimed at the board's IP on an unused port, verified sustained at
+1498pps / 2.00 MB/s across the full window. One 5GHz-under-load run reconnected mid-run
+(two `NRF configure success` markers in its log); it was sliced to the final window before
+counting.
+
+### Results
+
+| Condition | req/s, polling window (run1 / run2) | req/s (notes) | no-ack (run1 / run2) |
+|---|---|---|---|
+| 5GHz idle (RTT 1.873ms, mdev 0.43) | 91.0 / 85.8 | 87.1 / 82.1 | 0.44% (24/5517) / 0.75% (39/5189) |
+| 5GHz + 2MB/s UDP flood | 74.0 / 73.0 | 72.7 / 69.8 | 1.85% (84/4542) / 0.90% (40/4437) |
+| 2.4GHz idle (RTT 9.362ms, mdev 19.3) | 71.5 / 68.5 | 68.9 / 65.9 | 0.76% (33/4330) / 0.73% (30/4098) |
+| 2.4GHz + 2MB/s UDP flood | 22.9 / 21.2 | 22.1 / 20.5 | 23.54% (479/2035) / 43.87% (1035/2359) |
+
+### What this shows
+
+1. **5GHz substantially removes the coexistence penalty.** Under the same flood, 2.4GHz
+   costs 23.5-43.9% no-acks and roughly two-thirds of the request rate; 5GHz costs 0.9-1.85%
+   and retains about 84% of its idle rate. That is the difference between a link that is
+   degraded and one that is unusable.
+2. **5GHz is also faster when idle** — 85.8-91.0/s against 68.5-71.5/s — consistent with the
+   RTT gap (1.873ms vs 9.362ms) and with the 2.4GHz band's far worse jitter (mdev 19.3 vs
+   0.43) on this bench.
+3. **This only appears under a synthetic flood aimed at the adapter.** Every idle row on
+   every board and band in this session sat under 1% no-acks, and no real-world problem on
+   2.4GHz has been reported. The flood is a stress condition, not normal operation.
+4. **The loss is lopsided across pipes under 2.4GHz load**: the L1060 pipe (`..E2`) lost
+   31.6% and 54.9% of its sends against the P906 pipe's (`..E1`) 9.8% and 17.3%. The 5GHz
+   load runs show the same shape far smaller (3.2%/1.4% against 0.32%/0.38%). No cause is
+   offered for the asymmetry.
+5. Run-to-run spread on the 2.4GHz flood rows is large (23.54% vs 43.87%) — two runs is the
+   minimum here, and a single figure from this condition would be meaningless.
+
+### Bearing on the "no band lock" decision
+
+The Phase 4 decision to leave the IDF's auto/both-band default alone was made without 5GHz
+data. With it: the default is still the right one for a station that may meet a 2.4GHz-only
+AP, and locking to 5GHz would remove working capability. What the data does support is
+making the associated band **observable** — a 2.4GHz association has a measurable cost under
+load, and the host had no way to tell which band it got. That argues for the `ap_info.primary`
+field, not for a lock. The field was implemented; the lock was not.
+
+### Channel reporting — implemented 2026-09-19
+
+`REP_NET_STATUS` now carries the associated primary channel, so the band is verifiable from
+the host instead of from the AP's UI. Full cutover, no compatibility shim: the payload grew
+by one byte and every producer and consumer moved with it.
+
+- `platform.h` — `net_status_t` gains `uint8_t channel` beside `rssi`; documented as 0 on a
+  wired link or when not connected, alongside the existing "only meaningful when connected"
+  rule.
+- `core/protocol.c` — `CMD_NET_QUERY`'s reply payload goes from 16 to 17 bytes, channel
+  inserted after `rssi` and before `ssid_len`. The SSID still follows the fixed header, so its
+  offset moves from 16 to 17.
+- `targets/esp32/main/wifi_sta.c` — the WiFi build fills it from `ap_info.primary`, the value
+  it already fetched and discarded. Zeroed in the not-connected path. The non-WiFi stub
+  returns 0 (unsupported) and never fills the struct, so it needed no change.
+- `targets/teensy4x/net_eth.cpp` — both branches set `channel = 0` beside `rssi = 0`; a wired
+  link has no channel.
+- `net_provision.py` — parses the new layout and prints `channel : 36 (5GHz)` under the
+  existing rssi/ssid lines, via a `band_of()` helper (1-14 → 2.4GHz, above → 5GHz; no 6GHz
+  part is in the lineup). Its short-payload guard moves from 16 to 17. The other call sites
+  only read `parsed[0]`, so they were unaffected.
+
+The stm32f030, stm32f103 and teensy3x targets stub `net_status()` to return 0 and never touch
+the struct, so they were not changed.
+
+**Verified:** `ESP32C5` `HOST_LINK_WIFI` and `ESP32C6` plain both build clean under IDF
+v5.5.5; `TEENSY41 ETH=1` builds clean at the unchanged 130368/24256 baseline size; stm32f030,
+stm32f103, teensy3x and plain `TEENSY41` all build clean with no new warnings. `parse_status()`
+round-trips a synthetic 5GHz payload and rejects a 16-byte one. **Not verified on hardware** —
+no board was flashed and no live `--status` was run against a real association.
+
+No band lock was added. The IDF auto/both-band default still stands, per Phase 4's "Not doing".

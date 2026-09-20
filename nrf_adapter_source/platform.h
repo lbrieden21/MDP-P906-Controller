@@ -66,10 +66,11 @@ void host_link_set_baudrate(uint32_t baudrate);
    to DHCP). Teensy Ethernet only for now -- every other target, WiFi
    included, stubs this to return 0 and reports mode = DHCP from net_status().
    net_status(): fills state (0 disconnected, 1 connecting, 2 connected),
-   mode (0 DHCP, 1 static), ip/mask/gw, rssi (dBm; 0 on a wired link) and
-   ssid (NUL-terminated, up to 32 chars + terminator; empty on a wired link).
-   ip/mask/gw/rssi/ssid are only meaningful when connected; returns 0
-   only for "unsupported", not for "not yet connected". */
+   mode (0 DHCP, 1 static), ip/mask/gw, rssi (dBm; 0 on a wired link),
+   channel (associated primary channel; 0 on a wired link or when unknown)
+   and ssid (NUL-terminated, up to 32 chars + terminator; empty on a wired
+   link). ip/mask/gw/rssi/channel/ssid are only meaningful when connected;
+   returns 0 only for "unsupported", not for "not yet connected". */
 typedef struct {
     uint8_t mode; /* 0 DHCP, 1 static */
     uint8_t ip[4], mask[4], gw[4];
@@ -79,8 +80,9 @@ typedef struct {
     uint8_t state; /* 0 disconnected, 1 connecting, 2 connected */
     uint8_t mode;
     uint8_t ip[4], mask[4], gw[4];
-    int8_t rssi;    /* dBm; 0 on wired links */
-    char ssid[33];  /* NUL-terminated; empty on wired links */
+    int8_t rssi;      /* dBm; 0 on wired links */
+    uint8_t channel;  /* associated primary channel; 0 on wired links */
+    char ssid[33];    /* NUL-terminated; empty on wired links */
 } net_status_t;
 
 int net_creds_save(const char *ssid, const char *pass);

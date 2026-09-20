@@ -594,7 +594,7 @@ protocol, same multiceiver pipe routing, same unmodified `core/`.
 
 | `BOARD` | WiFi | Notes |
 |---|---|---|
-| `ESP32C5` | WiFi 6 (2.4 / 5GHz) | dual-band part, `esp_wifi_set_band_mode()` never called so the IDF default (auto, both bands) stands; only 2.4GHz was exercised here, the bench AP has no 5GHz radio |
+| `ESP32C5` | WiFi 6 (2.4 / 5GHz) | dual-band part, `esp_wifi_set_band_mode()` never called so the IDF default (auto, both bands) stands; both bands exercised. `--status` reports the associated channel, which is how to tell which band it landed on |
 | `ESP32C6` | WiFi 6 (2.4GHz) | |
 | `ESP32S3` | WiFi 4 | |
 | `ESP32` (WROOM-32) | WiFi 4 | wired link is UART0, same as `HOST_LINK_UART0` above |
@@ -619,7 +619,7 @@ CMD_NET_* commands for its own status/IP query):
 
 ```sh
 venv/bin/python net_provision.py --port /dev/ttyACM0 --ssid MyNetwork --password hunter2
-venv/bin/python net_provision.py --port /dev/ttyACM0 --status   # SSID, DHCP address, RSSI
+venv/bin/python net_provision.py --port /dev/ttyACM0 --status   # SSID, DHCP address, RSSI, channel/band
 venv/bin/python net_provision.py --port /dev/ttyACM0 --clear    # erase stored credentials
 ```
 

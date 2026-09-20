@@ -656,3 +656,92 @@ Teensy mux — it is the model, and its comments carry the routing rationale.
 
 **Not touched:** `mdp_controller/`, `gui_source/`, `core/nrf24l01p.c`, `pins.h`, and the
 three bench test scripts. Their `tcp://` support already exists.
+
+---
+
+## Follow-up measurement — 2026-09-19, hardware-verified
+
+Added after the fact. Phase 5's text above is left exactly as written; this section
+records a later head-to-head re-measurement and corrects one number in it. Nothing
+here changes firmware.
+
+### Correction to Phase 5 step 7
+
+Phase 5 step 7 reports **149.6/s and 149.9/s** per device over `tcp://`, read as
+"comfortably above this board's own ~118 req/s wired baseline". That reading does not
+hold: the two figures are not the same quantity.
+
+The GUI counter those numbers came from is `DeviceDataStore.update_count`, which
+`_advance()` raises by `len_` — the number of *samples in the batch* — not by one per
+request (`device_core.py:213`, `device_panel.py:204,254`). A single realtime packet
+carries several samples, and `device_panel.py:233-244` then collapses a 9-sample batch
+to 3 or 1 depending on the panel's `avgmode` setting. So `samples/s` is
+`req/s × samples-per-packet`, with a factor that is per-device and settings-dependent.
+It is not a request rate and is not comparable to the `~118 req/s` baseline, which was a
+genuine bus request rate (derived from the ~8ms wired round trip recorded in the ESP32
+WiFi link plan).
+
+Measured as actual requests on 2026-09-19, on the same Teensy 4.1, the bus carries
+**~117-122 requests/s in total (~58-61/s per device)** over `tcp://` — the same as over
+USB on the same board in the same session, and a clean reproduction of the ~118 baseline.
+Ethernet is not 27% faster than wired. Its advantage is load immunity, shown below.
+
+Phase 5's no-ack figures, watchdog timings and pass/fail results are unaffected — only
+step 7's throughput reading is.
+
+### Method
+
+Throughput here is counted directly from the TRACE log: `NRF received (pipe N)` lines
+over the span from the first to the last such line (the polling window). The adapter's
+own send count agrees with it to within one frame. The GUI's printed `samples/s` is not
+used at all, for the reason above.
+
+The `req/s (notes)` column below is retained for traceability: it is the same packet
+count divided by the *whole-log* span, which includes the ~2.3-2.7s of connect handshake
+and boot-deaf wait before any request flows. That denominator reads about 4% low. The
+polling-window column is the request rate.
+
+**Pipe labels have changed.** Every earlier section of this document predates the
+2026-08-17 address change and reads `..E2` = P906 / `..E3` = L1060. Current addressing
+is base `0E:4C:B9:EF:E0` @ channel 73, **`..E1` = P906 (pipe 1)**, **`..E2` = L1060
+(pipe 2)**. Do not compare the pipe labels below against Phase 5's without applying that
+remap. `tools/noack_report.py` reports these as `unknown@E1` / `unknown@E2`.
+
+All runs 60s, both devices linked, two runs per condition, `mdp.log` rotated before each.
+Every flood was a throttled UDP stream aimed at the adapter's IP on an unused port,
+verified sustained at 1498pps / 2.00 MB/s across the full window — unlike Phase 5 step 9,
+whose flood turned out to be a short burst rather than a sustained load.
+
+### Results
+
+| Condition | req/s, polling window (run1 / run2) | req/s (notes) | no-ack (run1 / run2) |
+|---|---|---|---|
+| Ethernet, VLAN2 routed (RTT 0.461ms) | 117.0 / 121.1 | 112.7 / 116.7 | 0.34% (24/7047) / 0.22% (16/7262) |
+| Ethernet, VLAN2 + 2MB/s UDP flood | 121.2 / 121.1 | 116.7 / 116.6 | 0.26% (19/7236) / 0.30% (22/7315) |
+| Ethernet, VLAN8 direct (RTT 0.160ms) | 121.7 / 122.3 | 116.5 / 117.2 | 0.23% (17/7301) / 0.30% (22/7415) |
+| USB CDC, same board | 122.6\* / 121.4 | 112.4\* / 117.9 | 0.37% (9/2426)\* / 0.26% (19/7290) |
+| ESP32-C6 WiFi, VLAN2 (RTT 3.108ms) | 75.7 / 78.3 | 72.5 / 74.9 | 0.61% (28/4602) / 0.82% (39/4728) |
+| ESP32-C6 WiFi + 2MB/s UDP flood | 30.5 / 30.0 | 29.2 / 28.7 | 33.09% (869/2626) / 30.28% (791/2612) |
+
+\* The USB run1 log covers a 20s window, not 60s. Its rate is consistent with run2 but it
+is a short sample; run2 is the one to quote.
+
+### What this shows
+
+1. **Ethernet and USB are indistinguishable on throughput** on this board — 117-122/s
+   either way, with the spread inside run-to-run noise. Routing the link through a VLAN
+   (RTT 0.461ms) rather than a direct segment (RTT 0.160ms) costs nothing measurable
+   either.
+2. **Ethernet is immune to the flood.** 2MB/s of UDP aimed straight at the adapter moved
+   neither throughput (121.2/121.1 vs 117.0/121.1) nor no-acks (0.26-0.30% vs
+   0.22-0.34%). This is the genuine advantage over WiFi, and it is what Phase 5 step 9
+   was reaching for but did not sustain a load long enough to demonstrate.
+3. **The same flood destroys the C6 WiFi link**: throughput falls from ~76/s to ~30/s and
+   no-acks go from under 1% to 30-33%. Against the same flood on the same bench, the two
+   transports are not in the same category.
+4. **Idle WiFi already costs ~40% of the request rate** (~76/s vs ~120/s), which tracks
+   the RTT difference (3.108ms vs 0.461ms) rather than anything radio-side.
+5. **Under load the loss is lopsided across pipes.** On the C6 flood runs the L1060 pipe
+   (`..E2`) lost 44.2% and 41.3% of its sends while the P906 pipe (`..E1`) lost 11.3% and
+   9.3% — roughly 4x. The idle and Ethernet rows show no such split. This document does
+   not offer a cause for the asymmetry.

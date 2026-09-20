@@ -134,6 +134,7 @@ extern "C" int net_status(net_status_t *out) {
     bool valid = net_store_load(&rec);
     out->mode = valid ? rec.mode : 0;
     out->rssi = 0;
+    out->channel = 0;
     out->ssid[0] = '\0';
 
     bool link = Ethernet.linkState();
@@ -184,6 +185,7 @@ extern "C" int net_status(net_status_t *out) {
     }
     out->state = 0;
     out->rssi = 0;
+    out->channel = 0;
     out->ssid[0] = '\0';
     return 1;
 }

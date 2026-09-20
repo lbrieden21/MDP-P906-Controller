@@ -272,6 +272,7 @@ int net_status(net_status_t *out) {
     memset(out->mask, 0, sizeof(out->mask));
     memset(out->gw, 0, sizeof(out->gw));
     out->rssi = 0;
+    out->channel = 0;
     out->ssid[0] = '\0';
 
     if (s_state != STA_CONNECTED) {
@@ -281,6 +282,10 @@ int net_status(net_status_t *out) {
     wifi_ap_record_t ap_info;
     if (esp_wifi_sta_get_ap_info(&ap_info) == ESP_OK) {
         out->rssi = (int8_t)ap_info.rssi;
+        /* Primary channel, not the secondary/extension one -- this is what
+           identifies the band the station actually associated on, which the
+           IDF's default auto band mode otherwise leaves invisible to the host. */
+        out->channel = ap_info.primary;
         memcpy(out->ssid, ap_info.ssid, sizeof(ap_info.ssid)); /* uint8_t ssid[33], NUL-terminated by IDF */
         out->ssid[32] = '\0';
     }

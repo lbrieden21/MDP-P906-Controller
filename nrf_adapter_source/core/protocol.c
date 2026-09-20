@@ -244,11 +244,11 @@ static void handle_command(uint8_t cmd, uint8_t *data, size_t len) {
             while (ssid_len < 32 && ns.ssid[ssid_len]) {
                 ssid_len++;
             }
-            uint8_t out[16] = {ns.state,   ns.mode,
+            uint8_t out[17] = {ns.state,   ns.mode,
                                 ns.ip[0],   ns.ip[1],   ns.ip[2],   ns.ip[3],
                                 ns.mask[0], ns.mask[1], ns.mask[2], ns.mask[3],
                                 ns.gw[0],   ns.gw[1],   ns.gw[2],   ns.gw[3],
-                                (uint8_t)ns.rssi, ssid_len};
+                                (uint8_t)ns.rssi, ns.channel, ssid_len};
             uart_send_packet(REP_NET_STATUS, out, sizeof(out),
                              (const uint8_t *)ns.ssid, ssid_len);
             break;
