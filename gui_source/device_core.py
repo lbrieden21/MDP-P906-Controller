@@ -38,21 +38,27 @@ class GraphCapture:
     serial/TCP worker thread, so every field here is protected by a lock --
     an RLock because start()/stop() are called both directly and from
     inside check_start()/check_stop(), which already hold it.
+
+    start_device_id and stop_device_id are independent -- the start
+    trigger and the stop trigger can watch two different devices -- so
+    each keeps its own crossing baseline.
     """
 
     def __init__(self, on_auto_start=None, on_auto_stop=None) -> None:
         self._lock = RLock()
         self.running = False
         self.origin: Optional[float] = None
-        self.device_id: Optional[str] = None
+        self.start_device_id: Optional[str] = None
+        self.stop_device_id: Optional[str] = None
         self.start_mode = "off"
         self.start_threshold = 0.0
         self.stop_mode = "off"
         self.stop_threshold = 0.0
-        # Watched device's last reading relative to the *active* trigger's
+        # Watched device's last reading relative to its trigger's
         # threshold: True (below), False (at or above), None (no baseline
         # yet -- the next reading only seeds it, it can't itself trigger).
-        self._last_below: Optional[bool] = None
+        self._start_last_below: Optional[bool] = None
+        self._stop_last_below: Optional[bool] = None
         self.on_auto_start = on_auto_start if on_auto_start is not None else lambda: None
         self.on_auto_stop = on_auto_stop if on_auto_stop is not None else lambda: None
 
@@ -61,14 +67,12 @@ class GraphCapture:
             self.running = True
             if self.origin is None:
                 self.origin = t
-            # The stop trigger measures against a different threshold, so
-            # the start trigger's baseline can't be reused for it.
-            self._last_below = None
+            self._stop_last_below = None
 
     def stop(self) -> None:
         with self._lock:
             self.running = False
-            self._last_below = None
+            self._start_last_below = None
 
     def clear(self, t: float) -> None:
         with self._lock:
@@ -76,57 +80,62 @@ class GraphCapture:
 
     def set_triggers(
         self,
-        device_id: Optional[str],
+        start_device_id: Optional[str],
         start_mode: str,
         start_threshold: float,
+        stop_device_id: Optional[str],
         stop_mode: str,
         stop_threshold: float,
     ) -> None:
         with self._lock:
-            self.device_id = device_id
+            self.start_device_id = start_device_id
             self.start_mode = start_mode
             self.start_threshold = start_threshold
+            self.stop_device_id = stop_device_id
             self.stop_mode = stop_mode
             self.stop_threshold = stop_threshold
-            self._last_below = None
+            self._start_last_below = None
+            self._stop_last_below = None
 
     def forget(self, device_id: str) -> None:
-        """Drop the crossing baseline for `device_id` -- called on link and
-        unlink so a device's history from before it was (or after it
-        stops being) watched never contributes a stale crossing."""
+        """Drop the crossing baseline(s) watching `device_id` -- called on
+        link and unlink so a device's history from before it was (or after
+        it stops being) watched never contributes a stale crossing."""
         with self._lock:
-            if device_id == self.device_id:
-                self._last_below = None
+            if device_id == self.start_device_id:
+                self._start_last_below = None
+            if device_id == self.stop_device_id:
+                self._stop_last_below = None
 
-    def _check_crossing(self, mode, threshold, voltages, currents, rising: bool) -> bool:
+    @staticmethod
+    def _check_crossing(last_below, mode, threshold, voltages, currents, rising: bool):
         """Walk `voltages` or `currents` (per `mode`) in order, looking for
         a below/at-or-above crossing in the direction `rising` says.
         Crossings inside a single batch count -- this doesn't just compare
-        the batch's first and last readings."""
+        the batch's first and last readings. Returns the (possibly
+        updated) baseline and whether a crossing fired."""
         series = voltages if mode == "voltage" else currents
+        crossed = False
         for reading in series:
             below = reading < threshold
-            if self._last_below is None:
+            if last_below is None:
                 # The first reading ever seen only seeds the baseline.
-                self._last_below = below
+                last_below = below
                 continue
-            crossed = (
-                self._last_below and not below
-                if rising
-                else not self._last_below and below
-            )
-            self._last_below = below
-            if crossed:
-                return True
-        return False
+            if (last_below and not below) if rising else (not last_below and below):
+                crossed = True
+            last_below = below
+        return last_below, crossed
 
     def check_start(self, device_id: str, voltages, currents, t: float) -> bool:
         with self._lock:
-            if self.running or self.start_mode == "off" or device_id != self.device_id:
+            if self.running or self.start_mode == "off" or device_id != self.start_device_id:
                 return False
-            if self._check_crossing(
-                self.start_mode, self.start_threshold, voltages, currents, rising=True
-            ):
+            self._start_last_below, crossed = self._check_crossing(
+                self._start_last_below, self.start_mode, self.start_threshold,
+                voltages, currents, rising=True,
+            )
+            if crossed:
                 self.start(t)
                 self.on_auto_start()
                 return True
@@ -134,11 +143,13 @@ class GraphCapture:
 
     def check_stop(self, device_id: str, voltages, currents) -> bool:
         with self._lock:
-            if not self.running or self.stop_mode == "off" or device_id != self.device_id:
+            if not self.running or self.stop_mode == "off" or device_id != self.stop_device_id:
                 return False
-            if self._check_crossing(
-                self.stop_mode, self.stop_threshold, voltages, currents, rising=False
-            ):
+            self._stop_last_below, crossed = self._check_crossing(
+                self._stop_last_below, self.stop_mode, self.stop_threshold,
+                voltages, currents, rising=False,
+            )
+            if crossed:
                 self.stop()
                 self.on_auto_stop()
                 return True

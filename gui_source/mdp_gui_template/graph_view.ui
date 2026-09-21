@@ -341,7 +341,7 @@
        </spacer>
       </item>
       <item>
-       <widget class="QLabel" name="labelGraphTriggerDevice">
+       <widget class="QLabel" name="labelGraphStartDevice">
         <property name="maximumSize">
          <size>
           <width>40</width>
@@ -354,7 +354,7 @@
          </font>
         </property>
         <property name="toolTip">
-         <string>触发设备</string>
+         <string>开始触发设备</string>
         </property>
         <property name="text">
          <string>设备</string>
@@ -362,7 +362,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QComboBox" name="comboGraphTriggerDevice">
+       <widget class="QComboBox" name="comboGraphStartDevice">
         <property name="maximumSize">
          <size>
           <width>90</width>
@@ -375,7 +375,7 @@
          </font>
         </property>
         <property name="toolTip">
-         <string>触发设备</string>
+         <string>开始触发设备</string>
         </property>
         <property name="editable">
          <bool>false</bool>
@@ -472,6 +472,51 @@
         </property>
         <property name="value">
          <double>1.000000000000000</double>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="labelGraphStopDevice">
+        <property name="maximumSize">
+         <size>
+          <width>40</width>
+          <height>16777215</height>
+         </size>
+        </property>
+        <property name="font">
+         <font>
+          <family>Sarasa Fixed SC SemiBold</family>
+         </font>
+        </property>
+        <property name="toolTip">
+         <string>停止触发设备</string>
+        </property>
+        <property name="text">
+         <string>设备</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QComboBox" name="comboGraphStopDevice">
+        <property name="maximumSize">
+         <size>
+          <width>90</width>
+          <height>16777215</height>
+         </size>
+        </property>
+        <property name="font">
+         <font>
+          <family>Sarasa Fixed SC SemiBold</family>
+         </font>
+        </property>
+        <property name="toolTip">
+         <string>停止触发设备</string>
+        </property>
+        <property name="editable">
+         <bool>false</bool>
+        </property>
+        <property name="sizeAdjustPolicy">
+         <enum>QComboBox::AdjustToContentsOnFirstShow</enum>
         </property>
        </widget>
       </item>

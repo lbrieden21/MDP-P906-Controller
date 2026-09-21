@@ -157,10 +157,13 @@ class UiSettings:
         # "shared" (one graph section for every device) or "separate" (one
         # graph section per device, each with its own capture).
         self.graph_layout = "shared"
-        # Device id whose triggers drive the shared graph section; "" means
-        # "the first device". Unused in the "separate" graph layout, where
-        # each section uses its own device's triggers.
-        self.graph_trigger_device = ""
+        # Device ids whose triggers drive the shared graph section's Start
+        # and Stop controls; "" means "the first device". Independent, so
+        # Start and Stop can watch different devices. Unused in the
+        # "separate" graph layout, where each section uses its own
+        # device's triggers.
+        self.graph_start_device = ""
+        self.graph_stop_device = ""
 
 
 class Setting:

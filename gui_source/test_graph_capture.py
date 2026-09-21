@@ -24,7 +24,7 @@ def append_sample(store, v, i, t1):
 class GraphCaptureStartTriggerTest(unittest.TestCase):
     def _capture(self, threshold=1.0, mode="voltage", device_id="dev"):
         capture = GraphCapture()
-        capture.set_triggers(device_id, mode, threshold, "off", 0.0)
+        capture.set_triggers(device_id, mode, threshold, device_id, "off", 0.0)
         return capture
 
     def test_first_reading_at_or_above_does_not_trigger(self):
@@ -84,14 +84,14 @@ class GraphCaptureStartTriggerTest(unittest.TestCase):
 class GraphCaptureStopTriggerTest(unittest.TestCase):
     def _capture(self, threshold=1.0, mode="voltage", device_id="dev", start_t=0.0):
         capture = GraphCapture()
-        capture.set_triggers(device_id, "off", 0.0, mode, threshold)
+        capture.set_triggers(device_id, "off", 0.0, device_id, mode, threshold)
         capture.start(start_t)
         return capture
 
     def test_above_then_below_stops_and_calls_on_auto_stop(self):
         calls = []
         capture = GraphCapture(on_auto_stop=lambda: calls.append(1))
-        capture.set_triggers("dev", "off", 0.0, "voltage", 1.0)
+        capture.set_triggers("dev", "off", 0.0, "dev", "voltage", 1.0)
         capture.start(0.0)
         self.assertFalse(capture.check_stop("dev", [1.5], []))
         self.assertTrue(capture.check_stop("dev", [0.5], []))
@@ -109,14 +109,14 @@ class GraphCaptureStopTriggerTest(unittest.TestCase):
 
     def test_stop_trigger_ignored_while_stopped(self):
         capture = GraphCapture()
-        capture.set_triggers("dev", "off", 0.0, "voltage", 1.0)
+        capture.set_triggers("dev", "off", 0.0, "dev", "voltage", 1.0)
         self.assertFalse(capture.check_stop("dev", [1.5], []))
         self.assertFalse(capture.check_stop("dev", [0.5], []))
         self.assertFalse(capture.running)
 
     def test_start_on_voltage_with_stop_on_current_behaves_independently(self):
         capture = GraphCapture()
-        capture.set_triggers("dev", "voltage", 1.0, "current", 0.5)
+        capture.set_triggers("dev", "voltage", 1.0, "dev", "current", 0.5)
 
         capture.check_start("dev", [0.5], [10.0], t=0.0)  # seeds voltage baseline
         self.assertTrue(capture.check_start("dev", [1.5], [0.0], t=1.0))
@@ -124,6 +124,28 @@ class GraphCaptureStopTriggerTest(unittest.TestCase):
 
         capture.check_stop("dev", [10.0], [1.0])  # seeds current baseline
         self.assertTrue(capture.check_stop("dev", [0.0], [0.3]))
+        self.assertFalse(capture.running)
+
+    def test_start_and_stop_can_watch_different_devices(self):
+        capture = GraphCapture()
+        capture.set_triggers("dev-a", "voltage", 1.0, "dev-b", "voltage", 1.0)
+
+        # dev-b readings never arm/fire the start trigger.
+        self.assertFalse(capture.check_start("dev-b", [0.5], [], t=0.0))
+        self.assertFalse(capture.check_start("dev-b", [1.5], [], t=1.0))
+        self.assertFalse(capture.running)
+
+        self.assertFalse(capture.check_start("dev-a", [0.5], [], t=2.0))
+        self.assertTrue(capture.check_start("dev-a", [1.5], [], t=3.0))
+        self.assertTrue(capture.running)
+
+        # dev-a readings never fire the stop trigger once running.
+        self.assertFalse(capture.check_stop("dev-a", [1.5], []))
+        self.assertFalse(capture.check_stop("dev-a", [0.5], []))
+        self.assertTrue(capture.running)
+
+        self.assertFalse(capture.check_stop("dev-b", [1.5], []))
+        self.assertTrue(capture.check_stop("dev-b", [0.5], []))
         self.assertFalse(capture.running)
 
 
