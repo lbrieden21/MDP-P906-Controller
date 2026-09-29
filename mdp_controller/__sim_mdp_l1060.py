@@ -166,6 +166,11 @@ class MDP_L1060:
     def get_targets(self) -> Dict[str, float]:
         return dict(self._targets)
 
+    def get_target_times(self) -> Dict[str, float]:
+        # Sim targets change synchronously on set_*, so every page is current.
+        now = time.perf_counter()
+        return {mode: now for mode in self._targets}
+
     def set_current(self, current_a: float):
         logger.info(f"Set L1060 CC target: {current_a}")
         self._targets["CC"] = current_a

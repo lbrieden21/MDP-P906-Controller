@@ -1,7 +1,6 @@
 import datetime
 import math
 import os
-import random
 import time
 from typing import List, Tuple
 
@@ -207,8 +206,6 @@ class P906DevicePanel(DevicePanelBase):
         self.state_lcd_timer.timeout.connect(self.update_state_lcd)
         self.func_sweep_timer = QtCore.QTimer(self)
         self.func_sweep_timer.timeout.connect(self.func_sweep)
-        self.func_wave_gen_timer = QtCore.QTimer(self)
-        self.func_wave_gen_timer.timeout.connect(self.func_wave_gen)
         self.func_keep_power_timer = QtCore.QTimer(self)
         self.func_keep_power_timer.timeout.connect(self.func_keep_power)
         self.func_seq_timer = QtCore.QTimer(self)
@@ -241,7 +238,6 @@ class P906DevicePanel(DevicePanelBase):
         self.ui.comboPresetEdit.currentTextChanged.connect(self.get_preset)
         self.ui.spinBoxVoltage.valueChanged.connect(self.voltage_changed)
         self.ui.spinBoxCurrent.valueChanged.connect(self.current_changed)
-        self.ui.comboWaveGenType.currentTextChanged.connect(self.set_wavegen_type)
         self.ui.spinBoxVoltage.lineEdit().cursorPositionChanged.connect(
             lambda *args: self.set_step(self.ui.spinBoxVoltage, *args)
         )
@@ -467,8 +463,6 @@ class P906DevicePanel(DevicePanelBase):
         self.state_lcd_timer.stop()
         if self.func_sweep_timer.isActive():
             self.stop_func_sweep()
-        if self.func_wave_gen_timer.isActive():
-            self.stop_func_wave_gen()
         if self.func_keep_power_timer.isActive():
             self.stop_func_keep_power()
         if self.func_seq_timer.isActive():
@@ -738,99 +732,6 @@ class P906DevicePanel(DevicePanelBase):
             self.v_set = self._sweep_temp
         elif self._sweep_target == "current":
             self.i_set = self._sweep_temp
-
-    ######### 辅助功能-发生器 #########
-
-    @QtCore.pyqtSlot()
-    def on_btnWaveGen_clicked(self):
-        if self.func_wave_gen_timer.isActive():
-            self.stop_func_wave_gen()
-        else:
-            if self._refuse_during_charge(self.ui.btnWaveGen):
-                return
-            self._wavegen_type = self.ui.comboWaveGenType.currentText()
-            self._wavegen_period = self.ui.spinBoxWaveGenPeriod.value()
-            self._wavegen_highlevel = self.ui.spinBoxWaveGenHigh.value()
-            self._wavegen_lowlevel = self.ui.spinBoxWaveGenLow.value()
-            self._wavegen_loopfreq = self.ui.spinBoxWaveGenLoopFreq.value()
-            try:
-                assert self._wavegen_highlevel > self._wavegen_lowlevel
-                assert self._wavegen_period > 0
-                assert self._wavegen_loopfreq > 0
-            except Exception:
-                self.ui.btnWaveGen.setText(self.tr("非法参数"))
-                QtCore.QTimer.singleShot(
-                    1000, lambda: self.ui.btnWaveGen.setText(self.tr("功能已关闭"))
-                )
-                return
-            self.ui.btnWaveGen.setText(self.tr("功能已开启"))
-            self.ui.spinBoxWaveGenLoopFreq.setEnabled(False)
-            self.ui.spinBoxVoltage.setEnabled(False)
-            self._wavegen_start_time = 0
-
-            def start_wave_gen():
-                self._wavegen_start_time = time.perf_counter()
-                self.func_wave_gen_timer.start(round(1000 / self._wavegen_loopfreq))
-                self.v_set = self._wavegen_lowlevel
-
-            self.v_set = self._wavegen_lowlevel
-            self.wait_output_stable(start_wave_gen)
-
-    def stop_func_wave_gen(self):
-        self.func_wave_gen_timer.stop()
-        self.ui.btnWaveGen.setText(self.tr("功能已关闭"))
-        self.ui.spinBoxWaveGenLoopFreq.setEnabled(True)
-        self.ui.spinBoxVoltage.setEnabled(True)
-
-    def set_wavegen_type(self, _):
-        self._wavegen_type = self.ui.comboWaveGenType.currentText()
-
-    @QtCore.pyqtSlot()
-    def on_spinBoxWaveGenPeriod_editingFinished(self):
-        self._wavegen_period = self.ui.spinBoxWaveGenPeriod.value()
-
-    @QtCore.pyqtSlot()
-    def on_spinBoxWaveGenHigh_editingFinished(self):
-        self._wavegen_highlevel = self.ui.spinBoxWaveGenHigh.value()
-
-    @QtCore.pyqtSlot()
-    def on_spinBoxWaveGenLow_editingFinished(self):
-        self._wavegen_lowlevel = self.ui.spinBoxWaveGenLow.value()
-
-    def func_wave_gen(self):
-        t = time.perf_counter() - self._wavegen_start_time
-        if self._wavegen_type == self.tr("正弦波"):
-            voltage = (
-                self._wavegen_lowlevel
-                + (self._wavegen_highlevel - self._wavegen_lowlevel)
-                * (math.sin(2 * math.pi / self._wavegen_period * t) + 1.0)
-                / 2
-            )
-        elif self._wavegen_type == self.tr("方波"):
-            voltage = (
-                self._wavegen_highlevel
-                if math.sin(2 * math.pi / self._wavegen_period * t) > 0
-                else self._wavegen_lowlevel
-            )
-        elif self._wavegen_type == self.tr("三角波"):
-            mul = (t / self._wavegen_period) % 2
-            mul = mul if mul < 1 else 2 - mul
-            voltage = (
-                self._wavegen_lowlevel
-                + (self._wavegen_highlevel - self._wavegen_lowlevel) * mul
-            )
-        elif self._wavegen_type == self.tr("锯齿波"):
-            voltage = (self._wavegen_highlevel - self._wavegen_lowlevel) * (
-                (t / self._wavegen_period) % 1
-            ) + self._wavegen_lowlevel
-        elif self._wavegen_type == self.tr("噪音"):
-            voltage = random.uniform(self._wavegen_lowlevel, self._wavegen_highlevel)
-        else:
-            voltage = 0
-        voltage = max(
-            min(voltage, self._wavegen_highlevel), self._wavegen_lowlevel
-        )  # 限幅
-        self.v_set = voltage
 
     ######### 辅助功能-功率保持 #########
 
@@ -1377,10 +1278,12 @@ class P906DevicePanel(DevicePanelBase):
         self.ui.listSeq.clear()
         for line in lines:
             try:
-                _ = line.split(" ")
+                _ = line.split()
                 assert len(_) == 3
                 assert _[0] in ["WAIT", "DELAY", "SET-V", "SET-I"]
-                if _[0] != "WAIT":
+                if _[0] == "WAIT":
+                    datetime.datetime.strptime(f"{_[1]} {_[2]}", "%Y-%m-%d %H:%M:%S")
+                else:
                     assert _[2] in ["ms", "V", "A"]
                     float(_[1])
                 self.ui.listSeq.addItem(line)
@@ -1402,7 +1305,6 @@ class P906DevicePanel(DevicePanelBase):
             timer.isActive()
             for timer in (
                 self.func_sweep_timer,
-                self.func_wave_gen_timer,
                 self.func_keep_power_timer,
                 self.func_seq_timer,
                 self.func_bat_sim_timer,

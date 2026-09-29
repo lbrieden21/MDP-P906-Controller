@@ -61,7 +61,10 @@ class MDP_L1060(MDPDevice):
             "Current": 0.0,
             "AnchorValid": False,
             "RealtimeOutput9": [(0.0, 0.0) for _ in range(9)],
-            "Targets": {"CC": 0.0, "CV": 0.0, "CR": 0.0, "CP": 0.0},
+            # Only modes whose Type-10 page has arrived, with its arrival
+            # time (perf_counter) alongside.
+            "Targets": {},
+            "TargetTimes": {},
             "Protection": None,
             "ProtectionLatched": False,
         }
@@ -115,6 +118,7 @@ class MDP_L1060(MDPDevice):
                 self._status["InputVoltage"] = result["input_voltage"]
             if result["page"] is not None:
                 self._status["Targets"][result["page"]] = result["target_value"]
+                self._status["TargetTimes"][result["page"]] = time.perf_counter()
             protection_latched = bool(result["errflag"]) and result["load_enabled"] is False
             self._status["ProtectionLatched"] = protection_latched
             self._status["Protection"] = result["protection"] if protection_latched else None
@@ -215,12 +219,23 @@ class MDP_L1060(MDPDevice):
 
     def get_targets(self) -> Dict[str, float]:
         """
-        Get the last-known target setpoints for all four modes.
+        Get the last-known target setpoints the device has reported.
 
         Returns:
-            Dict[str, float]: {"CC": amps, "CV": volts, "CR": ohms, "CP": watts}
+            Dict[str, float]: a subset of {"CC": amps, "CV": volts, "CR": ohms,
+            "CP": watts} -- a mode is absent until its target page first lands.
         """
         return dict(self._status["Targets"])
+
+    def get_target_times(self) -> Dict[str, float]:
+        """
+        Get when each mode's target page last landed.
+
+        Returns:
+            Dict[str, float]: time.perf_counter() of the latest page per mode,
+            with the same keys as get_targets().
+        """
+        return dict(self._status["TargetTimes"])
 
     def set_current(self, current_a: float):
         """Set the CC-mode target current, in A."""

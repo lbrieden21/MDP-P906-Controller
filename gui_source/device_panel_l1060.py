@@ -1,4 +1,5 @@
 import datetime
+import math
 import time
 
 import numpy as np
@@ -139,6 +140,9 @@ _DISCHARGE_TICK_MS = 200
 # Polling cadence for Delay/Wait boundaries and cross-mode SET writes -- not
 # the P906 1 ms busy timer (see l1060_workflows_plan.md Phase 3).
 _SEQUENCE_TICK_MS = 50
+# A target page landing sooner than this after the panel wrote that target
+# may answer a request queued ahead of the write, so it isn't synced back.
+_TARGET_ECHO_GUARD_S = 0.5
 
 
 class L1060DevicePanel(DevicePanelBase):
@@ -168,6 +172,13 @@ class L1060DevicePanel(DevicePanelBase):
         self._temp_f = 0.0
         self._load_commanded_on = False
         self._protection_latched = False
+        # The device's targets are authoritative and update_state_lcd syncs
+        # them into settings.l1060_targets. _staged_targets are the modes
+        # edited here but not yet written (cross-mode edits under a live load,
+        # presets); they are the only ones _flush_pending_targets writes.
+        # _target_write_t holds each mode's last write, for the echo guard.
+        self._staged_targets = set()
+        self._target_write_t = {}
         # Auxiliary-workflow run coordinator (Sweep/Discharge/Sequence, added
         # in later phases). _active_aux is None or one of
         # _AUX_LEAVE_ON_CHECKBOX's keys. _aux_start_widgets is populated by
@@ -289,8 +300,7 @@ class L1060DevicePanel(DevicePanelBase):
         if self.api is None:
             return
         if not self._load_commanded_on:
-            self.api.select_mode(mode)
-            self._push_target(mode, self.settings.l1060_targets[mode])
+            self._flush_pending_targets(mode)
             return
         # Mimic the front panel's "Turn off before SET" interlock: cycle the
         # load off to apply the mode change, then back on.
@@ -317,10 +327,13 @@ class L1060DevicePanel(DevicePanelBase):
             self.api.set_resistance(value)
         elif mode == "CP":
             self.api.set_power(value)
+        self._target_write_t[mode] = time.perf_counter()
+        self._staged_targets.discard(mode)
 
     def _flush_pending_targets(self, desired_mode: str):
         for mode in ("CC", "CV", "CR", "CP"):
-            self._push_target(mode, self.settings.l1060_targets[mode])
+            if mode in self._staged_targets:
+                self._push_target(mode, self.settings.l1060_targets[mode])
         self.api.select_mode(desired_mode)
 
     def _apply_mode_target(self, mode: str, value: float) -> bool:
@@ -351,9 +364,10 @@ class L1060DevicePanel(DevicePanelBase):
         if same_mode:
             self._push_target(mode, value)
             return True
-        # Mode must change under a live load -- cycle load off, flush the
-        # now-current targets (including this one), then back on, mirroring
-        # on_mode_changed's manual-UI interlock.
+        # Mode must change under a live load -- stage this target, cycle load
+        # off, flush the staged targets (including this one), then back on,
+        # mirroring on_mode_changed's manual-UI interlock.
+        self._staged_targets.add(mode)
         if not self.api.set_load_on(False):
             return False
         self._load_commanded_on = False
@@ -454,6 +468,7 @@ class L1060DevicePanel(DevicePanelBase):
         # only cross-mode edits are staged. The active mode's own field is
         # not a mode change and pushes immediately.
         if self._load_commanded_on and mode != self.settings.l1060_mode:
+            self._staged_targets.add(mode)
             return
         self._push_target(mode, value)
 
@@ -466,6 +481,7 @@ class L1060DevicePanel(DevicePanelBase):
         mode, value = self.settings.l1060_presets[text[1]]
         getattr(self.ui, _TARGET_SPINBOX[mode]).setValue(value)
         self.settings.l1060_targets[mode] = value
+        self._staged_targets.add(mode)
         self.on_mode_changed(mode)
         self.ui.comboPreset.setCurrentIndex(0)
 
@@ -1112,6 +1128,8 @@ class L1060DevicePanel(DevicePanelBase):
         self.api = None
         api.close()
         self._load_commanded_on = False
+        self._staged_targets.clear()
+        self._target_write_t.clear()
         self.linked = False
         self.capture.forget(self.device_id)
         self.close_state_ui(record_disconnect=True)
@@ -1204,17 +1222,21 @@ class L1060DevicePanel(DevicePanelBase):
         if self._update_common_lcds() is None:
             return
         if self.api is not None:
-            # Only the active mode's spinbox is synced here, and its edits
-            # are never staged (on_target_changed pushes them live), so this
-            # readback can't clobber a pending cross-mode edit.
-            mode = self.settings.l1060_mode
+            # Every target the device has reported is synced, except a staged
+            # edit still waiting to be written and a page that may predate
+            # this panel's latest write of that target.
             targets = self.api.get_targets()
-            if mode in targets:
-                self.settings.l1060_targets[mode] = targets[mode]
+            times = self.api.get_target_times()
+            for mode, value in targets.items():
+                if mode in self._staged_targets:
+                    continue
+                if times[mode] < self._target_write_t.get(mode, -math.inf) + _TARGET_ECHO_GUARD_S:
+                    continue
+                self.settings.l1060_targets[mode] = value
                 spin = getattr(self.ui, _TARGET_SPINBOX[mode])
                 if not spin.hasFocus():
                     spin.blockSignals(True)
-                    spin.setValue(targets[mode])
+                    spin.setValue(value)
                     spin.blockSignals(False)
 
     def _close_state_ui_device(self, record_disconnect: bool):

@@ -44,9 +44,9 @@ A lot of time was spent optimizing the communication quality based on this proje
 - Basic parameter setting, preset group management, setting modification
 - Data acquisition, plotting, analysis, and saving up to 100Hz (adjustable)
 - PID constant power control
+  - Max V is the safety limit: if the load stops drawing current, measured power drops to zero and the controller drives the output up to Max V. Set it to something your load can tolerate rather than leaving it at 30V.
 - Parameter scanning (voltage/current)
   - Plotting scanning response curves (for discovering load characteristics)
-- Function generator (sine/square/triangle/sawtooth/random)
 - Operation sequence (single or loop execution of action sequences)
 - Battery simulator (supports custom battery voltage curves/capacity/internal resistance/series-connection settings; ships with Li-ion, LiFePO4, lead-acid, NiMH, alkaline, and zinc-carbon discharge curves)
 - Battery charger: chemistry-preset CC/CV (or NiMH −ΔV) charging with cutoff-current/time/Ah/Wh stop conditions and CSV export (see [P906 Battery Charge](#p906-battery-charge) below)
@@ -194,7 +194,11 @@ The L1060 panel has a Preset tab plus three automated-run tabs, each usable in a
 - **Sequence** — runs an editable list of Delay/Wait/Set-mode-target actions, single-run or looped, with save/load to a text file (same editor pattern as the P906's sequence tool).
 - **Discharge** — runs a battery discharge test at a fixed mode/target and integrates elapsed time, Ah, and Wh. A minimum voltage cutoff is **required** before Start (there is no universally safe default across battery chemistries/series counts); maximum Ah, Wh, and duration are optional additional stop conditions. Results can be exported to CSV and plotted (measured voltage vs. discharged Ah).
 
+> **The load's own targets win.** The panel's CC/CV/CR/CP targets follow what the L1060 reports, including changes made on its front panel; the panel only writes a target you change in it. A target read back from the device can take a few seconds to show after connecting. Editing another mode's target while the load is on holds that edit until the load is next switched off, matching the device's "turn off before SET" rule.
+
 > **Where the L1060 measures voltage.** The L1060 has a single voltage measurement, and its remote-sense leads relocate it: with the sense leads connected the reading is taken at the sense terminals, without them it is taken at the load's own terminals. The difference is the drop across your load leads — tens of millivolts at typical currents. This affects everything derived from voltage, including the Discharge cutoff and its Wh total, and the Sweep tool's voltage/power/resistance response channels. For a battery discharge test, clipping the sense leads to the cell is usually what you want, since it excludes the lead drop from the cutoff. Nothing in the protocol reports whether the sense leads are connected, so the software cannot detect or warn about this — set your cutoff for the wiring you are actually using. Measured current is unaffected.
+
+> **CR mode holds a fixed current.** When a CR target is set, the L1060 computes the current from the voltage present at that moment (I = V/R) and holds it; the current does not follow later changes in the source voltage. A CR run is therefore only a true resistance while the source voltage stays put. A Discharge in CR mode runs at a constant current of V₀/R, where V₀ is the battery voltage at the start, and pairing CR with anything that moves the P906's voltage (constant power control, the battery simulator, a voltage sequence) will not behave like a resistor. Use CC when the source voltage is expected to change.
 
 Each tool has a **"Leave load on when finished/stopped"** checkbox (unchecked by default) that only applies to a normal completion or that tool's own Stop button. It never overrides a protection fault, a manual Load Off, or a panel disconnect — those always force the load off. If the L1060's protection latches (OVP/OCP/OPP/UVP/OTP) while a tool is running, the run stops immediately and the load is switched off; the panel stays connected, but a physical press of the **Run** button on the device itself is required to clear the latch before output can be re-enabled.
 
