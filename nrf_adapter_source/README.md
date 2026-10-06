@@ -95,35 +95,46 @@ targets/stm32f103/   STM32 Blue Pill. Modelled file-for-file on stm32f030/ —
                      same peripheral split, same flash_store.c/watchdog.c
                      near-verbatim, gpio.c/spi.c/uart.c/system_clock.c
                      rewritten for the F1's register layout and 72MHz clock
-                     tree. USART1 host link only; see "STM32 Blue Pill
-                     target" below.
+                     tree. Native USB CDC host link by default
+                     (usb_cdc.c/usb_descriptors.c over TinyUSB), USART1 as
+                     an option; see "STM32 Blue Pill target" below.
 targets/teensy4x/    Teensy 4.0 / 4.1, selected by the Makefile's BOARD
-                     variable. platform_teensy4.cpp is the entire C/C++
-                     boundary — every platform.h entry point in one file,
-                     wrapped in extern "C"; Arduino headers appear here and
-                     in no shared header. pins.h holds the wiring, main.cpp
-                     the setup()/loop() boot order.
+                     variable. platform_teensy4.cpp is the C/C++ boundary —
+                     every platform.h entry point except the host link,
+                     wrapped in extern "C"; Arduino headers appear in the
+                     target files and in no shared header. host_link_mux.cpp
+                     owns the host link and routes it between USB and, at
+                     ETH=1, the Teensy 4.1 Ethernet link (host_link_eth.cpp,
+                     net_eth.cpp). pins.h holds the wiring, main.cpp the
+                     setup()/loop() boot order.
 targets/teensy3x/    Teensy 3.5 / 3.6, selected the same way. Modelled on
                      teensy4x/ — platform_teensy3.cpp is the whole boundary,
                      same file roles. Two real differences from teensy4x/:
                      a working status LED (Kinetis SPI0 can move its SCK off
                      pin 13) and a Kinetis WDOG watchdog instead of an i.MX
                      one. See "Teensy 3.x target" below.
-targets/esp32/       ESP32-C6, ESP32-H2, ESP32-S3 and classic ESP32
+targets/esp32/       ESP32-C5, ESP32-C6, ESP32-H2, ESP32-S3 and classic ESP32
                      (ESP-WROOM-32), selected by the Makefile's BOARD
                      variable. Built against ESP-IDF (CMake+Kconfig, not this
                      tree's usual Makefile-over-a-source-list) rather than
                      vendored — see "ESP32 target" below. platform_esp32.c is
-                     the whole boundary except the host link, which splits
-                     into host_link_usb_jtag.c / host_link_uart0.c; pins.h
-                     holds the wiring, main.c the app_main()/loop boot order.
+                     the whole boundary except the host link, which
+                     host_link_mux.c owns and routes between the wired link
+                     (host_link_usb_jtag.c or host_link_uart0.c) and, with
+                     HOST_LINK_WIFI, host_link_wifi.c (wifi_sta.c brings up
+                     the station);
+                     pins.h holds the wiring, main.c the app_main()/loop
+                     boot order.
 host_link_test.py    Target-neutral host-protocol check (framing, dispatch,
                      settings persistence) shared by every board —
                      nothing in it depends on which is under test beyond the
                      port name.
-tx_burst_test.py     Target-neutral radio check: several NRF_TX frames in one
-                     host write, then probes that the adapter returned to RX
-                     and still receives replies. Needs a paired P906.
+persistence_test.py  Target-neutral settings-persistence check across a real
+                     power cycle: `arm` writes and persists a distinctive
+                     config, `verify` checks it after power is restored.
+net_provision.py     Sets, queries and clears WiFi/Ethernet credentials and
+                     the static IP over the wired link. Every target answers
+                     its commands; only WiFi/Ethernet builds act on them.
 Drivers/             Third-party trees. **Not committed to git** — git-ignored
                      and fetched on demand by `tools/fetch_vendor.py` at the
                      pins recorded in `tools/vendor.json` (see "Building"

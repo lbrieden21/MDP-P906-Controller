@@ -13,7 +13,7 @@ Devices and radio config come from gui_source/settings.json, which is the fixed
 bench configuration and is not edited to run this. The adapter transport is the
 only thing that varies per board under test, so it is a --port (serial) or
 --host (ESP32 WiFi host link, tcp:// port taken from settings.json) argument
-here exactly as it is on host_link_test.py and pipe_test.py; the override is
+here exactly as it is on host_link_test.py; the override is
 applied to the in-memory setting and never written back.
 
 Usage:
