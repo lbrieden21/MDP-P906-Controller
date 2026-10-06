@@ -83,7 +83,7 @@ Fortunately, the module uses a genuine STM32F030F4P6 as its main controller, so 
 
 #### Modification Method
 
-**Important:** the Python driver in this repo ([mdp_controller/bus.py](mdp_controller/bus.py)) now always uses the nRF24L01+'s hardware RX pipes to address devices (`CMD_NRF_OPEN_PIPE`, 0x23) — even for a single device. That command only exists in the bare-metal multiceiver firmware under [nrf_adapter_source/](nrf_adapter_source/); the original shipped firmware (and the old pre-built release image) doesn't support it and will no longer work with this driver. There is currently no pre-built image for the multiceiver firmware, so it has to be compiled and flashed yourself over SWD.
+**Important:** the Python driver in this repo ([mdp_controller/bus.py](mdp_controller/bus.py)) always uses the nRF24L01+'s hardware RX pipes to address devices (`CMD_NRF_OPEN_PIPE`, 0x23) — even for a single device. That command only exists in the bare-metal multiceiver firmware under [nrf_adapter_source/](nrf_adapter_source/). The dongle's original shipped firmware and the upstream project's pre-built release image don't support it and don't work with this driver. There is no pre-built image for the multiceiver firmware, so you have to compile it and flash it yourself over SWD.
 
 Pry open the module's case and flip it over to see the test points as shown in the image below:
 
@@ -98,7 +98,7 @@ cd nrf_adapter_source/targets/stm32f030
 make          # -> build/MDP_Adapter_Multiceiver.{elf,hex,bin}
 ```
 
-Flash it over SWD with an ST-LINK V2 — wire `SWCLK`/`SWDIO`/`GND`/`3V3` from the ST-LINK to the module's test points as shown below. The `BOOT0`/`3V3` short and serial bootloader from the old method are **not** used here.
+Flash it over SWD with an ST-LINK V2 — wire `SWCLK`/`SWDIO`/`GND`/`3V3` from the ST-LINK to the module's test points as shown below. This method does **not** use the `BOOT0`/`3V3` short or the serial bootloader.
 
 ![1721841339876](image/readme/1721841339876.png)
 
@@ -144,7 +144,7 @@ On Windows, install `pywin32` instead of `xcffib` and run `venv\Scripts\python g
 
 #### Graph capture
 
-Linking a device no longer starts the graph by itself — the panel's LCDs and other readouts update as soon as it's linked, but the graph stays empty until capture is started.
+Linking a device does not start the graph — the panel's LCDs and other readouts update as soon as it's linked, but the graph stays empty until capture is started.
 
 - **Start/Stop** (in the graph section's toolbar, next to Fit/Keep/Clear) starts or stops writing samples into the graph. Pressing Start again after a Stop continues the same timeline with a visible break in the line rather than resetting to t=0; **Clear** is the only way to reset the timeline to t=0.
 - **Auto-start/Auto-stop** — the graph section's toolbar has an Auto-start and an Auto-stop control, each with a mode (Off/Voltage/Current) and a threshold. The mode and threshold are saved per device. Auto-start fires on a rising crossing (the device's reading goes from below the threshold to at or above it) and begins capture. Auto-stop fires on a falling crossing (from at or above the threshold to below it) and ends capture. In the default **Shared** graph layout, Auto-start and Auto-stop each have their own **Device** selector, so capture can start on one device's reading and stop on another's. Other linked devices are captured but never trigger anything. In the **Per Device** graph layout (see [Multiple Devices](#multiple-devices)), each device's graph section starts and stops on that device's own readings.

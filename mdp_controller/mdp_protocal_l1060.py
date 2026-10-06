@@ -64,8 +64,7 @@ def _decode_digit_voltage(byte_a: int, byte_b: int) -> Optional[float]:
 # ---------------------------------------------------------------------------
 # Type 7: get / live measurement (exact base-100 digit-pair decode -- no
 # gain/offset correction needed, unlike P906). Setters for all four target
-# registers (CC/CV/CR/CP) live in the Type 10 section below -- see the note
-# there on why CV/CC used to ride this channel and no longer do.
+# registers (CC/CV/CR/CP) live in the Type 10 section below.
 # ---------------------------------------------------------------------------
 
 
@@ -221,15 +220,10 @@ def parse_type9_response(data: bytes) -> Tuple[bytes, Optional[bool]]:
 # canonical measurement channel -- but they are data, not padding, so a Type 10
 # get alone is enough to anchor a measurement.
 #
-# gen_set_current/gen_set_voltage used to ride Type 7 instead (the live
-# measurement channel), tagged with the same family codes used here. That
-# didn't isolate CC/CV from the disturbance it was meant to avoid: writing
-# the CV target register flips the device's reported LoadMode to CV even
-# when sent as this passive Type-10 page write, with no gen_select_mode
-# alongside it (hardware-confirmed). So the transient when editing CV while
-# CC is active is inherent to writing that register at all, not a Type-7
-# side effect -- moving to Type 10 here is for protocol consistency (one
-# write path for all four targets), not a fix for that transient.
+# All four target setters write through this one Type 10 page write. Writing
+# the CV target register switches the device's reported LoadMode to CV, even
+# with no gen_select_mode alongside it, so editing the CV target while CC is
+# active disturbs the load.
 # ---------------------------------------------------------------------------
 
 

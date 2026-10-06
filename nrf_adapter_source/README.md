@@ -10,8 +10,8 @@ device by pipe number instead of by packet content/timing.
 The STM32F030 target is built and bench-tested against a bare
 STM32F030F4Px dev board plus an external USB-UART bridge for the host link —
 not the original AliExpress USB-NRF24L01 dongle module the shipped firmware
-and pin mapping were recovered from (see `../readme_EN.md`); that module
-isn't part of this project's hardware anymore.
+and pin mapping were recovered from (see `../readme_EN.md`); this project
+does not test against that module.
 
 ## Status
 
@@ -187,9 +187,8 @@ a target cannot change the code any existing target compiles.
   idle-line detection. Simpler, no DMA driver needed. TX is TXE-interrupt-
   drained rather than polled, so `host_link_write()` hands off a frame in
   bounded time instead of stalling the main loop for the whole UART frame time.
-  USART1 sits at NVIC priority 1 against EXTI's 3. That relationship used to
-  be load-bearing — it is what made a spin-wait inside the radio ISR safe —
-  and is now merely harmless, kept rather than reset to the default.
+  USART1 sits at NVIC priority 1 against EXTI's 3. Nothing depends on that
+  ordering; it is harmless.
 - **Settings persistence**: a single reserved flash page (magic + payload +
   CRC16, erase+rewrite on `NRF_SAVE`) instead of the shipped firmware's
   MiniFlashDB wear-leveling KV store. Save is a low-frequency, host-triggered

@@ -1,13 +1,10 @@
-"""Timed headless GUI run for adapter bring-up step 6.
+"""Timed headless GUI run against an adapter.
 
 Drives the *real* GUI -- the same MDPMainwindow, panels and ConnectionManager
 the user runs -- for a fixed duration, then reports per-device sample counts.
 This is the code path a driver-level bench_run does not cover: panels poll
 asynchronously through request_realtime_value() /
 register_realtime_value_callback() rather than synchronous get_status().
-
-The temporary driver used for the Teensy 4.1 bring-up was removed after that
-phase; this is the same idea made re-runnable for the remaining boards.
 
 Devices and radio config come from gui_source/settings.json, which is the fixed
 bench configuration and is not edited to run this. The adapter transport is the
