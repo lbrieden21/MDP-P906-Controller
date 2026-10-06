@@ -93,6 +93,29 @@ class DevicePanelBase(QtWidgets.QWidget):
         with self.store.sync_lock:
             self.store.capture = capture
 
+    def fit_list_height_to_rows(self, list_widget: QtWidgets.QListWidget, min_rows: int = 3):
+        """Cap list_widget's height at what its rows need (never fewer than
+        min_rows), re-fitting whenever rows are added or removed, so the
+        tab's bottom spacer takes the spare height instead of an empty list.
+        The list can still shrink below the cap and scroll."""
+
+        def refit(*_):
+            if list_widget.count():
+                row_h = list_widget.sizeHintForRow(0)
+            else:
+                row_h = list_widget.fontMetrics().height() + 2 * list_widget.spacing()
+            rows = max(list_widget.count(), min_rows)
+            list_widget.setMaximumHeight(rows * row_h + 2 * list_widget.frameWidth())
+
+        model = list_widget.model()
+        model.rowsInserted.connect(refit)
+        model.rowsRemoved.connect(refit)
+        model.modelReset.connect(refit)
+        # qdarktheme's stylesheet is applied after the panels are built and
+        # changes the row height, so fit once more after it lands.
+        QtCore.QTimer.singleShot(0, refit)
+        refit()
+
     ##########  Tab navigation  ##########
 
     @QtCore.pyqtSlot(int)
@@ -363,10 +386,6 @@ class DevicePanelBase(QtWidgets.QWidget):
             self.state_lcd_timer.stop()
             self.state_lcd_timer.start(round(1000 / min(fps, setting.ui.state_fps)))
         self.fps_counter.clear()
-
-    def set_english_fonts(self):
-        """Re-font any widget whose Chinese-width layout doesn't fit its
-        English label. No-op for panels whose labels already fit."""
 
     ##########  Connected/disconnected UI  ##########
 

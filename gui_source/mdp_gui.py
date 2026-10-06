@@ -43,7 +43,6 @@ app = QtWidgets.QApplication(sys.argv)
 # get system language
 system_lang = QtCore.QLocale.system().name()
 logger.info(f"System language: {system_lang}")
-ENGLISH = False
 if (
     not system_lang.startswith("zh")
     or os.environ.get("MDP_FORCE_ENGLISH") == "1"
@@ -52,7 +51,6 @@ if (
     trans = QtCore.QTranslator()
     trans.load(os.path.join(ABS_PATH, "en_US.qm"))
     app.installTranslator(trans)
-    ENGLISH = True
 
 # load custom font
 _ = QtGui.QFontDatabase.addApplicationFont(FONT_PATH)
@@ -122,8 +120,6 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
             lambda p=panel: self.on_panel_link_toggled(p)
         )
         panel.apply_theme()
-        if ENGLISH:
-            panel.set_english_fonts()
         self.panels.append(panel)
         self._panel_by_id[panel.device_id] = panel
         return panel

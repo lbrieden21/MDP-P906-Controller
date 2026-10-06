@@ -709,7 +709,7 @@
                <string>快速设定：当设定电压/电流变化时立刻提交</string>
               </property>
               <property name="text">
-               <string />
+               <string/>
               </property>
              </widget>
             </item>
@@ -885,7 +885,7 @@
                <bool>false</bool>
               </property>
               <property name="format">
-               <string />
+               <string/>
               </property>
              </widget>
             </item>
@@ -940,7 +940,7 @@
                <bool>false</bool>
               </property>
               <property name="format">
-               <string />
+               <string/>
               </property>
              </widget>
             </item>
@@ -1080,7 +1080,7 @@
          </layout>
         </item>
         <item>
-         <widget class="QFrame" name="frame">
+         <widget class="QFrame" name="frameAux">
           <property name="frameShape">
            <enum>QFrame::Box</enum>
           </property>
@@ -1156,21 +1156,21 @@
               <attribute name="title">
                <string>电池充电</string>
               </attribute>
-              <layout class="QVBoxLayout" name="verticalLayoutCharge">
+              <layout class="QVBoxLayout" name="verticalLayoutChargeTab">
                <property name="spacing">
-                <number>4</number>
+                <number>6</number>
                </property>
                <property name="leftMargin">
-                <number>5</number>
+                <number>6</number>
                </property>
                <property name="topMargin">
-                <number>5</number>
+                <number>6</number>
                </property>
                <property name="rightMargin">
-                <number>5</number>
+                <number>6</number>
                </property>
                <property name="bottomMargin">
-                <number>5</number>
+                <number>6</number>
                </property>
                <item>
                 <widget class="QPushButton" name="btnCharge">
@@ -1180,104 +1180,126 @@
                 </widget>
                </item>
                <item>
-                <layout class="QGridLayout" name="gridLayoutChargeStatus">
+                <layout class="QGridLayout" name="gridLayoutChargeStatus" columnstretch="1,0,0,1,0" columnminimumwidth="0,110,16,0,110">
+                 <property name="leftMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="topMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="rightMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="bottomMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="horizontalSpacing">
+                  <number>8</number>
+                 </property>
+                 <property name="verticalSpacing">
+                  <number>6</number>
+                 </property>
                  <item row="0" column="0">
-                  <widget class="QLabel" name="labelChargePhase">
-                   <property name="minimumSize">
-                    <size>
-                     <width>0</width>
-                     <height>28</height>
-                    </size>
-                   </property>
-                   <property name="font">
-                    <font>
-                     <family>Sarasa Fixed SC SemiBold</family>
-                     <bold>true</bold>
-                    </font>
-                   </property>
+                  <widget class="QLabel" name="label_chargePhase">
                    <property name="text">
-                    <string>待机</string>
+                    <string>阶段</string>
                    </property>
                    <property name="alignment">
-                    <set>Qt::AlignCenter</set>
-                   </property>
-                   <property name="margin">
-                    <number>6</number>
+                    <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
                    </property>
                   </widget>
                  </item>
                  <item row="0" column="1">
-                  <widget class="QLabel" name="labelChargeElapsed">
+                  <widget class="QLabel" name="labelChargePhase">
+                   <property name="text">
+                    <string>待机</string>
+                   </property>
                    <property name="minimumSize">
                     <size>
-                     <width>0</width>
-                     <height>28</height>
+                     <width>110</width>
+                     <height>0</height>
                     </size>
-                   </property>
-                   <property name="font">
-                    <font>
-                     <family>Sarasa Fixed SC SemiBold</family>
-                     <bold>true</bold>
-                    </font>
-                   </property>
-                   <property name="text">
-                    <string>00:00:00</string>
                    </property>
                    <property name="alignment">
                     <set>Qt::AlignCenter</set>
                    </property>
-                   <property name="margin">
-                    <number>6</number>
+                  </widget>
+                 </item>
+                 <item row="0" column="3">
+                  <widget class="QLabel" name="label_chargeElapsed">
+                   <property name="text">
+                    <string>已用时间</string>
+                   </property>
+                   <property name="alignment">
+                    <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="4">
+                  <widget class="QLabel" name="labelChargeElapsed">
+                   <property name="text">
+                    <string>00:00:00</string>
+                   </property>
+                   <property name="minimumSize">
+                    <size>
+                     <width>110</width>
+                     <height>0</height>
+                    </size>
+                   </property>
+                   <property name="alignment">
+                    <set>Qt::AlignCenter</set>
                    </property>
                   </widget>
                  </item>
                  <item row="1" column="0">
-                  <widget class="QLabel" name="labelChargeAh">
-                   <property name="minimumSize">
-                    <size>
-                     <width>0</width>
-                     <height>28</height>
-                    </size>
-                   </property>
-                   <property name="font">
-                    <font>
-                     <family>Sarasa Fixed SC SemiBold</family>
-                     <bold>true</bold>
-                    </font>
-                   </property>
+                  <widget class="QLabel" name="label_chargeAh">
                    <property name="text">
-                    <string>0 mAh</string>
+                    <string>已充电量</string>
                    </property>
                    <property name="alignment">
-                    <set>Qt::AlignCenter</set>
-                   </property>
-                   <property name="margin">
-                    <number>6</number>
+                    <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
                    </property>
                   </widget>
                  </item>
                  <item row="1" column="1">
-                  <widget class="QLabel" name="labelChargeWh">
+                  <widget class="QLabel" name="labelChargeAh">
+                   <property name="text">
+                    <string>0 mAh</string>
+                   </property>
                    <property name="minimumSize">
                     <size>
-                     <width>0</width>
-                     <height>28</height>
+                     <width>110</width>
+                     <height>0</height>
                     </size>
-                   </property>
-                   <property name="font">
-                    <font>
-                     <family>Sarasa Fixed SC SemiBold</family>
-                     <bold>true</bold>
-                    </font>
-                   </property>
-                   <property name="text">
-                    <string>0.000 Wh</string>
                    </property>
                    <property name="alignment">
                     <set>Qt::AlignCenter</set>
                    </property>
-                   <property name="margin">
-                    <number>6</number>
+                  </widget>
+                 </item>
+                 <item row="1" column="3">
+                  <widget class="QLabel" name="label_chargeWh">
+                   <property name="text">
+                    <string>已充能量</string>
+                   </property>
+                   <property name="alignment">
+                    <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="4">
+                  <widget class="QLabel" name="labelChargeWh">
+                   <property name="text">
+                    <string>0.000 Wh</string>
+                   </property>
+                   <property name="minimumSize">
+                    <size>
+                     <width>110</width>
+                     <height>0</height>
+                    </size>
+                   </property>
+                   <property name="alignment">
+                    <set>Qt::AlignCenter</set>
                    </property>
                   </widget>
                  </item>
@@ -1285,12 +1307,6 @@
                </item>
                <item>
                 <widget class="QLabel" name="labelChargeReason">
-                 <property name="font">
-                  <font>
-                   <family>Sarasa Fixed SC SemiBold</family>
-                   <bold>true</bold>
-                  </font>
-                 </property>
                  <property name="text">
                   <string/>
                  </property>
@@ -1310,6 +1326,9 @@
                  <property name="widgetResizable">
                   <bool>true</bool>
                  </property>
+                 <property name="styleSheet">
+                  <string notr="true">QScrollArea { margin: 0px; border: none; }</string>
+                 </property>
                  <widget class="QWidget" name="scrollAreaWidgetContentsCharge">
                   <property name="geometry">
                    <rect>
@@ -1320,95 +1339,79 @@
                    </rect>
                   </property>
                   <layout class="QVBoxLayout" name="verticalLayoutChargeScroll">
+                   <property name="spacing">
+                    <number>6</number>
+                   </property>
+                   <property name="leftMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="topMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="rightMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="bottomMargin">
+                    <number>0</number>
+                   </property>
                    <item>
-                    <layout class="QHBoxLayout" name="horizontalLayoutChargeChem" stretch="1,2">
-                     <item>
+                    <layout class="QGridLayout" name="gridLayoutChargeForm" columnstretch="1,0,0,1,0" columnminimumwidth="0,110,16,0,110">
+                     <property name="leftMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="topMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="rightMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="bottomMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="horizontalSpacing">
+                      <number>8</number>
+                     </property>
+                     <property name="verticalSpacing">
+                      <number>6</number>
+                     </property>
+                     <item row="0" column="0">
                       <widget class="QLabel" name="label_chargeChem">
-                       <property name="minimumSize">
-                        <size>
-                         <width>0</width>
-                         <height>28</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
                        <property name="text">
                         <string>电池类型</string>
                        </property>
                        <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
-                       <property name="margin">
-                        <number>6</number>
+                        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
                        </property>
                       </widget>
                      </item>
-                     <item>
+                     <item row="0" column="1">
                       <widget class="QComboBox" name="comboChargeChem">
+                       <property name="minimumSize">
+                        <size>
+                         <width>110</width>
+                         <height>0</height>
+                        </size>
+                       </property>
                        <property name="maximumSize">
                         <size>
-                         <width>80</width>
+                         <width>110</width>
                          <height>16777215</height>
                         </size>
                        </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
                       </widget>
                      </item>
-                    </layout>
-                   </item>
-                   <item>
-                    <layout class="QHBoxLayout" name="horizontalLayoutChargeCells" stretch="1,2">
-                     <item>
+                     <item row="0" column="3">
                       <widget class="QLabel" name="label_chargeCells">
-                       <property name="minimumSize">
-                        <size>
-                         <width>0</width>
-                         <height>28</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
                        <property name="text">
                         <string>串联节数</string>
                        </property>
                        <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
-                       <property name="margin">
-                        <number>6</number>
+                        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
                        </property>
                       </widget>
                      </item>
-                     <item>
+                     <item row="0" column="4">
                       <widget class="QSpinBox" name="spinBoxChargeCells">
-                       <property name="maximumSize">
-                        <size>
-                         <width>80</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
-                       <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
                        <property name="suffix">
                         <string>S</string>
                        </property>
@@ -1421,54 +1424,35 @@
                        <property name="value">
                         <number>1</number>
                        </property>
-                      </widget>
-                     </item>
-                    </layout>
-                   </item>
-                   <item>
-                    <layout class="QHBoxLayout" name="horizontalLayoutChargeCapacity" stretch="1,2">
-                     <item>
-                      <widget class="QLabel" name="label_chargeCapacity">
                        <property name="minimumSize">
                         <size>
-                         <width>0</width>
-                         <height>28</height>
+                         <width>110</width>
+                         <height>0</height>
                         </size>
                        </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
+                       <property name="maximumSize">
+                        <size>
+                         <width>110</width>
+                         <height>16777215</height>
+                        </size>
                        </property>
+                       <property name="alignment">
+                        <set>Qt::AlignCenter</set>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="1" column="0">
+                      <widget class="QLabel" name="label_chargeCapacity">
                        <property name="text">
                         <string>电池容量</string>
                        </property>
                        <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
-                       <property name="margin">
-                        <number>6</number>
+                        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
                        </property>
                       </widget>
                      </item>
-                     <item>
+                     <item row="1" column="1">
                       <widget class="QSpinBox" name="spinBoxChargeCapacity">
-                       <property name="maximumSize">
-                        <size>
-                         <width>80</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
-                       <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
                        <property name="suffix">
                         <string>mAh</string>
                        </property>
@@ -1481,61 +1465,42 @@
                        <property name="value">
                         <number>2000</number>
                        </property>
-                      </widget>
-                     </item>
-                    </layout>
-                   </item>
-                   <item>
-                    <widget class="QPushButton" name="btnChargeApplyPreset">
-                     <property name="text">
-                      <string>应用预设</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <layout class="QHBoxLayout" name="horizontalLayoutChargeCV" stretch="1,2">
-                     <item>
-                      <widget class="QLabel" name="label_chargeCV">
                        <property name="minimumSize">
                         <size>
-                         <width>0</width>
-                         <height>28</height>
+                         <width>110</width>
+                         <height>0</height>
                         </size>
                        </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
+                       <property name="maximumSize">
+                        <size>
+                         <width>110</width>
+                         <height>16777215</height>
+                        </size>
                        </property>
+                       <property name="alignment">
+                        <set>Qt::AlignCenter</set>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="1" column="3" colspan="2">
+                      <widget class="QPushButton" name="btnChargeApplyPreset">
+                       <property name="text">
+                        <string>应用预设</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="2" column="0">
+                      <widget class="QLabel" name="label_chargeCV">
                        <property name="text">
                         <string>充电电压</string>
                        </property>
                        <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
-                       <property name="margin">
-                        <number>6</number>
+                        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
                        </property>
                       </widget>
                      </item>
-                     <item>
+                     <item row="2" column="1">
                       <widget class="QDoubleSpinBox" name="spinBoxChargeCV">
-                       <property name="maximumSize">
-                        <size>
-                         <width>80</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
-                       <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
                        <property name="suffix">
                         <string>V</string>
                        </property>
@@ -1557,54 +1522,35 @@
                        <property name="value">
                         <double>4.200000000000000</double>
                        </property>
-                      </widget>
-                     </item>
-                    </layout>
-                   </item>
-                   <item>
-                    <layout class="QHBoxLayout" name="horizontalLayoutChargeCC" stretch="1,2">
-                     <item>
-                      <widget class="QLabel" name="label_chargeCC">
                        <property name="minimumSize">
                         <size>
-                         <width>0</width>
-                         <height>28</height>
+                         <width>110</width>
+                         <height>0</height>
                         </size>
                        </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
+                       <property name="maximumSize">
+                        <size>
+                         <width>110</width>
+                         <height>16777215</height>
+                        </size>
                        </property>
+                       <property name="alignment">
+                        <set>Qt::AlignCenter</set>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="2" column="3">
+                      <widget class="QLabel" name="label_chargeCC">
                        <property name="text">
                         <string>充电电流</string>
                        </property>
                        <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
-                       <property name="margin">
-                        <number>6</number>
+                        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
                        </property>
                       </widget>
                      </item>
-                     <item>
+                     <item row="2" column="4">
                       <widget class="QDoubleSpinBox" name="spinBoxChargeCC">
-                       <property name="maximumSize">
-                        <size>
-                         <width>80</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
-                       <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
                        <property name="suffix">
                         <string>A</string>
                        </property>
@@ -1626,54 +1572,35 @@
                        <property name="value">
                         <double>1.000000000000000</double>
                        </property>
-                      </widget>
-                     </item>
-                    </layout>
-                   </item>
-                   <item>
-                    <layout class="QHBoxLayout" name="horizontalLayoutChargePrechargeV" stretch="1,2">
-                     <item>
-                      <widget class="QLabel" name="label_chargePrechargeV">
                        <property name="minimumSize">
                         <size>
-                         <width>0</width>
-                         <height>28</height>
+                         <width>110</width>
+                         <height>0</height>
                         </size>
                        </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
+                       <property name="maximumSize">
+                        <size>
+                         <width>110</width>
+                         <height>16777215</height>
+                        </size>
                        </property>
+                       <property name="alignment">
+                        <set>Qt::AlignCenter</set>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="3" column="0">
+                      <widget class="QLabel" name="label_chargePrechargeV">
                        <property name="text">
                         <string>预充阈值</string>
                        </property>
                        <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
-                       <property name="margin">
-                        <number>6</number>
+                        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
                        </property>
                       </widget>
                      </item>
-                     <item>
+                     <item row="3" column="1">
                       <widget class="QDoubleSpinBox" name="spinBoxChargePrechargeV">
-                       <property name="maximumSize">
-                        <size>
-                         <width>80</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
-                       <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
                        <property name="suffix">
                         <string>V</string>
                        </property>
@@ -1695,54 +1622,35 @@
                        <property name="value">
                         <double>3.000000000000000</double>
                        </property>
-                      </widget>
-                     </item>
-                    </layout>
-                   </item>
-                   <item>
-                    <layout class="QHBoxLayout" name="horizontalLayoutChargePrechargeI" stretch="1,2">
-                     <item>
-                      <widget class="QLabel" name="label_chargePrechargeI">
                        <property name="minimumSize">
                         <size>
-                         <width>0</width>
-                         <height>28</height>
+                         <width>110</width>
+                         <height>0</height>
                         </size>
                        </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
+                       <property name="maximumSize">
+                        <size>
+                         <width>110</width>
+                         <height>16777215</height>
+                        </size>
                        </property>
+                       <property name="alignment">
+                        <set>Qt::AlignCenter</set>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="3" column="3">
+                      <widget class="QLabel" name="label_chargePrechargeI">
                        <property name="text">
                         <string>预充电流</string>
                        </property>
                        <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
-                       <property name="margin">
-                        <number>6</number>
+                        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
                        </property>
                       </widget>
                      </item>
-                     <item>
+                     <item row="3" column="4">
                       <widget class="QDoubleSpinBox" name="spinBoxChargePrechargeI">
-                       <property name="maximumSize">
-                        <size>
-                         <width>80</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
-                       <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
                        <property name="suffix">
                         <string>A</string>
                        </property>
@@ -1764,54 +1672,35 @@
                        <property name="value">
                         <double>0.200000000000000</double>
                        </property>
-                      </widget>
-                     </item>
-                    </layout>
-                   </item>
-                   <item>
-                    <layout class="QHBoxLayout" name="horizontalLayoutChargeCutoff" stretch="1,2">
-                     <item>
-                      <widget class="QLabel" name="label_chargeCutoff">
                        <property name="minimumSize">
                         <size>
-                         <width>0</width>
-                         <height>28</height>
+                         <width>110</width>
+                         <height>0</height>
                         </size>
                        </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
+                       <property name="maximumSize">
+                        <size>
+                         <width>110</width>
+                         <height>16777215</height>
+                        </size>
                        </property>
+                       <property name="alignment">
+                        <set>Qt::AlignCenter</set>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="4" column="0">
+                      <widget class="QLabel" name="label_chargeCutoff">
                        <property name="text">
                         <string>截止电流</string>
                        </property>
                        <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
-                       <property name="margin">
-                        <number>6</number>
+                        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
                        </property>
                       </widget>
                      </item>
-                     <item>
+                     <item row="4" column="1">
                       <widget class="QDoubleSpinBox" name="spinBoxChargeCutoff">
-                       <property name="maximumSize">
-                        <size>
-                         <width>80</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
-                       <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
                        <property name="suffix">
                         <string>A</string>
                        </property>
@@ -1833,44 +1722,34 @@
                        <property name="value">
                         <double>0.100000000000000</double>
                        </property>
+                       <property name="minimumSize">
+                        <size>
+                         <width>110</width>
+                         <height>0</height>
+                        </size>
+                       </property>
+                       <property name="maximumSize">
+                        <size>
+                         <width>110</width>
+                         <height>16777215</height>
+                        </size>
+                       </property>
+                       <property name="alignment">
+                        <set>Qt::AlignCenter</set>
+                       </property>
                       </widget>
                      </item>
-                    </layout>
-                   </item>
-                   <item>
-                    <layout class="QHBoxLayout" name="horizontalLayoutChargeFloat" stretch="1,2">
-                     <item>
+                     <item row="4" column="3">
                       <widget class="QCheckBox" name="checkBoxChargeFloat">
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
                        <property name="text">
                         <string>浮充电压</string>
                        </property>
                       </widget>
                      </item>
-                     <item>
+                     <item row="4" column="4">
                       <widget class="QDoubleSpinBox" name="spinBoxChargeFloat">
                        <property name="enabled">
                         <bool>false</bool>
-                       </property>
-                       <property name="maximumSize">
-                        <size>
-                         <width>80</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
-                       <property name="alignment">
-                        <set>Qt::AlignCenter</set>
                        </property>
                        <property name="suffix">
                         <string>V</string>
@@ -1893,54 +1772,35 @@
                        <property name="value">
                         <double>2.250000000000000</double>
                        </property>
-                      </widget>
-                     </item>
-                    </layout>
-                   </item>
-                   <item>
-                    <layout class="QHBoxLayout" name="horizontalLayoutChargeNdv" stretch="1,2">
-                     <item>
-                      <widget class="QLabel" name="label_chargeNdv">
                        <property name="minimumSize">
                         <size>
-                         <width>0</width>
-                         <height>28</height>
+                         <width>110</width>
+                         <height>0</height>
                         </size>
                        </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
+                       <property name="maximumSize">
+                        <size>
+                         <width>110</width>
+                         <height>16777215</height>
+                        </size>
                        </property>
+                       <property name="alignment">
+                        <set>Qt::AlignCenter</set>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="5" column="0">
+                      <widget class="QLabel" name="label_chargeNdv">
                        <property name="text">
                         <string>-ΔV阈值</string>
                        </property>
                        <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
-                       <property name="margin">
-                        <number>6</number>
+                        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
                        </property>
                       </widget>
                      </item>
-                     <item>
+                     <item row="5" column="1">
                       <widget class="QDoubleSpinBox" name="spinBoxChargeNdv">
-                       <property name="maximumSize">
-                        <size>
-                         <width>80</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
-                       <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
                        <property name="suffix">
                         <string>V</string>
                        </property>
@@ -1962,54 +1822,35 @@
                        <property name="value">
                         <double>0.005000000000000</double>
                        </property>
-                      </widget>
-                     </item>
-                    </layout>
-                   </item>
-                   <item>
-                    <layout class="QHBoxLayout" name="horizontalLayoutChargeHoldoff" stretch="1,2">
-                     <item>
-                      <widget class="QLabel" name="label_chargeHoldoff">
                        <property name="minimumSize">
                         <size>
-                         <width>0</width>
-                         <height>28</height>
+                         <width>110</width>
+                         <height>0</height>
                         </size>
                        </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
+                       <property name="maximumSize">
+                        <size>
+                         <width>110</width>
+                         <height>16777215</height>
+                        </size>
                        </property>
+                       <property name="alignment">
+                        <set>Qt::AlignCenter</set>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="5" column="3">
+                      <widget class="QLabel" name="label_chargeHoldoff">
                        <property name="text">
                         <string>检测延迟</string>
                        </property>
                        <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
-                       <property name="margin">
-                        <number>6</number>
+                        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
                        </property>
                       </widget>
                      </item>
-                     <item>
+                     <item row="5" column="4">
                       <widget class="QDoubleSpinBox" name="spinBoxChargeHoldoff">
-                       <property name="maximumSize">
-                        <size>
-                         <width>80</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
-                       <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
                        <property name="suffix">
                         <string>s</string>
                        </property>
@@ -2031,44 +1872,34 @@
                        <property name="value">
                         <double>180.000000000000000</double>
                        </property>
+                       <property name="minimumSize">
+                        <size>
+                         <width>110</width>
+                         <height>0</height>
+                        </size>
+                       </property>
+                       <property name="maximumSize">
+                        <size>
+                         <width>110</width>
+                         <height>16777215</height>
+                        </size>
+                       </property>
+                       <property name="alignment">
+                        <set>Qt::AlignCenter</set>
+                       </property>
                       </widget>
                      </item>
-                    </layout>
-                   </item>
-                   <item>
-                    <layout class="QHBoxLayout" name="horizontalLayoutChargeMaxTime" stretch="1,2">
-                     <item>
+                     <item row="6" column="0">
                       <widget class="QCheckBox" name="checkBoxChargeMaxTime">
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
                        <property name="text">
                         <string>最大时长</string>
                        </property>
                       </widget>
                      </item>
-                     <item>
+                     <item row="6" column="1">
                       <widget class="QDoubleSpinBox" name="spinBoxChargeMaxTime">
                        <property name="enabled">
                         <bool>false</bool>
-                       </property>
-                       <property name="maximumSize">
-                        <size>
-                         <width>80</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
-                       <property name="alignment">
-                        <set>Qt::AlignCenter</set>
                        </property>
                        <property name="suffix">
                         <string>min</string>
@@ -2091,44 +1922,34 @@
                        <property name="value">
                         <double>240.000000000000000</double>
                        </property>
+                       <property name="minimumSize">
+                        <size>
+                         <width>110</width>
+                         <height>0</height>
+                        </size>
+                       </property>
+                       <property name="maximumSize">
+                        <size>
+                         <width>110</width>
+                         <height>16777215</height>
+                        </size>
+                       </property>
+                       <property name="alignment">
+                        <set>Qt::AlignCenter</set>
+                       </property>
                       </widget>
                      </item>
-                    </layout>
-                   </item>
-                   <item>
-                    <layout class="QHBoxLayout" name="horizontalLayoutChargeMaxAh" stretch="1,2">
-                     <item>
+                     <item row="6" column="3">
                       <widget class="QCheckBox" name="checkBoxChargeMaxAh">
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
                        <property name="text">
                         <string>最大容量</string>
                        </property>
                       </widget>
                      </item>
-                     <item>
+                     <item row="6" column="4">
                       <widget class="QDoubleSpinBox" name="spinBoxChargeMaxAh">
                        <property name="enabled">
                         <bool>false</bool>
-                       </property>
-                       <property name="maximumSize">
-                        <size>
-                         <width>80</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
-                       <property name="alignment">
-                        <set>Qt::AlignCenter</set>
                        </property>
                        <property name="suffix">
                         <string>mAh</string>
@@ -2151,44 +1972,34 @@
                        <property name="value">
                         <double>2200.000000000000000</double>
                        </property>
+                       <property name="minimumSize">
+                        <size>
+                         <width>110</width>
+                         <height>0</height>
+                        </size>
+                       </property>
+                       <property name="maximumSize">
+                        <size>
+                         <width>110</width>
+                         <height>16777215</height>
+                        </size>
+                       </property>
+                       <property name="alignment">
+                        <set>Qt::AlignCenter</set>
+                       </property>
                       </widget>
                      </item>
-                    </layout>
-                   </item>
-                   <item>
-                    <layout class="QHBoxLayout" name="horizontalLayoutChargeMaxWh" stretch="1,2">
-                     <item>
+                     <item row="7" column="0">
                       <widget class="QCheckBox" name="checkBoxChargeMaxWh">
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
                        <property name="text">
                         <string>最大能量</string>
                        </property>
                       </widget>
                      </item>
-                     <item>
+                     <item row="7" column="1">
                       <widget class="QDoubleSpinBox" name="spinBoxChargeMaxWh">
                        <property name="enabled">
                         <bool>false</bool>
-                       </property>
-                       <property name="maximumSize">
-                        <size>
-                         <width>80</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
-                       <property name="alignment">
-                        <set>Qt::AlignCenter</set>
                        </property>
                        <property name="suffix">
                         <string>Wh</string>
@@ -2211,26 +2022,48 @@
                        <property name="value">
                         <double>10.000000000000000</double>
                        </property>
+                       <property name="minimumSize">
+                        <size>
+                         <width>110</width>
+                         <height>0</height>
+                        </size>
+                       </property>
+                       <property name="maximumSize">
+                        <size>
+                         <width>110</width>
+                         <height>16777215</height>
+                        </size>
+                       </property>
+                       <property name="alignment">
+                        <set>Qt::AlignCenter</set>
+                       </property>
                       </widget>
                      </item>
                     </layout>
                    </item>
                    <item>
-                    <widget class="QPushButton" name="btnChargeSave">
-                     <property name="text">
-                      <string>保存CSV</string>
+                    <layout class="QHBoxLayout" name="horizontalLayoutChargeButtons" stretch="1">
+                     <property name="spacing">
+                      <number>6</number>
                      </property>
-                    </widget>
+                     <item>
+                      <widget class="QPushButton" name="btnChargeSave">
+                       <property name="text">
+                        <string>保存CSV</string>
+                       </property>
+                      </widget>
+                     </item>
+                    </layout>
                    </item>
                    <item>
                     <spacer name="verticalSpacerCharge">
                      <property name="orientation">
                       <enum>Qt::Vertical</enum>
                      </property>
-                     <property name="sizeHint" stdset="0">
+                     <property name="sizeHint">
                       <size>
                        <width>20</width>
-                       <height>36</height>
+                       <height>0</height>
                       </size>
                      </property>
                     </spacer>
@@ -2245,21 +2078,21 @@
               <attribute name="title">
                <string>电池模拟</string>
               </attribute>
-              <layout class="QVBoxLayout" name="verticalLayout_26">
+              <layout class="QVBoxLayout" name="verticalLayoutBatSimTab">
                <property name="spacing">
-                <number>4</number>
+                <number>6</number>
                </property>
                <property name="leftMargin">
-                <number>5</number>
+                <number>6</number>
                </property>
                <property name="topMargin">
-                <number>5</number>
+                <number>6</number>
                </property>
                <property name="rightMargin">
-                <number>5</number>
+                <number>6</number>
                </property>
                <property name="bottomMargin">
-                <number>5</number>
+                <number>6</number>
                </property>
                <item>
                 <widget class="QPushButton" name="btnBatSim">
@@ -2269,29 +2102,48 @@
                 </widget>
                </item>
                <item>
-                <layout class="QHBoxLayout" name="horizontalLayout_47" stretch="2">
-                 <item>
+                <layout class="QGridLayout" name="gridLayoutBatSimStatus" columnstretch="1,0,0,1,0" columnminimumwidth="0,110,16,0,110">
+                 <property name="leftMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="topMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="rightMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="bottomMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="horizontalSpacing">
+                  <number>8</number>
+                 </property>
+                 <property name="verticalSpacing">
+                  <number>6</number>
+                 </property>
+                 <item row="0" column="0">
+                  <widget class="QLabel" name="label_batSimElapsed">
+                   <property name="text">
+                    <string>已用时间</string>
+                   </property>
+                   <property name="alignment">
+                    <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="1">
                   <widget class="QLabel" name="labelBatSimTime">
                    <property name="minimumSize">
                     <size>
-                     <width>0</width>
-                     <height>24</height>
+                     <width>110</width>
+                     <height>0</height>
                     </size>
-                   </property>
-                   <property name="font">
-                    <font>
-                     <family>Sarasa Fixed SC SemiBold</family>
-                     <bold>true</bold>
-                    </font>
-                   </property>
-                   <property name="text">
-                    <string>Discharge Time: 00:00:00</string>
                    </property>
                    <property name="alignment">
                     <set>Qt::AlignCenter</set>
                    </property>
-                   <property name="margin">
-                    <number>6</number>
+                   <property name="text">
+                    <string>00:00:00</string>
                    </property>
                   </widget>
                  </item>
@@ -2305,6 +2157,9 @@
                  <property name="widgetResizable">
                   <bool>true</bool>
                  </property>
+                 <property name="styleSheet">
+                  <string notr="true">QScrollArea { margin: 0px; border: none; }</string>
+                 </property>
                  <widget class="QWidget" name="scrollAreaWidgetContents_5">
                   <property name="geometry">
                    <rect>
@@ -2314,390 +2169,80 @@
                     <height>301</height>
                    </rect>
                   </property>
-                  <layout class="QVBoxLayout" name="verticalLayout_25">
+                  <layout class="QVBoxLayout" name="verticalLayoutBatSimScroll">
+                   <property name="spacing">
+                    <number>6</number>
+                   </property>
+                   <property name="leftMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="topMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="rightMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="bottomMargin">
+                    <number>0</number>
+                   </property>
                    <item>
-                    <layout class="QHBoxLayout" name="horizontalLayout_48" stretch="1,2">
-                     <item>
-                      <widget class="QPushButton" name="btnBatSimLoad">
-                       <property name="text">
-                        <string>加载曲线</string>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QPushButton" name="btnBatSimPreview">
-                       <property name="text">
-                        <string>查看曲线</string>
-                       </property>
-                      </widget>
-                     </item>
-                    </layout>
-                   </item>
-                   <item>
-                    <layout class="QHBoxLayout" name="horizontalLayout_42" stretch="1,2">
-                     <item>
+                    <layout class="QGridLayout" name="gridLayoutBatSimForm" columnstretch="1,0,0,1,0" columnminimumwidth="0,110,16,0,110">
+                     <property name="leftMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="topMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="rightMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="bottomMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="horizontalSpacing">
+                      <number>8</number>
+                     </property>
+                     <property name="verticalSpacing">
+                      <number>6</number>
+                     </property>
+                     <item row="0" column="0">
                       <widget class="QLabel" name="label_32">
-                       <property name="minimumSize">
-                        <size>
-                         <width>0</width>
-                         <height>28</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
                        <property name="text">
                         <string>放电曲线</string>
                        </property>
                        <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
-                       <property name="margin">
-                        <number>6</number>
+                        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
                        </property>
                       </widget>
                      </item>
-                     <item>
+                     <item row="0" column="1">
                       <widget class="QComboBox" name="comboBatSimCurve">
-                       <property name="maximumSize">
-                        <size>
-                         <width>80</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
-                      </widget>
-                     </item>
-                    </layout>
-                   </item>
-                   <item>
-                    <layout class="QHBoxLayout" name="horizontalLayout_44" stretch="1,2">
-                     <item>
-                      <widget class="QLabel" name="label_35">
                        <property name="minimumSize">
                         <size>
-                         <width>0</width>
-                         <height>28</height>
+                         <width>110</width>
+                         <height>0</height>
                         </size>
                        </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
-                       <property name="text">
-                        <string>当前电量</string>
-                       </property>
-                       <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
-                       <property name="margin">
-                        <number>6</number>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QDoubleSpinBox" name="spinBoxBatSimCurrent">
                        <property name="maximumSize">
                         <size>
-                         <width>80</width>
+                         <width>110</width>
                          <height>16777215</height>
                         </size>
                        </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
-                       <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
-                       <property name="suffix">
-                        <string>%</string>
-                       </property>
-                       <property name="decimals">
-                        <number>3</number>
-                       </property>
-                       <property name="minimum">
-                        <double>0.000000000000000</double>
-                       </property>
-                       <property name="maximum">
-                        <double>100.000000000000000</double>
-                       </property>
-                       <property name="singleStep">
-                        <double>0.100000000000000</double>
-                       </property>
-                       <property name="stepType">
-                        <enum>QAbstractSpinBox::AdaptiveDecimalStepType</enum>
-                       </property>
-                       <property name="value">
-                        <double>100.000000000000000</double>
-                       </property>
                       </widget>
                      </item>
-                    </layout>
-                   </item>
-                   <item>
-                    <layout class="QHBoxLayout" name="horizontalLayout_45" stretch="1,2">
-                     <item>
-                      <widget class="QLabel" name="label_37">
-                       <property name="minimumSize">
-                        <size>
-                         <width>0</width>
-                         <height>28</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
-                       <property name="text">
-                        <string>截止电量</string>
-                       </property>
-                       <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
-                       <property name="margin">
-                        <number>6</number>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QDoubleSpinBox" name="spinBoxBatSimStop">
-                       <property name="maximumSize">
-                        <size>
-                         <width>80</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
-                       <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
-                       <property name="suffix">
-                        <string>%</string>
-                       </property>
-                       <property name="decimals">
-                        <number>3</number>
-                       </property>
-                       <property name="minimum">
-                        <double>0.000000000000000</double>
-                       </property>
-                       <property name="maximum">
-                        <double>100.000000000000000</double>
-                       </property>
-                       <property name="singleStep">
-                        <double>0.100000000000000</double>
-                       </property>
-                       <property name="stepType">
-                        <enum>QAbstractSpinBox::AdaptiveDecimalStepType</enum>
-                       </property>
-                       <property name="value">
-                        <double>0.000000000000000</double>
-                       </property>
-                      </widget>
-                     </item>
-                    </layout>
-                   </item>
-                   <item>
-                    <layout class="QHBoxLayout" name="horizontalLayout_43" stretch="1,2">
-                     <item>
-                      <widget class="QLabel" name="label_33">
-                       <property name="minimumSize">
-                        <size>
-                         <width>0</width>
-                         <height>28</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
-                       <property name="text">
-                        <string>单节容量</string>
-                       </property>
-                       <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
-                       <property name="margin">
-                        <number>6</number>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QDoubleSpinBox" name="spinBoxBatSimCap">
-                       <property name="maximumSize">
-                        <size>
-                         <width>80</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
-                       <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
-                       <property name="suffix">
-                        <string>Wh</string>
-                       </property>
-                       <property name="decimals">
-                        <number>3</number>
-                       </property>
-                       <property name="minimum">
-                        <double>0.000000000000000</double>
-                       </property>
-                       <property name="maximum">
-                        <double>999.000000000000000</double>
-                       </property>
-                       <property name="singleStep">
-                        <double>0.100000000000000</double>
-                       </property>
-                       <property name="stepType">
-                        <enum>QAbstractSpinBox::AdaptiveDecimalStepType</enum>
-                       </property>
-                       <property name="value">
-                        <double>10.000000000000000</double>
-                       </property>
-                      </widget>
-                     </item>
-                    </layout>
-                   </item>
-                   <item>
-                    <layout class="QHBoxLayout" name="horizontalLayout_49" stretch="1,2">
-                     <item>
-                      <widget class="QLabel" name="label_40">
-                       <property name="minimumSize">
-                        <size>
-                         <width>0</width>
-                         <height>28</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
-                       <property name="text">
-                        <string>单节内阻</string>
-                       </property>
-                       <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
-                       <property name="margin">
-                        <number>6</number>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QDoubleSpinBox" name="spinBoxBatSimRes">
-                       <property name="maximumSize">
-                        <size>
-                         <width>80</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
-                       <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
-                       <property name="suffix">
-                        <string>mΩ</string>
-                       </property>
-                       <property name="decimals">
-                        <number>2</number>
-                       </property>
-                       <property name="minimum">
-                        <double>0.000000000000000</double>
-                       </property>
-                       <property name="maximum">
-                        <double>1000.000000000000000</double>
-                       </property>
-                       <property name="singleStep">
-                        <double>0.100000000000000</double>
-                       </property>
-                       <property name="stepType">
-                        <enum>QAbstractSpinBox::AdaptiveDecimalStepType</enum>
-                       </property>
-                       <property name="value">
-                        <double>0.000000000000000</double>
-                       </property>
-                      </widget>
-                     </item>
-                    </layout>
-                   </item>
-                   <item>
-                    <layout class="QHBoxLayout" name="horizontalLayout_50" stretch="1,2">
-                     <item>
+                     <item row="0" column="3">
                       <widget class="QLabel" name="label_41">
-                       <property name="minimumSize">
-                        <size>
-                         <width>0</width>
-                         <height>28</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
                        <property name="text">
                         <string>多节串联</string>
                        </property>
                        <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
-                       <property name="margin">
-                        <number>6</number>
+                        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
                        </property>
                       </widget>
                      </item>
-                     <item>
+                     <item row="0" column="4">
                       <widget class="QDoubleSpinBox" name="spinBoxBatSimCells">
-                       <property name="maximumSize">
-                        <size>
-                         <width>80</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
-                       <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
                        <property name="suffix">
                         <string>S</string>
                        </property>
@@ -2719,54 +2264,235 @@
                        <property name="value">
                         <double>1.000000000000000</double>
                        </property>
-                      </widget>
-                     </item>
-                    </layout>
-                   </item>
-                   <item>
-                    <layout class="QHBoxLayout" name="horizontalLayout_46" stretch="1,2">
-                     <item>
-                      <widget class="QLabel" name="label_38">
                        <property name="minimumSize">
                         <size>
-                         <width>0</width>
-                         <height>28</height>
+                         <width>110</width>
+                         <height>0</height>
                         </size>
                        </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
+                       <property name="maximumSize">
+                        <size>
+                         <width>110</width>
+                         <height>16777215</height>
+                        </size>
                        </property>
+                       <property name="alignment">
+                        <set>Qt::AlignCenter</set>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="1" column="0">
+                      <widget class="QLabel" name="label_35">
+                       <property name="text">
+                        <string>当前电量</string>
+                       </property>
+                       <property name="alignment">
+                        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="1" column="1">
+                      <widget class="QDoubleSpinBox" name="spinBoxBatSimCurrent">
+                       <property name="suffix">
+                        <string>%</string>
+                       </property>
+                       <property name="decimals">
+                        <number>3</number>
+                       </property>
+                       <property name="minimum">
+                        <double>0.000000000000000</double>
+                       </property>
+                       <property name="maximum">
+                        <double>100.000000000000000</double>
+                       </property>
+                       <property name="singleStep">
+                        <double>0.100000000000000</double>
+                       </property>
+                       <property name="stepType">
+                        <enum>QAbstractSpinBox::AdaptiveDecimalStepType</enum>
+                       </property>
+                       <property name="value">
+                        <double>100.000000000000000</double>
+                       </property>
+                       <property name="minimumSize">
+                        <size>
+                         <width>110</width>
+                         <height>0</height>
+                        </size>
+                       </property>
+                       <property name="maximumSize">
+                        <size>
+                         <width>110</width>
+                         <height>16777215</height>
+                        </size>
+                       </property>
+                       <property name="alignment">
+                        <set>Qt::AlignCenter</set>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="1" column="3">
+                      <widget class="QLabel" name="label_37">
+                       <property name="text">
+                        <string>截止电量</string>
+                       </property>
+                       <property name="alignment">
+                        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="1" column="4">
+                      <widget class="QDoubleSpinBox" name="spinBoxBatSimStop">
+                       <property name="suffix">
+                        <string>%</string>
+                       </property>
+                       <property name="decimals">
+                        <number>3</number>
+                       </property>
+                       <property name="minimum">
+                        <double>0.000000000000000</double>
+                       </property>
+                       <property name="maximum">
+                        <double>100.000000000000000</double>
+                       </property>
+                       <property name="singleStep">
+                        <double>0.100000000000000</double>
+                       </property>
+                       <property name="stepType">
+                        <enum>QAbstractSpinBox::AdaptiveDecimalStepType</enum>
+                       </property>
+                       <property name="value">
+                        <double>0.000000000000000</double>
+                       </property>
+                       <property name="minimumSize">
+                        <size>
+                         <width>110</width>
+                         <height>0</height>
+                        </size>
+                       </property>
+                       <property name="maximumSize">
+                        <size>
+                         <width>110</width>
+                         <height>16777215</height>
+                        </size>
+                       </property>
+                       <property name="alignment">
+                        <set>Qt::AlignCenter</set>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="2" column="0">
+                      <widget class="QLabel" name="label_33">
+                       <property name="text">
+                        <string>单节容量</string>
+                       </property>
+                       <property name="alignment">
+                        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="2" column="1">
+                      <widget class="QDoubleSpinBox" name="spinBoxBatSimCap">
+                       <property name="suffix">
+                        <string>Wh</string>
+                       </property>
+                       <property name="decimals">
+                        <number>3</number>
+                       </property>
+                       <property name="minimum">
+                        <double>0.000000000000000</double>
+                       </property>
+                       <property name="maximum">
+                        <double>999.000000000000000</double>
+                       </property>
+                       <property name="singleStep">
+                        <double>0.100000000000000</double>
+                       </property>
+                       <property name="stepType">
+                        <enum>QAbstractSpinBox::AdaptiveDecimalStepType</enum>
+                       </property>
+                       <property name="value">
+                        <double>10.000000000000000</double>
+                       </property>
+                       <property name="minimumSize">
+                        <size>
+                         <width>110</width>
+                         <height>0</height>
+                        </size>
+                       </property>
+                       <property name="maximumSize">
+                        <size>
+                         <width>110</width>
+                         <height>16777215</height>
+                        </size>
+                       </property>
+                       <property name="alignment">
+                        <set>Qt::AlignCenter</set>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="2" column="3">
+                      <widget class="QLabel" name="label_40">
+                       <property name="text">
+                        <string>单节内阻</string>
+                       </property>
+                       <property name="alignment">
+                        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="2" column="4">
+                      <widget class="QDoubleSpinBox" name="spinBoxBatSimRes">
+                       <property name="suffix">
+                        <string>mΩ</string>
+                       </property>
+                       <property name="decimals">
+                        <number>2</number>
+                       </property>
+                       <property name="minimum">
+                        <double>0.000000000000000</double>
+                       </property>
+                       <property name="maximum">
+                        <double>1000.000000000000000</double>
+                       </property>
+                       <property name="singleStep">
+                        <double>0.100000000000000</double>
+                       </property>
+                       <property name="stepType">
+                        <enum>QAbstractSpinBox::AdaptiveDecimalStepType</enum>
+                       </property>
+                       <property name="value">
+                        <double>0.000000000000000</double>
+                       </property>
+                       <property name="minimumSize">
+                        <size>
+                         <width>110</width>
+                         <height>0</height>
+                        </size>
+                       </property>
+                       <property name="maximumSize">
+                        <size>
+                         <width>110</width>
+                         <height>16777215</height>
+                        </size>
+                       </property>
+                       <property name="alignment">
+                        <set>Qt::AlignCenter</set>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="3" column="0">
+                      <widget class="QLabel" name="label_38">
                        <property name="text">
                         <string>执行频率</string>
                        </property>
                        <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
-                       <property name="margin">
-                        <number>6</number>
+                        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
                        </property>
                       </widget>
                      </item>
-                     <item>
+                     <item row="3" column="1">
                       <widget class="QDoubleSpinBox" name="spinBoxBatSimLoopFreq">
-                       <property name="maximumSize">
-                        <size>
-                         <width>80</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
-                       <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
                        <property name="suffix">
                         <string>Hz</string>
                        </property>
@@ -2788,19 +2514,55 @@
                        <property name="value">
                         <double>30.000000000000000</double>
                        </property>
+                       <property name="minimumSize">
+                        <size>
+                         <width>110</width>
+                         <height>0</height>
+                        </size>
+                       </property>
+                       <property name="maximumSize">
+                        <size>
+                         <width>110</width>
+                         <height>16777215</height>
+                        </size>
+                       </property>
+                       <property name="alignment">
+                        <set>Qt::AlignCenter</set>
+                       </property>
                       </widget>
                      </item>
                     </layout>
                    </item>
                    <item>
-                    <spacer name="verticalSpacer_6">
+                    <layout class="QHBoxLayout" name="horizontalLayoutBatSimButtons" stretch="1,1">
+                     <property name="spacing">
+                      <number>6</number>
+                     </property>
+                     <item>
+                      <widget class="QPushButton" name="btnBatSimLoad">
+                       <property name="text">
+                        <string>加载曲线</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <widget class="QPushButton" name="btnBatSimPreview">
+                       <property name="text">
+                        <string>查看曲线</string>
+                       </property>
+                      </widget>
+                     </item>
+                    </layout>
+                   </item>
+                   <item>
+                    <spacer name="verticalSpacerBatSim">
                      <property name="orientation">
                       <enum>Qt::Vertical</enum>
                      </property>
-                     <property name="sizeHint" stdset="0">
+                     <property name="sizeHint">
                       <size>
                        <width>20</width>
-                       <height>36</height>
+                       <height>0</height>
                       </size>
                      </property>
                     </spacer>
@@ -2815,119 +2577,78 @@
               <attribute name="title">
                <string>预设组</string>
               </attribute>
-              <layout class="QVBoxLayout" name="verticalLayout_21">
+              <layout class="QVBoxLayout" name="verticalLayoutPresetTab">
+               <property name="spacing">
+                <number>6</number>
+               </property>
                <property name="leftMargin">
-                <number>5</number>
+                <number>6</number>
                </property>
                <property name="topMargin">
-                <number>5</number>
+                <number>6</number>
                </property>
                <property name="rightMargin">
-                <number>5</number>
+                <number>6</number>
                </property>
                <property name="bottomMargin">
-                <number>5</number>
+                <number>6</number>
                </property>
                <item>
-                <layout class="QHBoxLayout" name="horizontalLayout_32" stretch="2">
-                 <property name="leftMargin">
-                  <number>10</number>
-                 </property>
-                 <property name="rightMargin">
-                  <number>10</number>
-                 </property>
+                <widget class="QComboBox" name="comboPreset">
                  <item>
-                  <widget class="QComboBox" name="comboPreset">
-                   <property name="maximumSize">
-                    <size>
-                     <width>140</width>
-                     <height>16777215</height>
-                    </size>
-                   </property>
-                   <property name="font">
-                    <font>
-                     <family>Sarasa Fixed SC SemiBold</family>
-                    </font>
-                   </property>
-                   <item>
-                    <property name="text">
-                     <string>None</string>
-                    </property>
-                   </item>
-                   <item>
-                    <property name="text">
-                     <string>1</string>
-                    </property>
-                   </item>
-                   <item>
-                    <property name="text">
-                     <string>2</string>
-                    </property>
-                   </item>
-                   <item>
-                    <property name="text">
-                     <string>3</string>
-                    </property>
-                   </item>
-                   <item>
-                    <property name="text">
-                     <string>4</string>
-                    </property>
-                   </item>
-                   <item>
-                    <property name="text">
-                     <string>5</string>
-                    </property>
-                   </item>
-                   <item>
-                    <property name="text">
-                     <string>6</string>
-                    </property>
-                   </item>
-                   <item>
-                    <property name="text">
-                     <string>7</string>
-                    </property>
-                   </item>
-                   <item>
-                    <property name="text">
-                     <string>8</string>
-                    </property>
-                   </item>
-                   <item>
-                    <property name="text">
-                     <string>9</string>
-                    </property>
-                   </item>
-                  </widget>
+                  <property name="text">
+                   <string>None</string>
+                  </property>
                  </item>
-                </layout>
-               </item>
-               <item>
-                <widget class="Line" name="line">
-                 <property name="font">
-                  <font>
-                   <family>Sarasa Fixed SC SemiBold</family>
-                  </font>
-                 </property>
-                 <property name="frameShadow">
-                  <enum>QFrame::Plain</enum>
-                 </property>
-                 <property name="lineWidth">
-                  <number>1</number>
-                 </property>
-                 <property name="orientation">
-                  <enum>Qt::Horizontal</enum>
-                 </property>
+                 <item>
+                  <property name="text">
+                   <string>1</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>2</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>3</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>4</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>5</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>6</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>7</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>8</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>9</string>
+                  </property>
+                 </item>
                 </widget>
                </item>
                <item>
                 <widget class="QScrollArea" name="scrollArea_4">
-                 <property name="font">
-                  <font>
-                   <family>Sarasa Fixed SC SemiBold</family>
-                  </font>
-                 </property>
                  <property name="frameShape">
                   <enum>QFrame::NoFrame</enum>
                  </property>
@@ -2936,6 +2657,9 @@
                  </property>
                  <property name="widgetResizable">
                   <bool>true</bool>
+                 </property>
+                 <property name="styleSheet">
+                  <string notr="true">QScrollArea { margin: 0px; border: none; }</string>
                  </property>
                  <widget class="QWidget" name="scrollAreaWidgetContents_4">
                   <property name="geometry">
@@ -2946,47 +2670,65 @@
                     <height>155</height>
                    </rect>
                   </property>
-                  <layout class="QVBoxLayout" name="verticalLayout_20">
+                  <layout class="QVBoxLayout" name="verticalLayoutPresetScroll">
+                   <property name="spacing">
+                    <number>6</number>
+                   </property>
+                   <property name="leftMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="topMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="rightMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="bottomMargin">
+                    <number>0</number>
+                   </property>
                    <item>
-                    <layout class="QHBoxLayout" name="horizontalLayout_33" stretch="1,2">
-                     <item>
+                    <layout class="QGridLayout" name="gridLayoutPresetForm" columnstretch="1,0,0,1,0" columnminimumwidth="0,110,16,0,110">
+                     <property name="leftMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="topMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="rightMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="bottomMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="horizontalSpacing">
+                      <number>8</number>
+                     </property>
+                     <property name="verticalSpacing">
+                      <number>6</number>
+                     </property>
+                     <item row="0" column="0">
                       <widget class="QLabel" name="label_34">
-                       <property name="minimumSize">
-                        <size>
-                         <width>0</width>
-                         <height>28</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                        </font>
-                       </property>
                        <property name="text">
                         <string>修改预设</string>
                        </property>
                        <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
-                       <property name="margin">
-                        <number>6</number>
+                        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
                        </property>
                       </widget>
                      </item>
-                     <item>
+                     <item row="0" column="1">
                       <widget class="QComboBox" name="comboPresetEdit">
-                       <property name="maximumSize">
+                       <property name="minimumSize">
                         <size>
-                         <width>80</width>
-                         <height>16777215</height>
+                         <width>110</width>
+                         <height>0</height>
                         </size>
                        </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <pointsize>9</pointsize>
-                         <bold>true</bold>
-                        </font>
+                       <property name="maximumSize">
+                        <size>
+                         <width>110</width>
+                         <height>16777215</height>
+                        </size>
                        </property>
                        <item>
                         <property name="text">
@@ -3035,50 +2777,18 @@
                        </item>
                       </widget>
                      </item>
-                    </layout>
-                   </item>
-                   <item>
-                    <layout class="QHBoxLayout" name="horizontalLayout_29" stretch="1,2">
-                     <item>
+                     <item row="1" column="0">
                       <widget class="QLabel" name="label_30">
-                       <property name="minimumSize">
-                        <size>
-                         <width>0</width>
-                         <height>28</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                        </font>
-                       </property>
                        <property name="text">
                         <string>设定电压</string>
                        </property>
                        <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
-                       <property name="margin">
-                        <number>6</number>
+                        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
                        </property>
                       </widget>
                      </item>
-                     <item>
+                     <item row="1" column="1">
                       <widget class="QDoubleSpinBox" name="spinBoxPresetVoltage">
-                       <property name="maximumSize">
-                        <size>
-                         <width>80</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                        </font>
-                       </property>
-                       <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
                        <property name="suffix">
                         <string>V</string>
                        </property>
@@ -3097,52 +2807,35 @@
                        <property name="stepType">
                         <enum>QAbstractSpinBox::AdaptiveDecimalStepType</enum>
                        </property>
-                      </widget>
-                     </item>
-                    </layout>
-                   </item>
-                   <item>
-                    <layout class="QHBoxLayout" name="horizontalLayout_30" stretch="1,2">
-                     <item>
-                      <widget class="QLabel" name="label_31">
                        <property name="minimumSize">
                         <size>
-                         <width>0</width>
-                         <height>28</height>
+                         <width>110</width>
+                         <height>0</height>
                         </size>
                        </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                        </font>
+                       <property name="maximumSize">
+                        <size>
+                         <width>110</width>
+                         <height>16777215</height>
+                        </size>
                        </property>
+                       <property name="alignment">
+                        <set>Qt::AlignCenter</set>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="1" column="3">
+                      <widget class="QLabel" name="label_31">
                        <property name="text">
                         <string>设定电流</string>
                        </property>
                        <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
-                       <property name="margin">
-                        <number>6</number>
+                        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
                        </property>
                       </widget>
                      </item>
-                     <item>
+                     <item row="1" column="4">
                       <widget class="QDoubleSpinBox" name="spinBoxPresetCurrent">
-                       <property name="maximumSize">
-                        <size>
-                         <width>80</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                        </font>
-                       </property>
-                       <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
                        <property name="suffix">
                         <string>A</string>
                        </property>
@@ -3164,36 +2857,48 @@
                        <property name="value">
                         <double>0.000000000000000</double>
                        </property>
+                       <property name="minimumSize">
+                        <size>
+                         <width>110</width>
+                         <height>0</height>
+                        </size>
+                       </property>
+                       <property name="maximumSize">
+                        <size>
+                         <width>110</width>
+                         <height>16777215</height>
+                        </size>
+                       </property>
+                       <property name="alignment">
+                        <set>Qt::AlignCenter</set>
+                       </property>
                       </widget>
                      </item>
                     </layout>
                    </item>
                    <item>
-                    <widget class="QPushButton" name="btnPresetSave">
-                     <property name="font">
-                      <font>
-                       <family>Sarasa Fixed SC SemiBold</family>
-                      </font>
+                    <layout class="QHBoxLayout" name="horizontalLayoutPresetButtons" stretch="1">
+                     <property name="spacing">
+                      <number>6</number>
                      </property>
-                     <property name="text">
-                      <string>保存</string>
-                     </property>
-                    </widget>
+                     <item>
+                      <widget class="QPushButton" name="btnPresetSave">
+                       <property name="text">
+                        <string>保存</string>
+                       </property>
+                      </widget>
+                     </item>
+                    </layout>
                    </item>
                    <item>
-                    <spacer name="verticalSpacer_4">
-                     <property name="font">
-                      <font>
-                       <family>Sarasa Fixed SC SemiBold</family>
-                      </font>
-                     </property>
+                    <spacer name="verticalSpacerPreset">
                      <property name="orientation">
                       <enum>Qt::Vertical</enum>
                      </property>
-                     <property name="sizeHint" stdset="0">
+                     <property name="sizeHint">
                       <size>
                        <width>20</width>
-                       <height>40</height>
+                       <height>0</height>
                       </size>
                      </property>
                     </spacer>
@@ -3208,21 +2913,21 @@
               <attribute name="title">
                <string>直流扫描</string>
               </attribute>
-              <layout class="QVBoxLayout" name="verticalLayout_9">
+              <layout class="QVBoxLayout" name="verticalLayoutSweepTab">
                <property name="spacing">
-                <number>4</number>
+                <number>6</number>
                </property>
                <property name="leftMargin">
-                <number>5</number>
+                <number>6</number>
                </property>
                <property name="topMargin">
-                <number>5</number>
+                <number>6</number>
                </property>
                <property name="rightMargin">
-                <number>5</number>
+                <number>6</number>
                </property>
                <property name="bottomMargin">
-                <number>5</number>
+                <number>6</number>
                </property>
                <item>
                 <widget class="QPushButton" name="btnSweep">
@@ -3239,6 +2944,9 @@
                  <property name="widgetResizable">
                   <bool>true</bool>
                  </property>
+                 <property name="styleSheet">
+                  <string notr="true">QScrollArea { margin: 0px; border: none; }</string>
+                 </property>
                  <widget class="QWidget" name="scrollAreaWidgetContents_2">
                   <property name="geometry">
                    <rect>
@@ -3248,53 +2956,68 @@
                     <height>263</height>
                    </rect>
                   </property>
-                  <layout class="QVBoxLayout" name="verticalLayout_16">
+                  <layout class="QVBoxLayout" name="verticalLayoutSweepScroll">
+                   <property name="spacing">
+                    <number>6</number>
+                   </property>
+                   <property name="leftMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="topMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="rightMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="bottomMargin">
+                    <number>0</number>
+                   </property>
                    <item>
-                    <layout class="QHBoxLayout" name="horizontalLayout_14" stretch="1,2">
-                     <property name="spacing">
+                    <layout class="QGridLayout" name="gridLayoutSweepForm" columnstretch="1,0,0,1,0" columnminimumwidth="0,110,16,0,110">
+                     <property name="leftMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="topMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="rightMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="bottomMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="horizontalSpacing">
+                      <number>8</number>
+                     </property>
+                     <property name="verticalSpacing">
                       <number>6</number>
                      </property>
-                     <item>
+                     <item row="0" column="0">
                       <widget class="QLabel" name="label_11">
-                       <property name="minimumSize">
-                        <size>
-                         <width>0</width>
-                         <height>28</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
                        <property name="text">
                         <string>目标参数</string>
                        </property>
                        <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
-                       <property name="margin">
-                        <number>6</number>
+                        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
                        </property>
                       </widget>
                      </item>
-                     <item>
+                     <item row="0" column="1">
                       <widget class="QComboBox" name="comboSweepTarget">
-                       <property name="maximumSize">
-                        <size>
-                         <width>80</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
                        <property name="sizeAdjustPolicy">
                         <enum>QComboBox::AdjustToContentsOnFirstShow</enum>
+                       </property>
+                       <property name="minimumSize">
+                        <size>
+                         <width>110</width>
+                         <height>0</height>
+                        </size>
+                       </property>
+                       <property name="maximumSize">
+                        <size>
+                         <width>110</width>
+                         <height>16777215</height>
+                        </size>
                        </property>
                        <item>
                         <property name="text">
@@ -3308,321 +3031,32 @@
                        </item>
                       </widget>
                      </item>
-                    </layout>
-                   </item>
-                   <item>
-                    <layout class="QHBoxLayout" name="horizontalLayout_15" stretch="1,2">
-                     <item>
-                      <widget class="QLabel" name="label_15">
-                       <property name="minimumSize">
-                        <size>
-                         <width>0</width>
-                         <height>28</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
-                       <property name="text">
-                        <string>起始点</string>
-                       </property>
-                       <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
-                       <property name="margin">
-                        <number>6</number>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QDoubleSpinBox" name="spinBoxSweepStart">
-                       <property name="maximumSize">
-                        <size>
-                         <width>80</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
-                       <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
-                       <property name="suffix">
-                        <string>V</string>
-                       </property>
-                       <property name="decimals">
-                        <number>3</number>
-                       </property>
-                       <property name="minimum">
-                        <double>0.000000000000000</double>
-                       </property>
-                       <property name="maximum">
-                        <double>30.000000000000000</double>
-                       </property>
-                       <property name="singleStep">
-                        <double>0.100000000000000</double>
-                       </property>
-                       <property name="stepType">
-                        <enum>QAbstractSpinBox::AdaptiveDecimalStepType</enum>
-                       </property>
-                      </widget>
-                     </item>
-                    </layout>
-                   </item>
-                   <item>
-                    <layout class="QHBoxLayout" name="horizontalLayout_16" stretch="1,2">
-                     <item>
-                      <widget class="QLabel" name="label_16">
-                       <property name="minimumSize">
-                        <size>
-                         <width>0</width>
-                         <height>28</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
-                       <property name="text">
-                        <string>结束点</string>
-                       </property>
-                       <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
-                       <property name="margin">
-                        <number>6</number>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QDoubleSpinBox" name="spinBoxSweepStop">
-                       <property name="maximumSize">
-                        <size>
-                         <width>80</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
-                       <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
-                       <property name="suffix">
-                        <string>V</string>
-                       </property>
-                       <property name="decimals">
-                        <number>3</number>
-                       </property>
-                       <property name="minimum">
-                        <double>0.000000000000000</double>
-                       </property>
-                       <property name="maximum">
-                        <double>30.000000000000000</double>
-                       </property>
-                       <property name="singleStep">
-                        <double>0.100000000000000</double>
-                       </property>
-                       <property name="stepType">
-                        <enum>QAbstractSpinBox::AdaptiveDecimalStepType</enum>
-                       </property>
-                       <property name="value">
-                        <double>5.000000000000000</double>
-                       </property>
-                      </widget>
-                     </item>
-                    </layout>
-                   </item>
-                   <item>
-                    <layout class="QHBoxLayout" name="horizontalLayout_17" stretch="1,2">
-                     <item>
-                      <widget class="QLabel" name="label_17">
-                       <property name="minimumSize">
-                        <size>
-                         <width>0</width>
-                         <height>28</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
-                       <property name="text">
-                        <string>步进值</string>
-                       </property>
-                       <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
-                       <property name="margin">
-                        <number>6</number>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QDoubleSpinBox" name="spinBoxSweepStep">
-                       <property name="maximumSize">
-                        <size>
-                         <width>80</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
-                       <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
-                       <property name="suffix">
-                        <string>V</string>
-                       </property>
-                       <property name="decimals">
-                        <number>3</number>
-                       </property>
-                       <property name="minimum">
-                        <double>0.001000000000000</double>
-                       </property>
-                       <property name="maximum">
-                        <double>30.000000000000000</double>
-                       </property>
-                       <property name="singleStep">
-                        <double>0.100000000000000</double>
-                       </property>
-                       <property name="stepType">
-                        <enum>QAbstractSpinBox::AdaptiveDecimalStepType</enum>
-                       </property>
-                       <property name="value">
-                        <double>0.001000000000000</double>
-                       </property>
-                      </widget>
-                     </item>
-                    </layout>
-                   </item>
-                   <item>
-                    <layout class="QHBoxLayout" name="horizontalLayout_18" stretch="1,2">
-                     <item>
-                      <widget class="QLabel" name="label_18">
-                       <property name="minimumSize">
-                        <size>
-                         <width>0</width>
-                         <height>28</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
-                       <property name="text">
-                        <string>延迟</string>
-                       </property>
-                       <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
-                       <property name="margin">
-                        <number>6</number>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QDoubleSpinBox" name="spinBoxSweepDelay">
-                       <property name="maximumSize">
-                        <size>
-                         <width>80</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
-                       <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
-                       <property name="suffix">
-                        <string>s</string>
-                       </property>
-                       <property name="decimals">
-                        <number>2</number>
-                       </property>
-                       <property name="minimum">
-                        <double>0.010000000000000</double>
-                       </property>
-                       <property name="maximum">
-                        <double>999999.000000000000000</double>
-                       </property>
-                       <property name="singleStep">
-                        <double>0.100000000000000</double>
-                       </property>
-                       <property name="stepType">
-                        <enum>QAbstractSpinBox::AdaptiveDecimalStepType</enum>
-                       </property>
-                      </widget>
-                     </item>
-                    </layout>
-                   </item>
-                   <item>
-                    <layout class="QHBoxLayout" name="horizontalLayout_41" stretch="1,2">
-                     <item>
+                     <item row="0" column="3">
                       <widget class="QLabel" name="label_26">
-                       <property name="minimumSize">
-                        <size>
-                         <width>0</width>
-                         <height>28</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
                        <property name="text">
                         <string>扫描响应</string>
                        </property>
                        <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
-                       <property name="margin">
-                        <number>6</number>
+                        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
                        </property>
                       </widget>
                      </item>
-                     <item>
+                     <item row="0" column="4">
                       <widget class="QComboBox" name="comboSweepRecord">
-                       <property name="maximumSize">
-                        <size>
-                         <width>80</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
                        <property name="sizeAdjustPolicy">
                         <enum>QComboBox::AdjustToContentsOnFirstShow</enum>
+                       </property>
+                       <property name="minimumSize">
+                        <size>
+                         <width>110</width>
+                         <height>0</height>
+                        </size>
+                       </property>
+                       <property name="maximumSize">
+                        <size>
+                         <width>110</width>
+                         <height>16777215</height>
+                        </size>
                        </property>
                        <item>
                         <property name="text">
@@ -3651,27 +3085,228 @@
                        </item>
                       </widget>
                      </item>
+                     <item row="1" column="0">
+                      <widget class="QLabel" name="label_15">
+                       <property name="text">
+                        <string>起始点</string>
+                       </property>
+                       <property name="alignment">
+                        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="1" column="1">
+                      <widget class="QDoubleSpinBox" name="spinBoxSweepStart">
+                       <property name="suffix">
+                        <string>V</string>
+                       </property>
+                       <property name="decimals">
+                        <number>3</number>
+                       </property>
+                       <property name="minimum">
+                        <double>0.000000000000000</double>
+                       </property>
+                       <property name="maximum">
+                        <double>30.000000000000000</double>
+                       </property>
+                       <property name="singleStep">
+                        <double>0.100000000000000</double>
+                       </property>
+                       <property name="stepType">
+                        <enum>QAbstractSpinBox::AdaptiveDecimalStepType</enum>
+                       </property>
+                       <property name="minimumSize">
+                        <size>
+                         <width>110</width>
+                         <height>0</height>
+                        </size>
+                       </property>
+                       <property name="maximumSize">
+                        <size>
+                         <width>110</width>
+                         <height>16777215</height>
+                        </size>
+                       </property>
+                       <property name="alignment">
+                        <set>Qt::AlignCenter</set>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="1" column="3">
+                      <widget class="QLabel" name="label_16">
+                       <property name="text">
+                        <string>结束点</string>
+                       </property>
+                       <property name="alignment">
+                        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="1" column="4">
+                      <widget class="QDoubleSpinBox" name="spinBoxSweepStop">
+                       <property name="suffix">
+                        <string>V</string>
+                       </property>
+                       <property name="decimals">
+                        <number>3</number>
+                       </property>
+                       <property name="minimum">
+                        <double>0.000000000000000</double>
+                       </property>
+                       <property name="maximum">
+                        <double>30.000000000000000</double>
+                       </property>
+                       <property name="singleStep">
+                        <double>0.100000000000000</double>
+                       </property>
+                       <property name="stepType">
+                        <enum>QAbstractSpinBox::AdaptiveDecimalStepType</enum>
+                       </property>
+                       <property name="value">
+                        <double>5.000000000000000</double>
+                       </property>
+                       <property name="minimumSize">
+                        <size>
+                         <width>110</width>
+                         <height>0</height>
+                        </size>
+                       </property>
+                       <property name="maximumSize">
+                        <size>
+                         <width>110</width>
+                         <height>16777215</height>
+                        </size>
+                       </property>
+                       <property name="alignment">
+                        <set>Qt::AlignCenter</set>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="2" column="0">
+                      <widget class="QLabel" name="label_17">
+                       <property name="text">
+                        <string>步进值</string>
+                       </property>
+                       <property name="alignment">
+                        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="2" column="1">
+                      <widget class="QDoubleSpinBox" name="spinBoxSweepStep">
+                       <property name="suffix">
+                        <string>V</string>
+                       </property>
+                       <property name="decimals">
+                        <number>3</number>
+                       </property>
+                       <property name="minimum">
+                        <double>0.001000000000000</double>
+                       </property>
+                       <property name="maximum">
+                        <double>30.000000000000000</double>
+                       </property>
+                       <property name="singleStep">
+                        <double>0.100000000000000</double>
+                       </property>
+                       <property name="stepType">
+                        <enum>QAbstractSpinBox::AdaptiveDecimalStepType</enum>
+                       </property>
+                       <property name="value">
+                        <double>0.001000000000000</double>
+                       </property>
+                       <property name="minimumSize">
+                        <size>
+                         <width>110</width>
+                         <height>0</height>
+                        </size>
+                       </property>
+                       <property name="maximumSize">
+                        <size>
+                         <width>110</width>
+                         <height>16777215</height>
+                        </size>
+                       </property>
+                       <property name="alignment">
+                        <set>Qt::AlignCenter</set>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="2" column="3">
+                      <widget class="QLabel" name="label_18">
+                       <property name="text">
+                        <string>延迟</string>
+                       </property>
+                       <property name="alignment">
+                        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="2" column="4">
+                      <widget class="QDoubleSpinBox" name="spinBoxSweepDelay">
+                       <property name="suffix">
+                        <string>s</string>
+                       </property>
+                       <property name="decimals">
+                        <number>2</number>
+                       </property>
+                       <property name="minimum">
+                        <double>0.010000000000000</double>
+                       </property>
+                       <property name="maximum">
+                        <double>999999.000000000000000</double>
+                       </property>
+                       <property name="singleStep">
+                        <double>0.100000000000000</double>
+                       </property>
+                       <property name="stepType">
+                        <enum>QAbstractSpinBox::AdaptiveDecimalStepType</enum>
+                       </property>
+                       <property name="minimumSize">
+                        <size>
+                         <width>110</width>
+                         <height>0</height>
+                        </size>
+                       </property>
+                       <property name="maximumSize">
+                        <size>
+                         <width>110</width>
+                         <height>16777215</height>
+                        </size>
+                       </property>
+                       <property name="alignment">
+                        <set>Qt::AlignCenter</set>
+                       </property>
+                      </widget>
+                     </item>
                     </layout>
                    </item>
                    <item>
-                    <widget class="QPushButton" name="btnSweepShowRecord">
-                     <property name="enabled">
-                      <bool>true</bool>
+                    <layout class="QHBoxLayout" name="horizontalLayoutSweepButtons" stretch="1">
+                     <property name="spacing">
+                      <number>6</number>
                      </property>
-                     <property name="text">
-                      <string>查看响应曲线</string>
-                     </property>
-                    </widget>
+                     <item>
+                      <widget class="QPushButton" name="btnSweepShowRecord">
+                       <property name="enabled">
+                        <bool>true</bool>
+                       </property>
+                       <property name="text">
+                        <string>查看响应曲线</string>
+                       </property>
+                      </widget>
+                     </item>
+                    </layout>
                    </item>
                    <item>
-                    <spacer name="verticalSpacer_2">
+                    <spacer name="verticalSpacerSweep">
                      <property name="orientation">
                       <enum>Qt::Vertical</enum>
                      </property>
-                     <property name="sizeHint" stdset="0">
+                     <property name="sizeHint">
                       <size>
                        <width>20</width>
-                       <height>36</height>
+                       <height>0</height>
                       </size>
                      </property>
                     </spacer>
@@ -3686,21 +3321,21 @@
               <attribute name="title">
                <string>功率闭环</string>
               </attribute>
-              <layout class="QVBoxLayout" name="verticalLayout_5">
+              <layout class="QVBoxLayout" name="verticalLayoutKeepPowerTab">
                <property name="spacing">
-                <number>4</number>
+                <number>6</number>
                </property>
                <property name="leftMargin">
-                <number>5</number>
+                <number>6</number>
                </property>
                <property name="topMargin">
-                <number>5</number>
+                <number>6</number>
                </property>
                <property name="rightMargin">
-                <number>5</number>
+                <number>6</number>
                </property>
                <property name="bottomMargin">
-                <number>5</number>
+                <number>6</number>
                </property>
                <item>
                 <widget class="QPushButton" name="btnKeepPower">
@@ -3720,6 +3355,9 @@
                  <property name="widgetResizable">
                   <bool>true</bool>
                  </property>
+                 <property name="styleSheet">
+                  <string notr="true">QScrollArea { margin: 0px; border: none; }</string>
+                 </property>
                  <widget class="QWidget" name="scrollAreaWidgetContents">
                   <property name="geometry">
                    <rect>
@@ -3729,51 +3367,54 @@
                     <height>162</height>
                    </rect>
                   </property>
-                  <layout class="QVBoxLayout" name="verticalLayout_15">
+                  <layout class="QVBoxLayout" name="verticalLayoutKeepPowerScroll">
+                   <property name="spacing">
+                    <number>6</number>
+                   </property>
+                   <property name="leftMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="topMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="rightMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="bottomMargin">
+                    <number>0</number>
+                   </property>
                    <item>
-                    <layout class="QHBoxLayout" name="horizontalLayout_10" stretch="1,2">
-                     <item>
+                    <layout class="QGridLayout" name="gridLayoutKeepPowerForm" columnstretch="1,0,0,1,0" columnminimumwidth="0,110,16,0,110">
+                     <property name="leftMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="topMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="rightMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="bottomMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="horizontalSpacing">
+                      <number>8</number>
+                     </property>
+                     <property name="verticalSpacing">
+                      <number>6</number>
+                     </property>
+                     <item row="0" column="0">
                       <widget class="QLabel" name="label_9">
-                       <property name="minimumSize">
-                        <size>
-                         <width>0</width>
-                         <height>28</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
                        <property name="text">
                         <string>目标功率</string>
                        </property>
                        <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
-                       <property name="margin">
-                        <number>6</number>
+                        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
                        </property>
                       </widget>
                      </item>
-                     <item>
+                     <item row="0" column="1">
                       <widget class="QDoubleSpinBox" name="spinBoxKeepPowerSet">
-                       <property name="maximumSize">
-                        <size>
-                         <width>80</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
-                       <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
                        <property name="suffix">
                         <string>W</string>
                        </property>
@@ -3792,120 +3433,35 @@
                        <property name="stepType">
                         <enum>QAbstractSpinBox::AdaptiveDecimalStepType</enum>
                        </property>
-                      </widget>
-                     </item>
-                    </layout>
-                   </item>
-                   <item>
-                    <layout class="QHBoxLayout" name="horizontalLayout_11" stretch="1,2">
-                     <item>
-                      <widget class="QLabel" name="label_10">
                        <property name="minimumSize">
                         <size>
-                         <width>0</width>
-                         <height>28</height>
+                         <width>110</width>
+                         <height>0</height>
                         </size>
                        </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
-                       <property name="text">
-                        <string>闭环参数</string>
-                       </property>
-                       <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
-                       <property name="margin">
-                        <number>6</number>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QDoubleSpinBox" name="spinBoxKeepPowerPi">
                        <property name="maximumSize">
                         <size>
-                         <width>80</width>
+                         <width>110</width>
                          <height>16777215</height>
                         </size>
                        </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
                        <property name="alignment">
                         <set>Qt::AlignCenter</set>
                        </property>
-                       <property name="decimals">
-                        <number>2</number>
-                       </property>
-                       <property name="minimum">
-                        <double>0.000000000000000</double>
-                       </property>
-                       <property name="maximum">
-                        <double>40.000000000000000</double>
-                       </property>
-                       <property name="singleStep">
-                        <double>0.100000000000000</double>
-                       </property>
-                       <property name="stepType">
-                        <enum>QAbstractSpinBox::AdaptiveDecimalStepType</enum>
-                       </property>
-                       <property name="value">
-                        <double>2.500000000000000</double>
-                       </property>
                       </widget>
                      </item>
-                    </layout>
-                   </item>
-                   <item>
-                    <layout class="QHBoxLayout" name="horizontalLayout_35" stretch="1,2">
-                     <item>
+                     <item row="0" column="3">
                       <widget class="QLabel" name="label_28">
-                       <property name="minimumSize">
-                        <size>
-                         <width>0</width>
-                         <height>28</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
                        <property name="text">
                         <string>电压上限</string>
                        </property>
                        <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
-                       <property name="margin">
-                        <number>6</number>
+                        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
                        </property>
                       </widget>
                      </item>
-                     <item>
+                     <item row="0" column="4">
                       <widget class="QDoubleSpinBox" name="spinBoxKeepPowerMaxV">
-                       <property name="maximumSize">
-                        <size>
-                         <width>80</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
-                       <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
                        <property name="suffix">
                         <string>V</string>
                        </property>
@@ -3927,54 +3483,82 @@
                        <property name="value">
                         <double>30.000000000000000</double>
                        </property>
-                      </widget>
-                     </item>
-                    </layout>
-                   </item>
-                   <item>
-                    <layout class="QHBoxLayout" name="horizontalLayout_19" stretch="1,2">
-                     <item>
-                      <widget class="QLabel" name="label_19">
                        <property name="minimumSize">
                         <size>
-                         <width>0</width>
-                         <height>28</height>
+                         <width>110</width>
+                         <height>0</height>
                         </size>
                        </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
+                       <property name="maximumSize">
+                        <size>
+                         <width>110</width>
+                         <height>16777215</height>
+                        </size>
                        </property>
+                       <property name="alignment">
+                        <set>Qt::AlignCenter</set>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="1" column="0">
+                      <widget class="QLabel" name="label_10">
+                       <property name="text">
+                        <string>闭环参数</string>
+                       </property>
+                       <property name="alignment">
+                        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="1" column="1">
+                      <widget class="QDoubleSpinBox" name="spinBoxKeepPowerPi">
+                       <property name="decimals">
+                        <number>2</number>
+                       </property>
+                       <property name="minimum">
+                        <double>0.000000000000000</double>
+                       </property>
+                       <property name="maximum">
+                        <double>40.000000000000000</double>
+                       </property>
+                       <property name="singleStep">
+                        <double>0.100000000000000</double>
+                       </property>
+                       <property name="stepType">
+                        <enum>QAbstractSpinBox::AdaptiveDecimalStepType</enum>
+                       </property>
+                       <property name="value">
+                        <double>2.500000000000000</double>
+                       </property>
+                       <property name="minimumSize">
+                        <size>
+                         <width>110</width>
+                         <height>0</height>
+                        </size>
+                       </property>
+                       <property name="maximumSize">
+                        <size>
+                         <width>110</width>
+                         <height>16777215</height>
+                        </size>
+                       </property>
+                       <property name="alignment">
+                        <set>Qt::AlignCenter</set>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="1" column="3">
+                      <widget class="QLabel" name="label_19">
                        <property name="text">
                         <string>执行频率</string>
                        </property>
                        <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
-                       <property name="margin">
-                        <number>6</number>
+                        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
                        </property>
                       </widget>
                      </item>
-                     <item>
+                     <item row="1" column="4">
                       <widget class="QDoubleSpinBox" name="spinBoxKeepPowerLoopFreq">
-                       <property name="maximumSize">
-                        <size>
-                         <width>80</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="font">
-                        <font>
-                         <family>Sarasa Fixed SC SemiBold</family>
-                         <bold>true</bold>
-                        </font>
-                       </property>
-                       <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
                        <property name="suffix">
                         <string>Hz</string>
                        </property>
@@ -3996,19 +3580,34 @@
                        <property name="value">
                         <double>30.000000000000000</double>
                        </property>
+                       <property name="minimumSize">
+                        <size>
+                         <width>110</width>
+                         <height>0</height>
+                        </size>
+                       </property>
+                       <property name="maximumSize">
+                        <size>
+                         <width>110</width>
+                         <height>16777215</height>
+                        </size>
+                       </property>
+                       <property name="alignment">
+                        <set>Qt::AlignCenter</set>
+                       </property>
                       </widget>
                      </item>
                     </layout>
                    </item>
                    <item>
-                    <spacer name="verticalSpacer">
+                    <spacer name="verticalSpacerKeepPower">
                      <property name="orientation">
                       <enum>Qt::Vertical</enum>
                      </property>
-                     <property name="sizeHint" stdset="0">
+                     <property name="sizeHint">
                       <size>
                        <width>20</width>
-                       <height>40</height>
+                       <height>0</height>
                       </size>
                      </property>
                     </spacer>
@@ -4023,18 +3622,21 @@
               <attribute name="title">
                <string>序列执行</string>
               </attribute>
-              <layout class="QVBoxLayout" name="verticalLayout_22">
+              <layout class="QVBoxLayout" name="verticalLayoutSeqTab" stretch="1,0,0,0,0">
+               <property name="spacing">
+                <number>6</number>
+               </property>
                <property name="leftMargin">
-                <number>5</number>
+                <number>6</number>
                </property>
                <property name="topMargin">
-                <number>5</number>
+                <number>6</number>
                </property>
                <property name="rightMargin">
-                <number>5</number>
+                <number>6</number>
                </property>
                <property name="bottomMargin">
-                <number>5</number>
+                <number>6</number>
                </property>
                <item>
                 <widget class="QListWidget" name="listSeq">
@@ -4045,7 +3647,7 @@
                   </sizepolicy>
                  </property>
                  <property name="toolTip">
-                  <string />
+                  <string/>
                  </property>
                  <property name="frameShadow">
                   <enum>QFrame::Plain</enum>
@@ -4074,40 +3676,12 @@
                 </widget>
                </item>
                <item>
-                <layout class="QHBoxLayout" name="horizontalLayout_37">
+                <layout class="QHBoxLayout" name="horizontalLayoutSeqRow1" stretch="1,1,1,1">
                  <property name="spacing">
-                  <number>1</number>
-                 </property>
-                 <property name="bottomMargin">
-                  <number>0</number>
+                  <number>6</number>
                  </property>
                  <item>
                   <widget class="QPushButton" name="btnSeqDelay">
-                   <property name="sizePolicy">
-                    <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                     <horstretch>0</horstretch>
-                     <verstretch>0</verstretch>
-                    </sizepolicy>
-                   </property>
-                   <property name="minimumSize">
-                    <size>
-                     <width>0</width>
-                     <height>0</height>
-                    </size>
-                   </property>
-                   <property name="maximumSize">
-                    <size>
-                     <width>40</width>
-                     <height>16777215</height>
-                    </size>
-                   </property>
-                   <property name="font">
-                    <font>
-                     <family>Sarasa Fixed SC SemiBold</family>
-                     <pointsize>8</pointsize>
-                     <bold>true</bold>
-                    </font>
-                   </property>
                    <property name="text">
                     <string>延迟</string>
                    </property>
@@ -4115,31 +3689,6 @@
                  </item>
                  <item>
                   <widget class="QPushButton" name="btnSeqWaitTime">
-                   <property name="sizePolicy">
-                    <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                     <horstretch>0</horstretch>
-                     <verstretch>0</verstretch>
-                    </sizepolicy>
-                   </property>
-                   <property name="minimumSize">
-                    <size>
-                     <width>0</width>
-                     <height>0</height>
-                    </size>
-                   </property>
-                   <property name="maximumSize">
-                    <size>
-                     <width>40</width>
-                     <height>16777215</height>
-                    </size>
-                   </property>
-                   <property name="font">
-                    <font>
-                     <family>Sarasa Fixed SC SemiBold</family>
-                     <pointsize>8</pointsize>
-                     <bold>true</bold>
-                    </font>
-                   </property>
                    <property name="text">
                     <string>等待</string>
                    </property>
@@ -4147,31 +3696,6 @@
                  </item>
                  <item>
                   <widget class="QPushButton" name="btnSeqVoltage">
-                   <property name="sizePolicy">
-                    <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                     <horstretch>0</horstretch>
-                     <verstretch>0</verstretch>
-                    </sizepolicy>
-                   </property>
-                   <property name="minimumSize">
-                    <size>
-                     <width>0</width>
-                     <height>0</height>
-                    </size>
-                   </property>
-                   <property name="maximumSize">
-                    <size>
-                     <width>40</width>
-                     <height>16777215</height>
-                    </size>
-                   </property>
-                   <property name="font">
-                    <font>
-                     <family>Sarasa Fixed SC SemiBold</family>
-                     <pointsize>8</pointsize>
-                     <bold>true</bold>
-                    </font>
-                   </property>
                    <property name="text">
                     <string>电压</string>
                    </property>
@@ -4179,31 +3703,6 @@
                  </item>
                  <item>
                   <widget class="QPushButton" name="btnSeqCurrent">
-                   <property name="sizePolicy">
-                    <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                     <horstretch>0</horstretch>
-                     <verstretch>0</verstretch>
-                    </sizepolicy>
-                   </property>
-                   <property name="minimumSize">
-                    <size>
-                     <width>0</width>
-                     <height>0</height>
-                    </size>
-                   </property>
-                   <property name="maximumSize">
-                    <size>
-                     <width>40</width>
-                     <height>16777215</height>
-                    </size>
-                   </property>
-                   <property name="font">
-                    <font>
-                     <family>Sarasa Fixed SC SemiBold</family>
-                     <pointsize>8</pointsize>
-                     <bold>true</bold>
-                    </font>
-                   </property>
                    <property name="text">
                     <string>电流</string>
                    </property>
@@ -4212,40 +3711,12 @@
                 </layout>
                </item>
                <item>
-                <layout class="QHBoxLayout" name="layoutSeqAction">
+                <layout class="QHBoxLayout" name="horizontalLayoutSeqRow2" stretch="1,1,1,1">
                  <property name="spacing">
-                  <number>1</number>
-                 </property>
-                 <property name="bottomMargin">
-                  <number>0</number>
+                  <number>6</number>
                  </property>
                  <item>
                   <widget class="QPushButton" name="btnSeqSave">
-                   <property name="sizePolicy">
-                    <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                     <horstretch>0</horstretch>
-                     <verstretch>0</verstretch>
-                    </sizepolicy>
-                   </property>
-                   <property name="minimumSize">
-                    <size>
-                     <width>0</width>
-                     <height>0</height>
-                    </size>
-                   </property>
-                   <property name="maximumSize">
-                    <size>
-                     <width>40</width>
-                     <height>16777215</height>
-                    </size>
-                   </property>
-                   <property name="font">
-                    <font>
-                     <family>Sarasa Fixed SC SemiBold</family>
-                     <pointsize>8</pointsize>
-                     <bold>true</bold>
-                    </font>
-                   </property>
                    <property name="text">
                     <string>保存</string>
                    </property>
@@ -4253,31 +3724,6 @@
                  </item>
                  <item>
                   <widget class="QPushButton" name="btnSeqLoad">
-                   <property name="sizePolicy">
-                    <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                     <horstretch>0</horstretch>
-                     <verstretch>0</verstretch>
-                    </sizepolicy>
-                   </property>
-                   <property name="minimumSize">
-                    <size>
-                     <width>0</width>
-                     <height>0</height>
-                    </size>
-                   </property>
-                   <property name="maximumSize">
-                    <size>
-                     <width>40</width>
-                     <height>16777215</height>
-                    </size>
-                   </property>
-                   <property name="font">
-                    <font>
-                     <family>Sarasa Fixed SC SemiBold</family>
-                     <pointsize>8</pointsize>
-                     <bold>true</bold>
-                    </font>
-                   </property>
                    <property name="text">
                     <string>载入</string>
                    </property>
@@ -4285,31 +3731,6 @@
                  </item>
                  <item>
                   <widget class="QPushButton" name="btnSeqSingle">
-                   <property name="sizePolicy">
-                    <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                     <horstretch>0</horstretch>
-                     <verstretch>0</verstretch>
-                    </sizepolicy>
-                   </property>
-                   <property name="minimumSize">
-                    <size>
-                     <width>0</width>
-                     <height>0</height>
-                    </size>
-                   </property>
-                   <property name="maximumSize">
-                    <size>
-                     <width>40</width>
-                     <height>16777215</height>
-                    </size>
-                   </property>
-                   <property name="font">
-                    <font>
-                     <family>Sarasa Fixed SC SemiBold</family>
-                     <pointsize>8</pointsize>
-                     <bold>true</bold>
-                    </font>
-                   </property>
                    <property name="text">
                     <string>单次</string>
                    </property>
@@ -4317,31 +3738,6 @@
                  </item>
                  <item>
                   <widget class="QPushButton" name="btnSeqLoop">
-                   <property name="sizePolicy">
-                    <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                     <horstretch>0</horstretch>
-                     <verstretch>0</verstretch>
-                    </sizepolicy>
-                   </property>
-                   <property name="minimumSize">
-                    <size>
-                     <width>0</width>
-                     <height>0</height>
-                    </size>
-                   </property>
-                   <property name="maximumSize">
-                    <size>
-                     <width>40</width>
-                     <height>16777215</height>
-                    </size>
-                   </property>
-                   <property name="font">
-                    <font>
-                     <family>Sarasa Fixed SC SemiBold</family>
-                     <pointsize>8</pointsize>
-                     <bold>true</bold>
-                    </font>
-                   </property>
                    <property name="text">
                     <string>循环</string>
                    </property>
@@ -4350,39 +3746,24 @@
                 </layout>
                </item>
                <item>
-                <layout class="QHBoxLayout" name="horizontalLayout_38">
-                 <property name="spacing">
-                  <number>1</number>
-                 </property>
-                 <property name="bottomMargin">
-                  <number>0</number>
-                 </property>
-                </layout>
-               </item>
-               <item>
                 <widget class="QPushButton" name="btnSeqStop">
-                 <property name="sizePolicy">
-                  <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                   <horstretch>0</horstretch>
-                   <verstretch>0</verstretch>
-                  </sizepolicy>
-                 </property>
-                 <property name="minimumSize">
-                  <size>
-                   <width>0</width>
-                   <height>0</height>
-                  </size>
-                 </property>
-                 <property name="maximumSize">
-                  <size>
-                   <width>999</width>
-                   <height>16777215</height>
-                  </size>
-                 </property>
                  <property name="text">
                   <string>停止</string>
                  </property>
                 </widget>
+               </item>
+               <item>
+                <spacer name="verticalSpacerSeq">
+                 <property name="orientation">
+                  <enum>Qt::Vertical</enum>
+                 </property>
+                 <property name="sizeHint">
+                  <size>
+                   <width>20</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                </spacer>
                </item>
               </layout>
              </widget>
@@ -4518,6 +3899,6 @@
    </item>
   </layout>
  </widget>
- <resources />
- <connections />
+ <resources/>
+ <connections/>
 </ui>

@@ -134,7 +134,9 @@ class P906DevicePanel(DevicePanelBase):
         self.ui.progressBarVoltage.setMaximum(1000)
         self.ui.progressBarCurrent.setMaximum(1000)
         self.ui.btnSeqStop.hide()
+        self.ui.labelChargeReason.hide()
         self.ui.listSeq.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.fit_list_height_to_rows(self.ui.listSeq)
         self.ui.spinBoxVoltage.setSingleStep(0.001)
         self.ui.spinBoxCurrent.setSingleStep(0.001)
         # Only step actions (arrows/wheel) should apply live via valueChanged;
@@ -179,22 +181,6 @@ class P906DevicePanel(DevicePanelBase):
         # scrolling; P906's own tabs rely on their internal scroll areas. A
         # panel alone in the column has no one to share with, so it's uncapped.
         self.ui.tabWidget.setMaximumHeight(QtWidgets.QWIDGETSIZE_MAX if fill else 210)
-
-    def set_english_fonts(self):
-        c_font = QtGui.QFont()
-        c_font.setFamily("Sarasa Fixed SC SemiBold")
-        c_font.setPointSize(7)
-        self.ui.btnSeqCurrent.setFont(c_font)
-        self.ui.btnSeqCurrent.setText("I-SET")
-        self.ui.btnSeqVoltage.setFont(c_font)
-        self.ui.btnSeqVoltage.setText("V-SET")
-        self.ui.btnSeqDelay.setFont(c_font)
-        self.ui.btnSeqWaitTime.setFont(c_font)
-        self.ui.btnSeqSingle.setFont(c_font)
-        self.ui.btnSeqSingle.setText("Once")
-        self.ui.btnSeqLoop.setFont(c_font)
-        self.ui.btnSeqSave.setFont(c_font)
-        self.ui.btnSeqLoad.setFont(c_font)
 
     def _init_timers(self):
         self.state_request_sender_timer = QtCore.QTimer(self)
@@ -907,7 +893,7 @@ class P906DevicePanel(DevicePanelBase):
                 self.ui.spinBoxBatSimRes.value() / 1000
             )  # mOhm->Ohm
             self._bat_sim_last_e_temp = self.continuous_energy_counter
-            self.ui.labelBatSimTime.setText("Discharge Time: 00:00:00")
+            self.ui.labelBatSimTime.setText("00:00:00")
             self.ui.btnBatSim.setText(self.tr("功能已开启"))
             self.set_batsim_widget_enabled(False)
             self.display_data_signal.emit(
@@ -951,8 +937,7 @@ class P906DevicePanel(DevicePanelBase):
         ) * self._bat_sim_cells
         self.highlight_point_signal.emit(new_percent, new_volt)
         self.ui.labelBatSimTime.setText(
-            "Discharge Time: "
-            + time.strftime(
+            time.strftime(
                 "%H:%M:%S", time.gmtime(time.perf_counter() - self._bat_sim_start_time)
             )
         )
@@ -1446,7 +1431,7 @@ class P906DevicePanel(DevicePanelBase):
         self.ui.spinBoxVoltage.setEnabled(False)
         self.ui.spinBoxCurrent.setEnabled(False)
         self.ui.btnCharge.setText(self.tr("停止充电"))
-        self.ui.labelChargeReason.setText("")
+        self.ui.labelChargeReason.hide()
         self._update_charge_labels()
         self.v_set = setpoint.v_set
         self.i_set = setpoint.i_set
@@ -1532,6 +1517,7 @@ class P906DevicePanel(DevicePanelBase):
         self.ui.btnCharge.setText(self.tr("开始充电"))
         self.ui.labelChargePhase.setText(self._charge_phase_text(PHASE_DONE))
         self.ui.labelChargeReason.setText(self._charge_reason_text(reason))
+        self.ui.labelChargeReason.show()
         if off_unconfirmed:
             CustomMessageBox(
                 self,

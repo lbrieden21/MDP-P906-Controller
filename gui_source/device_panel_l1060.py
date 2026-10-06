@@ -212,6 +212,8 @@ class L1060DevicePanel(DevicePanelBase):
         self.register_aux_start_widget("sequence", self.ui.btnSequenceLoop)
         self.register_aux_start_widget("discharge", self.ui.btnDischargeRun)
         self.ui.btnSequenceStop.hide()
+        self.ui.labelDischargeReason.hide()
+        self.fit_list_height_to_rows(self.ui.listSequence)
 
         for mode, target in self.settings.l1060_targets.items():
             getattr(self.ui, _TARGET_SPINBOX[mode]).setValue(target)
@@ -990,7 +992,7 @@ class L1060DevicePanel(DevicePanelBase):
         self._discharge_last_voltage = None
         self._set_discharge_inputs_enabled(False)
         self.ui.btnDischargeRun.setText(self.tr("停止放电"))
-        self.ui.labelDischargeReason.setText("")
+        self.ui.labelDischargeReason.hide()
         self.ui.labelDischargeElapsed.setText("00:00:00")
         self.ui.labelDischargeAh.setText("0.0000 Ah")
         self.ui.labelDischargeWh.setText("0.0000 Wh")
@@ -1037,6 +1039,7 @@ class L1060DevicePanel(DevicePanelBase):
         self._set_discharge_inputs_enabled(True)
         self.ui.btnDischargeRun.setText(self.tr("开始放电"))
         self.ui.labelDischargeReason.setText(reason)
+        self.ui.labelDischargeReason.show()
         self._finish_aux("discharge", leave_on)
 
     def has_discharge_data(self) -> bool:
