@@ -2,6 +2,14 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="en_US" sourcelanguage="zh_CN">
 <context>
+    <name>ConnectionManager</name>
+    <message>
+        <location filename="connection.py" line="132"/>
+        <source>正在配对, 请稍候</source>
+        <translation type="unfinished">Pairing in progress, please wait</translation>
+    </message>
+</context>
+<context>
     <name>CustomInputDialog</name>
     <message>
         <location filename="mdp_custom.py" line="272"/>
@@ -35,19 +43,24 @@
 <context>
     <name>DevicePanelBase</name>
     <message>
-        <location filename="device_panel.py" line="152"/>
+        <location filename="device_panel.py" line="155"/>
         <source>IDCODE为空, 请先完成连接设置</source>
         <translation type="unfinished">IDCODE is empty, please complete the connection settings first</translation>
     </message>
     <message>
-        <location filename="device_panel.py" line="393"/>
+        <location filename="device_panel.py" line="426"/>
         <source>已连接</source>
         <translation type="unfinished">Connected</translation>
     </message>
     <message>
-        <location filename="device_panel.py" line="401"/>
+        <location filename="device_panel.py" line="434"/>
         <source>未连接</source>
         <translation type="unfinished">Disconnected</translation>
+    </message>
+    <message>
+        <location filename="device_panel.py" line="189"/>
+        <source>连接中...</source>
+        <translation type="unfinished">Connecting...</translation>
     </message>
 </context>
 <context>
@@ -2074,7 +2087,7 @@
 <context>
     <name>MDPGraphics</name>
     <message>
-        <location filename="dialogs.py" line="310"/>
+        <location filename="dialogs.py" line="327"/>
         <source>图形设置</source>
         <translation type="unfinished">Graphics Settings</translation>
     </message>
@@ -2112,7 +2125,7 @@
         <translation type="obsolete">IDCODE is empty, please complete the connection settings first</translation>
     </message>
     <message>
-        <location filename="mdp_gui.py" line="416"/>
+        <location filename="mdp_gui.py" line="431"/>
         <source>连接失败</source>
         <translation type="unfinished">Connect failed</translation>
     </message>
@@ -2172,22 +2185,22 @@
         <translation type="obsolete">MANUAL</translation>
     </message>
     <message>
-        <location filename="mdp_gui.py" line="482"/>
+        <location filename="mdp_gui.py" line="494"/>
         <source>停止</source>
         <translation type="unfinished">STOP</translation>
     </message>
     <message>
-        <location filename="mdp_gui.py" line="490"/>
+        <location filename="mdp_gui.py" line="502"/>
         <source>录制完成</source>
         <translation type="unfinished">Record finished</translation>
     </message>
     <message>
-        <location filename="mdp_gui.py" line="550"/>
+        <location filename="mdp_gui.py" line="562"/>
         <source>数据已保存至：</source>
         <translation type="unfinished">Data has been saved to:</translation>
     </message>
     <message>
-        <location filename="mdp_gui.py" line="507"/>
+        <location filename="mdp_gui.py" line="519"/>
         <source>录制</source>
         <translation type="unfinished">REC</translation>
     </message>
@@ -2302,7 +2315,7 @@
         <translation type="obsolete">Select Preset</translation>
     </message>
     <message>
-        <location filename="mdp_gui.py" line="310"/>
+        <location filename="mdp_gui.py" line="311"/>
         <source>MDP-P906 数控电源上位机</source>
         <translation type="unfinished">MDP-P906 Digital Supply Controller</translation>
     </message>
@@ -2337,7 +2350,7 @@
         <translation type="obsolete">Input current-set:</translation>
     </message>
     <message>
-        <location filename="mdp_gui.py" line="550"/>
+        <location filename="mdp_gui.py" line="562"/>
         <source>打开文件路径</source>
         <translation type="unfinished">Open Path</translation>
     </message>
@@ -2372,12 +2385,12 @@
         <translation type="obsolete">Data buffer used</translation>
     </message>
     <message>
-        <location filename="mdp_gui.py" line="521"/>
+        <location filename="mdp_gui.py" line="533"/>
         <source>保存数据</source>
         <translation type="unfinished">Dump data to</translation>
     </message>
     <message>
-        <location filename="mdp_gui.py" line="550"/>
+        <location filename="mdp_gui.py" line="562"/>
         <source>保存完成</source>
         <translation type="unfinished">Dump success</translation>
     </message>
@@ -2455,79 +2468,84 @@
 <context>
     <name>MDPSettings</name>
     <message>
-        <location filename="dialogs.py" line="247"/>
+        <location filename="dialogs.py" line="264"/>
         <source>自动</source>
         <translation type="unfinished">Auto</translation>
     </message>
     <message>
-        <location filename="dialogs.py" line="258"/>
+        <location filename="dialogs.py" line="275"/>
         <source>闪烁</source>
         <translation type="unfinished">Blink</translation>
     </message>
     <message>
-        <location filename="dialogs.py" line="146"/>
+        <location filename="dialogs.py" line="149"/>
         <source>常亮</source>
         <translation type="unfinished">Static</translation>
     </message>
     <message>
-        <location filename="dialogs.py" line="182"/>
+        <location filename="dialogs.py" line="185"/>
         <source>错误</source>
         <translation type="unfinished">Error</translation>
     </message>
     <message>
-        <location filename="dialogs.py" line="182"/>
+        <location filename="dialogs.py" line="185"/>
         <source>请先断开连接</source>
         <translation type="unfinished">Please disconnect first</translation>
     </message>
     <message>
-        <location filename="dialogs.py" line="190"/>
+        <location filename="dialogs.py" line="201"/>
         <source>自动配对失败</source>
         <translation type="unfinished">AutoMatch Failed</translation>
     </message>
     <message>
-        <location filename="dialogs.py" line="192"/>
+        <location filename="dialogs.py" line="211"/>
         <source>自动配对成功</source>
         <translation type="unfinished">AutoMatch Success</translation>
     </message>
     <message>
-        <location filename="dialogs.py" line="24"/>
+        <location filename="dialogs.py" line="27"/>
         <source>连接设置</source>
         <translation type="unfinished">Connection Settings</translation>
     </message>
     <message>
-        <location filename="dialogs.py" line="273"/>
+        <location filename="dialogs.py" line="290"/>
         <source>重新连接生效</source>
         <translation type="unfinished">Reconnect to take effect</translation>
     </message>
     <message>
-        <location filename="dialogs.py" line="277"/>
+        <location filename="dialogs.py" line="294"/>
         <source>应用 / Apply</source>
         <translation type="unfinished">Apply</translation>
     </message>
     <message>
-        <location filename="dialogs.py" line="210"/>
+        <location filename="dialogs.py" line="227"/>
         <source>颜色格式错误</source>
         <translation type="unfinished">Color Format Error</translation>
     </message>
     <message>
-        <location filename="dialogs.py" line="210"/>
+        <location filename="dialogs.py" line="227"/>
         <source>请输入16进制RGB颜色代码(例如: 66CCFF)</source>
         <translation type="unfinished">Enter hexadecimal RGB color (e.g.66CCFF)</translation>
     </message>
     <message>
-        <location filename="dialogs.py" line="103"/>
+        <location filename="dialogs.py" line="106"/>
         <source>警告</source>
         <translation type="unfinished">Warning</translation>
     </message>
     <message>
-        <location filename="dialogs.py" line="103"/>
+        <location filename="dialogs.py" line="106"/>
         <source>确定要删除该设备吗？</source>
         <translation type="unfinished">Are you sure you want to delete this device?</translation>
     </message>
     <message>
-        <location filename="dialogs.py" line="222"/>
+        <location filename="dialogs.py" line="239"/>
         <source>选择颜色</source>
         <translation type="unfinished">Choose Color</translation>
+    </message>
+    <message>
+        <location filename="dialogs.py" line="193"/>
+        <source>配对中...</source>
+        <translation type="unfinished">Pairing...</translation>
     </message>
 </context>
 <context>

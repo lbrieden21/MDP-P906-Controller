@@ -10,4 +10,6 @@ else:
     from mdp_controller.mdp_l1060 import MDP_L1060
     from mdp_controller.mdp_p906 import MDP_P906
 
-__all__ = ["MDP_P906", "MDP_L1060", "MDPBus"]
+from mdp_controller.mdp_device import ConnectCancelled
+
+__all__ = ["MDP_P906", "MDP_L1060", "MDPBus", "ConnectCancelled"]

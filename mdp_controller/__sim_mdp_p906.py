@@ -1,11 +1,12 @@
 import math
 import random
 import time
+from threading import Event
 from typing import Callable, List, Optional, Tuple
 
 from loguru import logger
 
-from mdp_controller.__sim_bus import MDPBus, SpeedCounter  # noqa: F401 (re-exported)
+from mdp_controller.__sim_bus import MDPBus, SpeedCounter, sim_connect  # noqa: F401 (re-exported)
 
 logger.warning("You are using the simulated version of MDP-P906, for testing only")
 
@@ -249,17 +250,19 @@ class MDP_P906:
         """
         logger.info(f"Set LED color to: {rgb}")
 
-    def connect(self, timeout: float = 8.0):
+    def connect(self, timeout: float = 8.0, cancel: Optional[Event] = None):
         """
         Connect to the MDP-P906 and prepare information for calibration.
 
         Args:
             timeout (float): Total retry budget in seconds (unused in sim).
+            cancel (Optional[Event]): Stops the simulated connect delay early.
 
         Raises:
+            ConnectCancelled: If cancel was set before the device connected.
             Exception: If failed to connect to the MDP-P906.
         """
-        logger.success("MDP-P906 Connected")
+        sim_connect("MDP-P906", self._idcode, cancel)
 
     def update_gain_offset(self) -> Tuple[int, int, int, int]:
         """

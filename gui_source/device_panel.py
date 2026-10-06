@@ -3,7 +3,7 @@ import time
 from typing import List, Optional, Tuple
 
 import numpy as np
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtWidgets, sip
 
 from app_context import DEBUG, set_color
 from device_core import ChannelSpec, DeviceDataStore, GraphCapture, RecordData
@@ -100,6 +100,10 @@ class DevicePanelBase(QtWidgets.QWidget):
         The list can still shrink below the cap and scroll."""
 
         def refit(*_):
+            # The model still emits rowsRemoved/modelReset while the list
+            # itself is being destroyed.
+            if sip.isdeleted(list_widget):
+                return
             if list_widget.count():
                 row_h = list_widget.sizeHintForRow(0)
             else:
@@ -147,30 +151,60 @@ class DevicePanelBase(QtWidgets.QWidget):
     def on_btnLink_clicked(self):
         self.link_toggle_requested.emit()
 
-    def link(self, bus, pipe: int, fps: float):
+    def link_params(self) -> dict:
+        """Validate this panel's device settings and snapshot the ones the
+        api is built from, so connect_api() on a worker thread never reads
+        settings the Settings dialog may be editing meanwhile."""
         if not self.settings.idcode:
             raise ValueError(
                 QtCore.QCoreApplication.translate(
                     "DevicePanelBase", "IDCODE为空, 请先完成连接设置"
                 )
             )
+        return {
+            "idcode": self.settings.idcode,
+            "blink": self.settings.blink,
+            "led_color": self._led_color(),
+            "m01_channel": int(self.settings.m01ch[3]),
+        }
+
+    def _led_color(self) -> Tuple[int, int, int]:
         color_rgb = bytes.fromhex(self.settings.color.lstrip("#"))
-        api = self.api_class(
-            bus,
-            idcode=self.settings.idcode,
-            blink=self.settings.blink,
-            led_color=(color_rgb[0], color_rgb[1], color_rgb[2]),
-            m01_channel=int(self.settings.m01ch[3]),
-            debug=DEBUG,
-        )
+        return (color_rgb[0], color_rgb[1], color_rgb[2])
+
+    def connect_api(self, bus, pipe: int, params: dict, cancel: threading.Event):
+        """Build the device api, attach it to the bus and connect it. Runs on
+        a link worker thread: touches no widget and no panel state. The
+        api is closed again if anything fails."""
+        api = self.api_class(bus, debug=DEBUG, **params)
         try:
             bus.attach(api, pipe)
-            # Both device types are radio-deaf for ~3-4.5s after power-on, so
-            # this has to outlast that window rather than fail fast.
-            api.connect(timeout=8.0)
+            # Time-based budget that outlasts the devices' post-power-on
+            # window of not answering the radio, rather than failing fast.
+            api.connect(timeout=8.0, cancel=cancel)
         except Exception:
             api.close()
             raise
+        return api
+
+    def set_linking(self, cancelling: bool) -> None:
+        """Show a link in progress. The link button stays clickable (a click
+        cancels) until a cancel is requested."""
+        self.ui.labelLinkState.setText(
+            QtCore.QCoreApplication.translate("DevicePanelBase", "连接中...")
+        )
+        set_color(self.ui.labelLinkState, setting.get_color("general_yellow"))
+        self.ui.btnLink.setEnabled(not cancelling)
+
+    def abort_link(self) -> None:
+        """Return to the unlinked state after a failed or cancelled link."""
+        self.ui.btnLink.setEnabled(True)
+        self.close_state_ui()
+
+    def finish_link(self, api, params: dict) -> None:
+        """Take over an api connect_api() connected and start polling it,
+        at the panel's current data_fps."""
+        self.ui.btnLink.setEnabled(True)
         self.api = api
         self.api.register_realtime_value_callback(self.state_callback)
         self.api.register_status_callback(self._on_status)
@@ -179,7 +213,7 @@ class DevicePanelBase(QtWidgets.QWidget):
         self.store.eng_start_time = t
         self.store.last_time = t
         self.store.energy = 0
-        self.data_fps = fps
+        fps = self.data_fps
         self.fps_counter.clear()
         self._on_link_reset(t)
         self.update_state_timer.start(100)
@@ -189,6 +223,10 @@ class DevicePanelBase(QtWidgets.QWidget):
         self.linked = True
         self.update_state()
         self.open_state_ui()
+        # The wheel color may have been edited while connecting;
+        # refresh_led_color() is a no-op until self.api is set.
+        if self._led_color() != params["led_color"]:
+            self.refresh_led_color()
 
     def _on_link_reset(self, t):
         """Device-specific per-link state resets, alongside the shared store
@@ -204,8 +242,7 @@ class DevicePanelBase(QtWidgets.QWidget):
     def refresh_led_color(self):
         if self.api is None:
             return
-        color_rgb = bytes.fromhex(self.settings.color.lstrip("#"))
-        self.api.set_led_color((color_rgb[0], color_rgb[1], color_rgb[2]))
+        self.api.set_led_color(self._led_color())
 
     def request_state(self):
         if self.api is not None:

@@ -352,21 +352,6 @@ class MDP_L1060(MDPDevice):
         logger.error(f"set_load_on({on}) failed after {retries} retries")
         return False
 
-    def connect(self, timeout: float = 8.0):
-        """
-        Connect to the MDP-L1060.
-
-        Blocks until a valid Type-7 measurement anchor exists (self._status
-        ["AnchorValid"]) -- this is what prevents request_realtime_value()'s
-        Type-8 samples from being unwrapped against a zero/stale reference at
-        link-time. No calibration round-trip is needed (unlike P906): the
-        L1060's Type 7/8 decode is exact base-100/wrap-unwrap arithmetic, no
-        gain/offset correction.
-
-        See MDPDevice.connect() for the retry-budget semantics of `timeout`.
-        """
-        super().connect(timeout)
-
     def _connect_probe(self):
         self._transfer(
             mdp_protocal_l1060.gen_set_led_color(
@@ -375,6 +360,14 @@ class MDP_L1060(MDPDevice):
         )
 
     def _connect_ready(self) -> bool:
+        """
+        Keeps connect() retrying until a valid Type-7 measurement anchor
+        exists (self._status["AnchorValid"]) -- this is what prevents
+        request_realtime_value()'s Type-8 samples from being unwrapped against
+        a zero/stale reference at link-time. No calibration round-trip is
+        needed (unlike P906): the L1060's Type 7/8 decode is exact
+        base-100/wrap-unwrap arithmetic, no gain/offset correction.
+        """
         return self._status["AnchorValid"]
 
     def _post_connect(self):

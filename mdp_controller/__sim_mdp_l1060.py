@@ -1,10 +1,11 @@
 import math
 import time
+from threading import Event
 from typing import Callable, Dict, List, Optional, Tuple
 
 from loguru import logger
 
-from mdp_controller.__sim_bus import MDPBus, SpeedCounter  # noqa: F401 (re-exported)
+from mdp_controller.__sim_bus import MDPBus, SpeedCounter, sim_connect  # noqa: F401 (re-exported)
 
 logger.warning("You are using the simulated version of MDP-L1060, for testing only")
 
@@ -209,5 +210,5 @@ class MDP_L1060:
     def set_led_color(self, rgb: Tuple[int, int, int]):
         logger.info(f"Set LED color to: {rgb}")
 
-    def connect(self, timeout: float = 8.0):
-        logger.success("MDP-L1060 Connected")
+    def connect(self, timeout: float = 8.0, cancel: Optional[Event] = None):
+        sim_connect("MDP-L1060", self._idcode, cancel)

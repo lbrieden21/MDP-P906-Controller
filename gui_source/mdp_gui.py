@@ -29,7 +29,7 @@ except ImportError:
 
     logger.success("Found mdp_controller in repo")
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets, sip
 from qframelesswindow import FramelessWindow
 
 import numpy as np
@@ -97,6 +97,7 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
         self._rebuild_graph_views()
         self.set_device_layout(setting.ui.device_layout)
         self.connection = ConnectionManager(self.panels)
+        self.connection.link_finished.connect(self._on_link_finished)
         self.initSignals()
         self.CustomTitleBar = CustomTitleBar(
             self,
@@ -130,7 +131,7 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
         live panel<->bus<->pipe attachment can't be safely rebuilt under
         it, so the dialog itself blocks Add/Remove while connected and this
         is just a defensive backstop."""
-        if self.connection.is_open:
+        if self.connection.busy:
             return
         for panel in self.panels:
             self.ui.layoutDevices.removeWidget(panel)
@@ -336,6 +337,7 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
         event.ignore()
 
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
+        self.connection.shutdown()
         self.close_signal.emit()
         return super().closeEvent(a0)
 
@@ -404,19 +406,29 @@ class MDPMainwindow(QtWidgets.QMainWindow, FramelessWindow):  # QtWidgets.QMainW
                     if self.graph_record_save_timer.isActive():
                         self.on_btnGraphRecord_clicked()
                     self.close_state_ui()
+            elif self.connection.is_linking(panel):
+                self.connection.cancel_link(panel)
             else:
-                first_link = not self.connection.is_open
-                self.connection.link_panel(panel, self.data_fps)
-                if first_link:
-                    self.draw_graph_timer.start(
-                        round(1000 / min(self.data_fps, setting.ui.graph_max_fps))
-                    )
+                self.connection.begin_link(panel, self.data_fps)
         except Exception as e:
             logger.exception(f"Failed to link/unlink {panel.display_name}")
             CustomMessageBox(self, self.tr("连接失败"), str(e))
         for view in self.graph_views.values():
             view.refresh_link_state()
         self._refresh_device_selector_style()
+
+    def _on_link_finished(self, panel, ok: bool, error: str):
+        if ok and not self.draw_graph_timer.isActive():
+            self.draw_graph_timer.start(
+                round(1000 / min(self.data_fps, setting.ui.graph_max_fps))
+            )
+        if not self.connection.is_open:
+            self.close_state_ui()
+        for view in self.graph_views.values():
+            view.refresh_link_state()
+        self._refresh_device_selector_style()
+        if error:
+            CustomMessageBox(self, self.tr("连接失败"), error)
 
     def set_data_fps(self, text):
         if text != "":
@@ -654,10 +666,29 @@ def set_theme(theme):
 set_theme(setting.ui.theme)
 
 
+def destroy_windows():
+    """Destroy the top-level windows and the connection manager once the
+    event loop has exited. Left alive, they are destroyed by PyQt's own
+    exit hook, which walks sip's wrapper table while each destroyed window
+    frees its children's wrappers out of that same table."""
+    for obj in (
+        FloatingWindow,
+        DialogResult,
+        DialogGraphics,
+        DialogSettings,
+        MainWindow.connection,
+        MainWindow,
+    ):
+        if not sip.isdeleted(obj):
+            sip.delete(obj)
+
+
 def show_app():
     MainWindow.showMaximized()
     MainWindow.activateWindow()
-    sys.exit(app.exec_())
+    rc = app.exec_()
+    destroy_windows()
+    sys.exit(rc)
 
 
 if __name__ == "__main__":

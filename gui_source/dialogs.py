@@ -17,7 +17,10 @@ class MDPSettings(QtWidgets.QDialog, FramelessWindow):
     def __init__(self, connection_manager, parent=None):
         super().__init__(parent)
         self.connection_manager = connection_manager
+        self.connection_manager.match_finished.connect(self._on_match_finished)
         self._prev_device_idx = 0
+        self._match_device = None
+        self._match_btn_text = ""
 
         self.ui = Ui_DialogSettings()
         self.ui.setupUi(self)
@@ -75,7 +78,7 @@ class MDPSettings(QtWidgets.QDialog, FramelessWindow):
 
     @QtCore.pyqtSlot()
     def on_btnDeviceAdd_clicked(self):
-        if self.connection_manager.is_open:
+        if self.connection_manager.busy:
             CustomMessageBox(self, self.tr("错误"), self.tr("请先断开连接"))
             return
         self.save_device_settings(self._current_device())
@@ -95,7 +98,7 @@ class MDPSettings(QtWidgets.QDialog, FramelessWindow):
 
     @QtCore.pyqtSlot()
     def on_btnDeviceRemove_clicked(self):
-        if self.connection_manager.is_open:
+        if self.connection_manager.busy:
             CustomMessageBox(self, self.tr("错误"), self.tr("请先断开连接"))
             return
         if len(setting.devices) <= 1:
@@ -178,20 +181,34 @@ class MDPSettings(QtWidgets.QDialog, FramelessWindow):
 
     @QtCore.pyqtSlot()
     def on_btnMatch_clicked(self):
-        if self.connection_manager.is_open:
+        if self.connection_manager.busy:
             CustomMessageBox(self, self.tr("错误"), self.tr("请先断开连接"))
             return
         self.save_settings()
         pipe = max(0, self.ui.comboBoxDevice.currentIndex()) + 1
-        try:
-            idcode = self.connection_manager.match(pipe)
-        except Exception as e:
-            logger.exception(self.tr("自动配对失败"))
-            CustomMessageBox(self, self.tr("自动配对失败"), str(e))
+        self._match_device = self._current_device()
+        self.connection_manager.begin_match(pipe)
+        self._match_btn_text = self.ui.btnMatch.text()
+        self.ui.btnMatch.setEnabled(False)
+        self.ui.btnMatch.setText(self.tr("配对中..."))
+
+    def _on_match_finished(self, idcode: str, error: str):
+        self.ui.btnMatch.setEnabled(True)
+        self.ui.btnMatch.setText(self._match_btn_text)
+        dev = self._match_device
+        self._match_device = None
+        if error:
+            CustomMessageBox(self, self.tr("自动配对失败"), error)
             return
+        # The device selector may have moved to another device while the
+        # match ran; the IDCODE belongs to the one selected when it started.
+        if self._current_device() is dev:
+            self.ui.lineEditIdcode.setText(idcode)
+            self.save_settings()
+        else:
+            dev.idcode = idcode
+            setting.save(SETTING_FILE)
         CustomMessageBox(self, self.tr("自动配对成功"), f"IDCODE: {idcode}")
-        self.ui.lineEditIdcode.setText(idcode)
-        self.save_settings()
 
     def show(self) -> None:
         self.refresh_device_combo()

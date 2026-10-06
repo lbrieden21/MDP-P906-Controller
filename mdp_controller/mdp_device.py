@@ -20,6 +20,10 @@ def _hex_to_bytes(s: str) -> bytes:
     return bytes.fromhex(s)
 
 
+class ConnectCancelled(Exception):
+    """Raised by MDPDevice.connect() when its cancel event is set."""
+
+
 class MDPDevice:
     """
     Shared transport layer for every MDP device driver on an MDPBus.
@@ -265,7 +269,7 @@ class MDPDevice:
             )
         )
 
-    def connect(self, timeout: float = 8.0):
+    def connect(self, timeout: float = 8.0, cancel: Optional[Event] = None):
         """
         Connect to the device.
 
@@ -275,14 +279,19 @@ class MDPDevice:
                 the radio level for the first ~3-4.5 s (measured on real
                 hardware for both P906 and L1060), so the budget must
                 outlast that boot window for a connect racing a power-on.
+            cancel (Optional[Event]): Checked before each attempt and waited
+                on between attempts; once set, connect() stops retrying.
 
         Raises:
+            ConnectCancelled: If cancel was set before the device connected.
             Exception: If failed to connect to the device within the budget.
         """
         assert self._idcode is not None, "Please pair first"
         deadline = time.monotonic() + timeout
         last_log = time.monotonic()
         while True:
+            if cancel is not None and cancel.is_set():
+                raise ConnectCancelled(f"Connect to {self.device_name} cancelled")
             try:
                 self._connect_probe()
                 self.get_status()
@@ -293,7 +302,7 @@ class MDPDevice:
                 if now - last_log >= 1.0:
                     logger.error(f"Connect failed, retrying for {deadline - now:.1f}s more")
                     last_log = now
-                time.sleep(0.1)
+                self._connect_pause(cancel)
                 continue
             if self._connect_ready():
                 break
@@ -302,10 +311,18 @@ class MDPDevice:
                     f"Failed to connect to {self.device_name}: {self._connect_ready_error}"
                 )
             logger.error(f"Connect: {self._connect_ready_error}, retrying")
-            time.sleep(0.1)
+            self._connect_pause(cancel)
         self._post_connect()
         logger.debug(f"{self.device_name} init status: {self._status}")
         logger.success(f"{self.device_name} Connected")
+
+    def _connect_pause(self, cancel: Optional[Event]):
+        """Sleep between connect attempts, returning early (and raising
+        ConnectCancelled) if cancel is set meanwhile."""
+        if cancel is None:
+            time.sleep(0.1)
+        elif cancel.wait(0.1):
+            raise ConnectCancelled(f"Connect to {self.device_name} cancelled")
 
     def _connect_probe(self):
         """One round-trip that proves the device is answering. Raises on failure."""

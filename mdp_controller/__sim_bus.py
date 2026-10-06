@@ -1,10 +1,42 @@
+import os
+import time
+from threading import Event
 from typing import Literal, Optional, Tuple
 
 from loguru import logger
 
+from mdp_controller.mdp_device import ConnectCancelled
+
 logger.warning("You are using the simulated version of MDPBus, for testing only")
 
 _next_fake_idcode = 0x11223344
+
+
+def sim_connect(device_name: str, idcode: Optional[str], cancel: Optional[Event]):
+    """
+    Shared connect() body for the simulated devices.
+
+    MDP_SIM_CONNECT_DELAY (seconds) makes the connect take that long,
+    honoring cancel the way the real connect() does. MDP_SIM_CONNECT_FAIL
+    (comma-separated IDCODEs) makes the listed devices fail once the delay
+    has elapsed. Both are read on every call.
+    """
+    delay = float(os.environ.get("MDP_SIM_CONNECT_DELAY", "0") or 0)
+    fail = {
+        s.strip().upper()
+        for s in os.environ.get("MDP_SIM_CONNECT_FAIL", "").split(",")
+        if s.strip()
+    }
+    if cancel is not None and cancel.is_set():
+        raise ConnectCancelled(f"Connect to {device_name} cancelled")
+    if delay > 0:
+        if cancel is None:
+            time.sleep(delay)
+        elif cancel.wait(delay):
+            raise ConnectCancelled(f"Connect to {device_name} cancelled")
+    if (idcode or "").upper() in fail:
+        raise Exception(f"Failed to connect to {device_name}")
+    logger.success(f"{device_name} Connected")
 
 
 class SpeedCounter:
@@ -81,12 +113,12 @@ class MDPBus:
     def transfer(self, owner, packet: bytes, wait_response: bool = True) -> bytes:
         return b""
 
-    def auto_match(self, try_times: int = 3) -> Tuple[str, int]:
+    def auto_match(self, try_times: int = 3, pipe: Optional[int] = None) -> Tuple[str, int]:
         global _next_fake_idcode
         logger.info("Auto match")
         idcode = f"{_next_fake_idcode:08X}"
         _next_fake_idcode += 1
-        return idcode, 0
+        return idcode, pipe if pipe is not None else 1
 
     def close(self):
         logger.info("MDPBus closed")

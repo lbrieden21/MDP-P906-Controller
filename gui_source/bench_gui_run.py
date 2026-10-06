@@ -121,7 +121,7 @@ app = mdp_gui.app
 window = mdp_gui.MainWindow
 conn = window.connection
 
-state = {"linked": [], "t0": None, "rc": 0}
+state = {"linked": [], "pending": 0, "t0": None, "rc": 0}
 
 
 def start():
@@ -132,15 +132,35 @@ def start():
         print(f"adapter port {setting.adapter.comport}"
               f"{' (--port override)' if PORT else ' (settings.json)'}")
     print(f"linking {len(window.panels)} panel(s) at {window.data_fps}Hz")
+    # Links run in the background and report through link_finished. The
+    # main window's own handler is disconnected: it would open a modal box
+    # on a failed link (blocking the run) and start the graph redraw timer,
+    # which this run has never driven.
+    conn.link_finished.disconnect(window._on_link_finished)
+    conn.link_finished.connect(on_link_finished)
     for panel in window.panels:
         try:
-            conn.link_panel(panel, window.data_fps)
+            conn.begin_link(panel, window.data_fps)
         except Exception as e:
             print(f"  FAIL  {panel.display_name}: {e}")
             continue
+        state["pending"] += 1
+    if state["pending"] == 0:
+        links_done()
+
+
+def on_link_finished(panel, ok, error):
+    if ok:
         state["linked"].append(panel)
         print(f"  linked {panel.display_name} ({panel.model}) on pipe {conn.panels.index(panel) + 1}")
+    else:
+        print(f"  FAIL  {panel.display_name}: {error}")
+    state["pending"] -= 1
+    if state["pending"] == 0:
+        links_done()
 
+
+def links_done():
     if not state["linked"]:
         print("no panel linked -- aborting")
         state["rc"] = 1
@@ -205,12 +225,10 @@ def stop():
     from loguru import logger
 
     logger.complete()
-    sys.stdout.flush()
-    # The headless GUI segfaults during interpreter teardown, after the event
-    # loop exits and all results have printed -- a PyQt/pyqtgraph artifact,
-    # not a run failure. Exiting here keeps that noise out of the result.
-    os._exit(state["rc"])
+    app.quit()
 
 
 QtCore.QTimer.singleShot(0, start)
-sys.exit(app.exec_())
+app.exec_()
+mdp_gui.destroy_windows()
+sys.exit(state["rc"])
