@@ -6,7 +6,9 @@
 #
 # The glob covers sdkconfig.<target> and every suffixed variant
 # (-console, -uart0). It does not match sdkconfig.defaults.esp32c6 and friends,
-# which stay tracked.
+# which stay tracked. The bare `sdkconfig` is what `idf.py` writes when run
+# directly instead of through the Makefile.
+/sdkconfig
 sdkconfig.esp32*
 sdkconfig.*.old
 
