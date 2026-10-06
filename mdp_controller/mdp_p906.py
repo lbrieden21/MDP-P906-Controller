@@ -1,9 +1,11 @@
+import time
 from typing import TYPE_CHECKING, List, Optional, Tuple
 
 from loguru import logger
 
 import mdp_controller.mdp_protocal as mdp_protocal
 from mdp_controller.mdp_device import MDPDevice
+from mdp_controller.nrf24_adapter import NRF24AdapterError
 
 if TYPE_CHECKING:
     from mdp_controller.bus import MDPBus
@@ -18,7 +20,7 @@ class MDP_P906(MDPDevice):
         idcode: Optional[str] = None,
         m01_channel: int = 0,
         led_color: Tuple[int, int, int] = (0x66, 0xCC, 0xFF),
-        com_timeout: Optional[float] = 0.04,
+        com_timeout: Optional[float] = None,
         com_retry: int = 5,
         blink: bool = True,
         debug: bool = False,
@@ -31,7 +33,7 @@ class MDP_P906(MDPDevice):
             idcode (Optional[str]): ID code of the MDP-P906, set to None then call bus.auto_match() to get idcode.
             m01_channel (int): Simulate the MDP-M01, this number shows on top-right of P906's LCD.
             led_color (Tuple[int, int, int]): Color of the digital wheel of the P906, in RGB format.
-            com_timeout (Optional[float]): Communication timeout in seconds between P906 and the adapter.
+            com_timeout (Optional[float]): Communication timeout in seconds between P906 and the adapter; None uses bus.com_timeout.
             com_retry (int): Communication retry times when timeout occurs.
             blink (bool): Whether to blink the "under-control" indicator of the P906.
             debug (bool): Show debug info.
@@ -193,21 +195,45 @@ class MDP_P906(MDPDevice):
         )
         return self._status_tuple()
 
-    def set_output(self, state: bool):
+    def set_output(self, state: bool, retries: int = 3, settle_s: float = 0.075) -> bool:
         """
-        Set the output state of the MDP-P906.
+        Set the output state of the MDP-P906, confirming the device-reported
+        output state in both directions.
+
+        The output write is fire-and-forget, so a dropped packet looks exactly
+        like an accepted one. Each attempt re-sends the write, then polls
+        fresh waited Type-7 gets until State reports the commanded state
+        ("off" for off, anything else for on).
 
         Args:
             state (bool): True for on, False for off.
+            retries (int): Write attempts before giving up.
+            settle_s (float): Delay before each confirming Type-7 get.
+
+        Returns:
+            bool: True once State confirms the commanded state, False if not
+            confirmed after retries.
         """
         assert self._idcode is not None, "Please pair first"
         logger.debug(f"Set output: {state}")
-        self._transfer(
-            mdp_protocal.gen_set_output(
-                self._idcode, state, self._m01_channel, blink=self._blink
-            ),
-            wait_response=False,
-        )
+        for attempt in range(retries):
+            self._transfer(
+                mdp_protocal.gen_set_output(
+                    self._idcode, state, self._m01_channel, blink=self._blink
+                ),
+                wait_response=False,
+            )
+            for _ in range(6):
+                time.sleep(settle_s)
+                try:
+                    self.get_status()
+                except (TimeoutError, NRF24AdapterError):
+                    continue
+                if (self._status["State"] != "off") == state:
+                    return True
+            logger.warning(f"set_output({state}) not confirmed, retry {attempt+1}/{retries}")
+        logger.error(f"set_output({state}) failed after {retries} retries")
+        return False
 
     def set_voltage(self, voltage_set: float):
         """

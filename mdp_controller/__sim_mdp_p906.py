@@ -21,7 +21,7 @@ class MDP_P906:
         idcode: Optional[str] = None,
         m01_channel: int = 0,
         led_color: Tuple[int, int, int] = (0x66, 0xCC, 0xFF),
-        com_timeout: Optional[float] = 0.04,
+        com_timeout: Optional[float] = None,
         com_retry: int = 5,
         blink: bool = True,
         debug: bool = False,
@@ -34,7 +34,7 @@ class MDP_P906:
             idcode (Optional[str]): ID code of the MDP-P906, set to None then call bus.auto_match() to get idcode.
             m01_channel (int): Simulate the MDP-M01, this number shows on top-right of P906's LCD.
             led_color (Tuple[int, int, int]): Color of the digital wheel of the P906, in RGB format.
-            com_timeout (Optional[float]): Communication timeout in seconds between P906 and the adapter.
+            com_timeout (Optional[float]): Communication timeout in seconds between P906 and the adapter; None uses bus.com_timeout.
             com_retry (int): Communication retry times when timeout occurs.
             blink (bool): Whether to blink the "under-control" indicator of the P906.
             debug (bool): Show debug info.
@@ -197,15 +197,19 @@ class MDP_P906:
         """
         self._status_callback = callback
 
-    def set_output(self, state: bool):
+    def set_output(self, state: bool, retries: int = 3, settle_s: float = 0.075) -> bool:
         """
         Set the output state of the MDP-P906.
 
         Args:
             state (bool): True for on, False for off.
+
+        Returns:
+            bool: Always True; the simulator never drops a write.
         """
         logger.info(f"Set output: {state}")
         self._output_state = state
+        return True
 
     def set_voltage(self, voltage_set: float):
         """

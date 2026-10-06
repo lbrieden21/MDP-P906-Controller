@@ -31,7 +31,7 @@ class MDP_L1060:
         idcode: Optional[str] = None,
         m01_channel: int = 0,
         led_color: Tuple[int, int, int] = (0x66, 0xCC, 0xFF),
-        com_timeout: Optional[float] = 0.04,
+        com_timeout: Optional[float] = None,
         com_retry: int = 5,
         blink: bool = True,
         debug: bool = False,

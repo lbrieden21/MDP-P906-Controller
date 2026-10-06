@@ -12,6 +12,7 @@ if __name__ == "__main__":
         mdp.connect()
     except Exception:
         print("Connection failed, try to auto match")
+        mdp.close()
         idcode, pipe = bus.auto_match()
         mdp = MDP_P906(bus, idcode=idcode, led_color=(0x66, 0xCC, 0xFF), debug=False)
         bus.attach(mdp, pipe)

@@ -40,12 +40,12 @@
         <translation type="unfinished">IDCODE is empty, please complete the connection settings first</translation>
     </message>
     <message>
-        <location filename="device_panel.py" line="375"/>
+        <location filename="device_panel.py" line="374"/>
         <source>已连接</source>
         <translation type="unfinished">Connected</translation>
     </message>
     <message>
-        <location filename="device_panel.py" line="383"/>
+        <location filename="device_panel.py" line="382"/>
         <source>未连接</source>
         <translation type="unfinished">Disconnected</translation>
     </message>
@@ -1816,7 +1816,7 @@
         <translation type="obsolete">IDCODE is empty, please complete the connection settings first</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="1193"/>
+        <location filename="device_panel_l1060.py" line="1214"/>
         <source>需要在设备上物理按下 Run 按钮才能解除保护锁存</source>
         <translation type="unfinished">Requires physically pressing the Run button on the device to clear the protection latch</translation>
     </message>
@@ -1831,47 +1831,47 @@
         <translation type="obsolete">Connected</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="475"/>
+        <location filename="device_panel_l1060.py" line="494"/>
         <source>选择预设</source>
         <translation type="unfinished">Select Preset</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="516"/>
+        <location filename="device_panel_l1060.py" line="535"/>
         <source>保存成功</source>
         <translation type="unfinished">Save OK</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="519"/>
+        <location filename="device_panel_l1060.py" line="538"/>
         <source>保存预设失败</source>
         <translation type="unfinished">Save failed</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="520"/>
+        <location filename="device_panel_l1060.py" line="539"/>
         <source>保存失败</source>
         <translation type="unfinished">Save failed</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="1035"/>
+        <location filename="device_panel_l1060.py" line="1054"/>
         <source>保存</source>
         <translation type="unfinished">Save</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="560"/>
+        <location filename="device_panel_l1060.py" line="579"/>
         <source>非法参数</source>
         <translation type="unfinished">Illegal Parameters</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="612"/>
+        <location filename="device_panel_l1060.py" line="631"/>
         <source>开始扫描</source>
         <translation type="unfinished">Start Sweep</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="576"/>
+        <location filename="device_panel_l1060.py" line="595"/>
         <source>停止扫描</source>
         <translation type="unfinished">Stop Sweep</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="1033"/>
+        <location filename="device_panel_l1060.py" line="1052"/>
         <source>错误</source>
         <translation type="unfinished">Error</translation>
     </message>
@@ -1886,132 +1886,132 @@
         <translation type="obsolete">Scan Response Result Curve</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="673"/>
+        <location filename="device_panel_l1060.py" line="692"/>
         <source>添加动作</source>
         <translation type="unfinished">Add Action</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="715"/>
+        <location filename="device_panel_l1060.py" line="734"/>
         <source>请输入延时时间:</source>
         <translation type="unfinished">Input delay time:</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="729"/>
+        <location filename="device_panel_l1060.py" line="748"/>
         <source>请输入等待时间:</source>
         <translation type="unfinished">Input wait time:</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="661"/>
+        <location filename="device_panel_l1060.py" line="680"/>
         <source>格式: 年-月-日 时:分:秒</source>
         <translation type="unfinished">Format: YYYY-MM-DD HH:MM:SS</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="742"/>
+        <location filename="device_panel_l1060.py" line="761"/>
         <source>请输入目标值:</source>
         <translation type="unfinished">Input target value:</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="712"/>
+        <location filename="device_panel_l1060.py" line="731"/>
         <source>无法识别动作</source>
         <translation type="unfinished">Unrecognized action</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="742"/>
+        <location filename="device_panel_l1060.py" line="761"/>
         <source>编辑动作</source>
         <translation type="unfinished">Edit action</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="767"/>
+        <location filename="device_panel_l1060.py" line="786"/>
         <source>警告</source>
         <translation type="unfinished">Warning</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="767"/>
+        <location filename="device_panel_l1060.py" line="786"/>
         <source>确定要清空序列吗？</source>
         <translation type="unfinished">Are you sure?</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="777"/>
+        <location filename="device_panel_l1060.py" line="796"/>
         <source>编辑</source>
         <translation type="unfinished">Edit</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="778"/>
+        <location filename="device_panel_l1060.py" line="797"/>
         <source>删除</source>
         <translation type="unfinished">Delete</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="779"/>
+        <location filename="device_panel_l1060.py" line="798"/>
         <source>清空</source>
         <translation type="unfinished">Clear all</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="806"/>
+        <location filename="device_panel_l1060.py" line="825"/>
         <source>文本文件 (*.txt)</source>
         <translation type="unfinished">Text file (*.txt)</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="806"/>
+        <location filename="device_panel_l1060.py" line="825"/>
         <source>打开</source>
         <translation type="unfinished">Open</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="818"/>
+        <location filename="device_panel_l1060.py" line="837"/>
         <source>序列文件包含非法动作</source>
         <translation type="unfinished">Sequence file contains an invalid action</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="833"/>
+        <location filename="device_panel_l1060.py" line="852"/>
         <source>序列包含非法动作</source>
         <translation type="unfinished">Sequence contains an invalid action</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="1074"/>
+        <location filename="device_panel_l1060.py" line="1093"/>
         <source>用户停止</source>
         <translation type="unfinished">User Stop</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="943"/>
+        <location filename="device_panel_l1060.py" line="962"/>
         <source>需要截止电压</source>
         <translation type="unfinished">Cutoff Voltage Required</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="1019"/>
+        <location filename="device_panel_l1060.py" line="1038"/>
         <source>开始放电</source>
         <translation type="unfinished">Start Discharge</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="973"/>
+        <location filename="device_panel_l1060.py" line="992"/>
         <source>停止放电</source>
         <translation type="unfinished">Stop Discharge</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="979"/>
+        <location filename="device_panel_l1060.py" line="998"/>
         <source>使能失败</source>
         <translation type="unfinished">Enable Failed</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="987"/>
+        <location filename="device_panel_l1060.py" line="1006"/>
         <source>已达到最大时长</source>
         <translation type="unfinished">Max Duration Reached</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="989"/>
+        <location filename="device_panel_l1060.py" line="1008"/>
         <source>已达到最大安时</source>
         <translation type="unfinished">Max Ah Reached</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="991"/>
+        <location filename="device_panel_l1060.py" line="1010"/>
         <source>已达到最大瓦时</source>
         <translation type="unfinished">Max Wh Reached</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="997"/>
+        <location filename="device_panel_l1060.py" line="1016"/>
         <source>已达到截止电压</source>
         <translation type="unfinished">Cutoff Voltage Reached</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="1033"/>
+        <location filename="device_panel_l1060.py" line="1052"/>
         <source>放电记录为空</source>
         <translation type="unfinished">Discharge Record is Empty</translation>
     </message>
@@ -2026,19 +2026,24 @@
         <translation type="obsolete">DisChr Curve</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="1035"/>
+        <location filename="device_panel_l1060.py" line="1054"/>
         <source>CSV文件 (*.csv)</source>
         <translation type="unfinished">CSV files (*.csv)</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="444"/>
+        <location filename="device_panel_l1060.py" line="461"/>
         <source>保护锁存</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Protection latched</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="1108"/>
+        <location filename="device_panel_l1060.py" line="1127"/>
         <source>已断开连接</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Disconnected</translation>
+    </message>
+    <message>
+        <location filename="device_panel_l1060.py" line="443"/>
+        <source>运行已结束, 但关闭负载未得到设备确认, 负载可能仍处于开启状态</source>
+        <translation type="unfinished">The run has ended, but the device did not confirm the load switching off. The load may still be on.</translation>
     </message>
 </context>
 <context>
@@ -2362,12 +2367,12 @@
         <translation type="obsolete">Unrecognized action</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="41"/>
+        <location filename="device_panel_l1060.py" line="42"/>
         <source>安时</source>
         <translation type="unfinished">Ah</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="42"/>
+        <location filename="device_panel_l1060.py" line="43"/>
         <source>瓦时</source>
         <translation type="unfinished">Wh</translation>
     </message>
@@ -2392,7 +2397,7 @@
         <translation type="obsolete">Target</translation>
     </message>
     <message>
-        <location filename="device_panel_l1060.py" line="47"/>
+        <location filename="device_panel_l1060.py" line="48"/>
         <source>扫描目标</source>
         <translation type="unfinished">Sweep Target</translation>
     </message>
@@ -3116,7 +3121,7 @@
 <context>
     <name>P906DevicePanel</name>
     <message>
-        <location filename="device_panel_p906.py" line="1089"/>
+        <location filename="device_panel_p906.py" line="1536"/>
         <source>警告</source>
         <translation type="unfinished">Warning</translation>
     </message>
@@ -3126,57 +3131,57 @@
         <translation type="unfinished">Sure you want to turn on the output?</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="551"/>
+        <location filename="device_panel_p906.py" line="558"/>
         <source>选择预设</source>
         <translation type="unfinished">Select Preset</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="575"/>
+        <location filename="device_panel_p906.py" line="582"/>
         <source>保存成功</source>
         <translation type="unfinished">Save OK</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="578"/>
+        <location filename="device_panel_p906.py" line="585"/>
         <source>保存预设失败</source>
         <translation type="unfinished">Save failed</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="579"/>
+        <location filename="device_panel_p906.py" line="586"/>
         <source>保存失败</source>
         <translation type="unfinished">Save failed</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="1553"/>
+        <location filename="device_panel_p906.py" line="1570"/>
         <source>保存</source>
         <translation type="unfinished">Save</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="1428"/>
+        <location filename="device_panel_p906.py" line="1437"/>
         <source>非法参数</source>
         <translation type="unfinished">Illegal Parameters</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="1317"/>
+        <location filename="device_panel_p906.py" line="1326"/>
         <source>功能已关闭</source>
         <translation type="unfinished">Disabled</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="904"/>
+        <location filename="device_panel_p906.py" line="911"/>
         <source>功能已开启</source>
         <translation type="unfinished">Enabled</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="1551"/>
+        <location filename="device_panel_p906.py" line="1568"/>
         <source>错误</source>
         <translation type="unfinished">Error</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="656"/>
+        <location filename="device_panel_p906.py" line="663"/>
         <source>扫描响应记录为空</source>
         <translation type="unfinished">Scan response record is empty</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="661"/>
+        <location filename="device_panel_p906.py" line="668"/>
         <source>扫描响应结果曲线</source>
         <translation type="unfinished">Scan Response Result Curve</translation>
     </message>
@@ -3206,92 +3211,92 @@
         <translation type="obsolete">Noise</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="1270"/>
+        <location filename="device_panel_p906.py" line="1277"/>
         <source>打开</source>
         <translation type="unfinished">Open</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="1553"/>
+        <location filename="device_panel_p906.py" line="1570"/>
         <source>CSV文件 (*.csv)</source>
         <translation type="unfinished">CSV files (*.csv)</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="906"/>
+        <location filename="device_panel_p906.py" line="913"/>
         <source>SOC</source>
         <translation type="unfinished">SOC</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="906"/>
+        <location filename="device_panel_p906.py" line="913"/>
         <source>电压</source>
         <translation type="unfinished">Voltage</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="1067"/>
+        <location filename="device_panel_p906.py" line="1074"/>
         <source>编辑动作</source>
         <translation type="unfinished">Edit action</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="1126"/>
+        <location filename="device_panel_p906.py" line="1133"/>
         <source>请输入延时时间:</source>
         <translation type="unfinished">Input delay time:</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="1145"/>
+        <location filename="device_panel_p906.py" line="1152"/>
         <source>请输入等待时间:</source>
         <translation type="unfinished">Input wait time:</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="1160"/>
+        <location filename="device_panel_p906.py" line="1167"/>
         <source>请输入电压值:</source>
         <translation type="unfinished">Input voltage-set:</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="1180"/>
+        <location filename="device_panel_p906.py" line="1187"/>
         <source>请输入电流值:</source>
         <translation type="unfinished">Input current-set:</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="1082"/>
+        <location filename="device_panel_p906.py" line="1089"/>
         <source>无法识别动作</source>
         <translation type="unfinished">Unrecognized action</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="1089"/>
+        <location filename="device_panel_p906.py" line="1096"/>
         <source>确定要清空序列吗？</source>
         <translation type="unfinished">Are you sure?</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="1106"/>
+        <location filename="device_panel_p906.py" line="1113"/>
         <source>编辑</source>
         <translation type="unfinished">Edit</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="1107"/>
+        <location filename="device_panel_p906.py" line="1114"/>
         <source>删除</source>
         <translation type="unfinished">Delete</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="1108"/>
+        <location filename="device_panel_p906.py" line="1115"/>
         <source>清空</source>
         <translation type="unfinished">Clear all</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="1180"/>
+        <location filename="device_panel_p906.py" line="1187"/>
         <source>添加动作</source>
         <translation type="unfinished">Add Action</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="1145"/>
+        <location filename="device_panel_p906.py" line="1152"/>
         <source>格式: 年-月-日 时:分:秒</source>
         <translation type="unfinished">Format: YYYY-MM-DD HH:MM:SS</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="1270"/>
+        <location filename="device_panel_p906.py" line="1277"/>
         <source>文本文件 (*.txt)</source>
         <translation type="unfinished">Text file (*.txt)</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="1290"/>
+        <location filename="device_panel_p906.py" line="1299"/>
         <source>数据验证错误: </source>
         <translation type="unfinished">Data validation failed: </translation>
     </message>
@@ -3341,104 +3346,109 @@
         <translation type="unfinished">NiMH/NiCd</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="1316"/>
+        <location filename="device_panel_p906.py" line="1325"/>
         <source>充电进行中</source>
         <translation type="unfinished">Charging in Progress</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="1439"/>
+        <location filename="device_panel_p906.py" line="1448"/>
         <source>停止充电</source>
         <translation type="unfinished">Stop Charging</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="1521"/>
+        <location filename="device_panel_p906.py" line="1532"/>
         <source>开始充电</source>
         <translation type="unfinished">Start Charging</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="1424"/>
+        <location filename="device_panel_p906.py" line="1433"/>
         <source>无法启动</source>
         <translation type="unfinished">Cannot Start</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="1527"/>
+        <location filename="device_panel_p906.py" line="1544"/>
         <source>预充</source>
         <translation type="unfinished">Precharge</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="1528"/>
+        <location filename="device_panel_p906.py" line="1545"/>
         <source>恒流</source>
         <translation type="unfinished">CC</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="1529"/>
+        <location filename="device_panel_p906.py" line="1546"/>
         <source>恒压</source>
         <translation type="unfinished">CV</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="1530"/>
+        <location filename="device_panel_p906.py" line="1547"/>
         <source>浮充</source>
         <translation type="unfinished">Float</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="1531"/>
+        <location filename="device_panel_p906.py" line="1548"/>
         <source>已结束</source>
         <translation type="unfinished">Done</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="1536"/>
+        <location filename="device_panel_p906.py" line="1553"/>
         <source>电流已降至截止电流</source>
         <translation type="unfinished">Current Fell to Cutoff</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="1537"/>
+        <location filename="device_panel_p906.py" line="1554"/>
         <source>检测到-ΔV</source>
         <translation type="unfinished">-ΔV Detected</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="1538"/>
+        <location filename="device_panel_p906.py" line="1555"/>
         <source>已达到电压上限</source>
         <translation type="unfinished">Voltage Ceiling Reached</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="1539"/>
+        <location filename="device_panel_p906.py" line="1556"/>
         <source>已达到最大时长</source>
         <translation type="unfinished">Max Duration Reached</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="1540"/>
+        <location filename="device_panel_p906.py" line="1557"/>
         <source>已达到最大容量</source>
         <translation type="unfinished">Max Capacity Reached</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="1541"/>
+        <location filename="device_panel_p906.py" line="1558"/>
         <source>已达到最大能量</source>
         <translation type="unfinished">Max Energy Reached</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="1542"/>
+        <location filename="device_panel_p906.py" line="1559"/>
         <source>输出已关闭</source>
         <translation type="unfinished">Output Off</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="1543"/>
+        <location filename="device_panel_p906.py" line="1560"/>
         <source>设备错误</source>
         <translation type="unfinished">Device Error</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="1544"/>
+        <location filename="device_panel_p906.py" line="1561"/>
         <source>用户停止</source>
         <translation type="unfinished">User Stop</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="1545"/>
+        <location filename="device_panel_p906.py" line="1562"/>
         <source>已断开连接</source>
         <translation type="unfinished">Disconnected</translation>
     </message>
     <message>
-        <location filename="device_panel_p906.py" line="1551"/>
+        <location filename="device_panel_p906.py" line="1568"/>
         <source>充电记录为空</source>
         <translation type="unfinished">Charge Record is Empty</translation>
+    </message>
+    <message>
+        <location filename="device_panel_p906.py" line="1536"/>
+        <source>充电已结束, 但关闭输出未得到设备确认, 输出可能仍处于开启状态</source>
+        <translation type="unfinished">The charge has ended, but the device did not confirm the output switching off. The output may still be on.</translation>
     </message>
 </context>
 <context>

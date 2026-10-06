@@ -22,7 +22,7 @@ class MDP_L1060(MDPDevice):
         idcode: Optional[str] = None,
         m01_channel: int = 0,
         led_color: Tuple[int, int, int] = (0x66, 0xCC, 0xFF),
-        com_timeout: Optional[float] = 0.04,
+        com_timeout: Optional[float] = None,
         com_retry: int = 5,
         blink: bool = True,
         debug: bool = False,
@@ -35,7 +35,7 @@ class MDP_L1060(MDPDevice):
             idcode (Optional[str]): ID code of the MDP-L1060, set to None then call bus.auto_match() to get idcode.
             m01_channel (int): Simulate the MDP-M01, this number shows on top-right of L1060's LCD.
             led_color (Tuple[int, int, int]): Color of the digital wheel of the L1060, in RGB format.
-            com_timeout (Optional[float]): Communication timeout in seconds between L1060 and the adapter.
+            com_timeout (Optional[float]): Communication timeout in seconds between L1060 and the adapter; None uses bus.com_timeout.
             com_retry (int): Communication retry times when timeout occurs.
             blink (bool): Whether to blink the "under-control" indicator of the L1060.
             debug (bool): Show debug info.

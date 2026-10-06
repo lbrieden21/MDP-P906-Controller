@@ -64,9 +64,9 @@ class MDPBus:
         # WiFi adds a network connect in front of the adapter's 1s ECHO
         # cadence, on top of a few ms of per-request jitter -- see
         # plans/nrf_adapter_esp32_wifi_link_plan.md, "Host side: the timeout
-        # budget". Both the connect wait and every device's default
-        # com_timeout are widened for a tcp:// port; a serial port keeps the
-        # tighter wired-link budgets unchanged.
+        # budget". Both the connect wait and com_timeout (the default for
+        # every device constructed without its own) are widened for a
+        # tcp:// port; a serial port keeps the tighter wired-link budgets.
         self._is_tcp = bool(port) and port.startswith("tcp://")
         self.com_timeout = 0.08 if self._is_tcp else 0.04
 

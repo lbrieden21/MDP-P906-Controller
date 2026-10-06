@@ -137,8 +137,7 @@ _DISCHARGE_LIMIT_SPINBOX = {
 # Polling cadence for live elapsed/Ah/Wh readouts and termination checks.
 # Full-rate Ah/Wh integration itself happens in state_callback(), not here.
 _DISCHARGE_TICK_MS = 200
-# Polling cadence for Delay/Wait boundaries and cross-mode SET writes -- not
-# the P906 1 ms busy timer (see l1060_workflows_plan.md Phase 3).
+# Polling cadence for Delay/Wait boundaries and cross-mode SET writes.
 _SEQUENCE_TICK_MS = 50
 # A target page landing sooner than this after the panel wrote that target
 # may answer a request queued ahead of the write, so it isn't synced back.
@@ -440,8 +439,12 @@ class L1060DevicePanel(DevicePanelBase):
         for widgets in self._aux_start_widgets.values():
             for widget in widgets:
                 widget.setEnabled(True)
-        if not leave_on:
-            self._confirmed_load_off()
+        if not leave_on and self.api is not None and not self._confirmed_load_off():
+            CustomMessageBox(
+                self,
+                self.tr("警告"),
+                self.tr("运行已结束, 但关闭负载未得到设备确认, 负载可能仍处于开启状态"),
+            )
 
     def _aux_leave_on(self, name: str) -> bool:
         return getattr(self.ui, _AUX_LEAVE_ON_CHECKBOX[name]).isChecked()

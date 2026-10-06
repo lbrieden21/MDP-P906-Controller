@@ -57,7 +57,7 @@ class MDPDevice:
         idcode: Optional[str] = None,
         m01_channel: int = 0,
         led_color: Tuple[int, int, int] = (0x66, 0xCC, 0xFF),
-        com_timeout: Optional[float] = 0.04,
+        com_timeout: Optional[float] = None,
         com_retry: int = 5,
         blink: bool = True,
         debug: bool = False,
@@ -68,7 +68,7 @@ class MDPDevice:
             idcode (Optional[str]): ID code of the device, set to None then call bus.auto_match() to get idcode.
             m01_channel (int): Simulate the MDP-M01, this number shows on top-right of the device's LCD.
             led_color (Tuple[int, int, int]): Color of the digital wheel of the device, in RGB format.
-            com_timeout (Optional[float]): Communication timeout in seconds between the device and the adapter.
+            com_timeout (Optional[float]): Communication timeout in seconds between the device and the adapter; None uses bus.com_timeout.
             com_retry (int): Communication retry times when timeout occurs.
             blink (bool): Whether to blink the "under-control" indicator of the device.
             debug (bool): Show debug info.
@@ -78,7 +78,7 @@ class MDPDevice:
         self._idcode = _hex_to_bytes(idcode) if idcode is not None else None
         self._m01_channel = m01_channel
         self._led_color = _convert_to_rgb565(*led_color)
-        self._com_timeout = com_timeout
+        self._com_timeout = com_timeout if com_timeout is not None else bus.com_timeout
         self._com_retry = com_retry
         self._blink = blink
         self._debug = debug
@@ -95,7 +95,7 @@ class MDPDevice:
         return self._idcode
 
     @property
-    def com_timeout(self) -> Optional[float]:
+    def com_timeout(self) -> float:
         return self._com_timeout
 
     @property

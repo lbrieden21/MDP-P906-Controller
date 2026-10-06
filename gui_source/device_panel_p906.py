@@ -336,10 +336,17 @@ class P906DevicePanel(DevicePanelBase):
             )
             if not ok:
                 return
+        self._apply_output(value)
+
+    def _apply_output(self, value: bool) -> bool:
+        """Write the output state and confirm it by readback. Returns whether
+        the device confirmed it; the panel re-syncs to the device-reported
+        state either way."""
         self._output_state = value
         self._last_state_change_t = time.perf_counter()
-        self.api.set_output(self._output_state)
+        ok = self.api.set_output(value)
         self.update_state()
+        return ok
 
     def update_state(self):
         if self.api is None:
@@ -1516,13 +1523,21 @@ class P906DevicePanel(DevicePanelBase):
             self._stable_callback = None
         self._update_charge_labels()
         self._charge_controller = None
-        self.output_state = False
+        # Written directly rather than through the output_state setter, which
+        # skips a write matching the cached state.
+        off_unconfirmed = self.api is not None and not self._apply_output(False)
         self.ui.scrollAreaCharge.setEnabled(True)
         self.ui.spinBoxVoltage.setEnabled(not self.locked)
         self.ui.spinBoxCurrent.setEnabled(not self.locked)
         self.ui.btnCharge.setText(self.tr("开始充电"))
         self.ui.labelChargePhase.setText(self._charge_phase_text(PHASE_DONE))
         self.ui.labelChargeReason.setText(self._charge_reason_text(reason))
+        if off_unconfirmed:
+            CustomMessageBox(
+                self,
+                self.tr("警告"),
+                self.tr("充电已结束, 但关闭输出未得到设备确认, 输出可能仍处于开启状态"),
+            )
 
     def _charge_phase_text(self, phase: str) -> str:
         return {
